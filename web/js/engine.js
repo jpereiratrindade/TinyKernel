@@ -1134,6 +1134,50 @@ class TkEngine {
     return study;
   }
 
+  // Study normalization helper for robust schema compatibility
+  normalizeStudy(st) {
+    if (!st || typeof st !== "object") return null;
+    if (!st.investigation) {
+      st.investigation = {
+        id: st.id || "TK-CUSTOM",
+        schema_version: 1,
+        ontology_version: "0.2.0",
+        title: st.title || st.name || "Investigação Customizada",
+        status: "executed"
+      };
+    }
+
+    if (typeof st.phenomenon === "string") {
+      st.phenomenon = { id: `${st.investigation.id}:P`, name: st.phenomenon, description: st.phenomenon };
+    } else if (!st.phenomenon) {
+      st.phenomenon = { id: `${st.investigation.id}:P`, name: st.investigation.title || st.investigation.id, description: "Sem descrição formal." };
+    } else {
+      if (!st.phenomenon.name) st.phenomenon.name = st.investigation.title || st.investigation.id;
+      if (!st.phenomenon.description && st.phenomenon.definition) st.phenomenon.description = st.phenomenon.definition;
+    }
+
+    if (typeof st.context === "string") {
+      st.context = { id: `${st.investigation.id}:C`, description: st.context };
+    } else if (!st.context) {
+      st.context = { id: `${st.investigation.id}:C`, description: "Execução local determinística." };
+    }
+
+    st.constitutive_profile = st.constitutive_profile || { dimensions: [], essential_relations: [], temporal_bounds: [] };
+    if (!st.constitutive_profile.dimensions) st.constitutive_profile.dimensions = st.constitutive_profile.distinctions || [];
+    if (!st.constitutive_profile.essential_relations) st.constitutive_profile.essential_relations = st.constitutive_profile.relations || [];
+    if (!st.constitutive_profile.temporal_bounds) st.constitutive_profile.temporal_bounds = st.constitutive_profile.temporal_constraints || [];
+
+    st.realizations = Array.isArray(st.realizations) ? st.realizations : [];
+    st.interventions = Array.isArray(st.interventions) ? st.interventions : [];
+    st.runs = Array.isArray(st.runs) ? st.runs : [];
+    st.evidence = Array.isArray(st.evidence) ? st.evidence : [];
+    st.witnesses = Array.isArray(st.witnesses) ? st.witnesses : [];
+    st.claims = Array.isArray(st.claims) ? st.claims : [];
+    st.adjudications = Array.isArray(st.adjudications) ? st.adjudications : [];
+
+    return st;
+  }
+
   // Workspace Storage Management (Local Repository)
   async getAllStudies() {
     let custom = [];
@@ -1155,13 +1199,19 @@ class TkEngine {
     map.set("TK-0001", defaultTk0001);
     map.set("TK-SAIT-001", defaultTkSait001);
 
-    for (const st of custom) {
-      if (st && st.investigation && st.investigation.id) {
-        map.set(st.investigation.id, st);
+    if (Array.isArray(custom)) {
+      for (const rawSt of custom) {
+        const st = this.normalizeStudy(rawSt);
+        if (st && st.investigation && st.investigation.id) {
+          // If the user created a custom investigation, include it in the map
+          if (st.investigation.id !== "TK-0000" && st.investigation.id !== "TK-0001" && st.investigation.id !== "TK-SAIT-001") {
+            map.set(st.investigation.id, st);
+          }
+        }
       }
     }
 
-    return Array.from(map.values());
+    return Array.from(map.values()).map(s => this.normalizeStudy(s));
   }
 
   async getStudy(id) {
@@ -1172,10 +1222,16 @@ class TkEngine {
   saveStudy(study) {
     if (typeof localStorage === "undefined") return;
     try {
+      const normalized = this.normalizeStudy(study);
+      if (!normalized || !normalized.investigation || !normalized.investigation.id) return;
       const raw = localStorage.getItem(this.storageKey);
       let list = raw ? JSON.parse(raw) : [];
-      list = list.filter(s => s.investigation.id !== study.investigation.id);
-      list.push(study);
+      if (!Array.isArray(list)) list = [];
+      list = list.filter(s => {
+        const sid = s && s.investigation && s.investigation.id ? s.investigation.id : (s && s.id ? s.id : null);
+        return sid !== normalized.investigation.id;
+      });
+      list.push(normalized);
       localStorage.setItem(this.storageKey, JSON.stringify(list));
     } catch (e) {
       console.warn("Falha ao salvar no localStorage", e);
@@ -1188,7 +1244,11 @@ class TkEngine {
     try {
       const raw = localStorage.getItem(this.storageKey);
       let list = raw ? JSON.parse(raw) : [];
-      list = list.filter(s => s.investigation.id !== id);
+      if (!Array.isArray(list)) list = [];
+      list = list.filter(s => {
+        const sid = s && s.investigation && s.investigation.id ? s.investigation.id : (s && s.id ? s.id : null);
+        return sid !== id;
+      });
       localStorage.setItem(this.storageKey, JSON.stringify(list));
     } catch (e) {
       console.warn("Falha ao deletar do localStorage", e);

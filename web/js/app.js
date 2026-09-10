@@ -115,110 +115,122 @@ document.addEventListener("DOMContentLoaded", async () => {
   // VIEW 1: LAB HOME (CATALOG OF INVESTIGATIONS)
   // ========================================================
   async function renderLabHome() {
-    const studies = await window.tkEngine.getAllStudies();
+    try {
+      const studies = await window.tkEngine.getAllStudies();
 
-    // Global Stats
-    let totalEvidence = 0;
-    let totalClaims = 0;
-    studies.forEach(s => {
-      totalEvidence += (s.evidence || []).length;
-      totalClaims += (s.claims || []).filter(c => c.status === "supported").length;
-    });
-
-    document.getElementById("global-stat-investigations").textContent = studies.length;
-    document.getElementById("global-stat-evidence").textContent = totalEvidence;
-    document.getElementById("global-stat-claims").textContent = totalClaims;
-
-    const grid = document.getElementById("investigations-grid-container");
-    grid.innerHTML = "";
-
-    studies.forEach(study => {
-      const inv = study.investigation;
-      const isCanonical = inv.id === "TK-0001";
-      const isSanity = inv.id === "TK-0000";
-      const isBenchmark = inv.id === "TK-SAIT-001";
-      
-      let badgeCategory = "user";
-      let badgeText = "Investigação Inédita";
-      if (isCanonical) {
-        badgeCategory = "canonical";
-        badgeText = "Canônico • Referência";
-      } else if (isSanity) {
-        badgeCategory = "sanity";
-        badgeText = "Sanity • Bootstrap";
-      } else if (isBenchmark) {
-        badgeCategory = "benchmark";
-        badgeText = "Benchmark Territorial";
-      }
-
-      const invStatus = inv.status || "executed";
-      const statusClass = invStatus === "formulated" ? "formulated" : (invStatus === "materialized" ? "materialized" : "executed");
-      const statusText = invStatus.toUpperCase();
-
-      const supportedClaims = (study.claims || []).filter(c => c.status === "supported").length;
-      const empiricalEvCount = (study.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
-      const structuralEvCount = (study.evidence || []).length - empiricalEvCount;
-
-      const card = document.createElement("div");
-      card.className = "investigation-card";
-      card.innerHTML = `
-        <div class="card-top">
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <span class="card-id">${inv.id}</span>
-            <span class="card-status-badge ${statusClass}">${statusText}</span>
-          </div>
-          <span class="card-category-badge ${badgeCategory}">${badgeText}</span>
-        </div>
-        <div class="card-title">${inv.title || study.phenomenon.name}</div>
-        <div class="card-desc">${study.phenomenon.description || "Sem descrição"}</div>
-        <div class="card-metrics">
-          <div class="metric-item">
-            <span class="label">Realizações</span>
-            <span class="value">${(study.realizations || []).length}</span>
-          </div>
-          <div class="metric-item">
-            <span class="label">Intervenções</span>
-            <span class="value">${(study.interventions || []).length}</span>
-          </div>
-          <div class="metric-item">
-            <span class="label">Evidências Emp.</span>
-            <span class="value" style="color: ${empiricalEvCount > 0 ? "var(--status-preserved)" : "var(--muted)};">${empiricalEvCount}</span>
-          </div>
-        </div>
-        <div class="card-footer">
-          <span>Claims: <strong style="color: var(--status-ready);">${supportedClaims}/${(study.claims || []).length}</strong></span>
-          <span style="color: var(--accent); font-weight: 600;">Abrir Workbench &rarr;</span>
-        </div>
-      `;
-
-      card.addEventListener("click", () => {
-        openStudyWorkbench(inv.id);
+      // Global Stats
+      let totalEvidence = 0;
+      let totalClaims = 0;
+      studies.forEach(s => {
+        totalEvidence += (s.evidence || []).length;
+        totalClaims += (s.claims || []).filter(c => c.status === "supported").length;
       });
 
-      grid.appendChild(card);
-    });
+      const elInv = document.getElementById("global-stat-investigations");
+      const elEv = document.getElementById("global-stat-evidence");
+      const elCl = document.getElementById("global-stat-claims");
+      if (elInv) elInv.textContent = studies.length;
+      if (elEv) elEv.textContent = totalEvidence;
+      if (elCl) elCl.textContent = totalClaims;
 
-    // Add New Investigation Card
-    const addCard = document.createElement("div");
-    addCard.className = "add-investigation-card";
-    addCard.innerHTML = `
-      <div class="add-icon">+</div>
-      <div style="font-weight: 700; font-size: 1rem; color: var(--fg);">Formular Nova Investigação</div>
-      <div style="font-size: 0.78rem; text-align: center; max-width: 240px;">
-        Defina um novo fenômeno, contexto, perfil constitutivo e realize intervenções causais.
-      </div>
-    `;
-    addCard.addEventListener("click", () => {
-      switchView("wizard");
-    });
-    grid.appendChild(addCard);
+      const grid = document.getElementById("investigations-grid-container");
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      studies.forEach(study => {
+        if (!study || !study.investigation) return;
+        const inv = study.investigation;
+        const isCanonical = inv.id === "TK-0001";
+        const isSanity = inv.id === "TK-0000";
+        const isBenchmark = inv.id === "TK-SAIT-001";
+        
+        let badgeCategory = "user";
+        let badgeText = "Investigação Inédita";
+        if (isCanonical) {
+          badgeCategory = "canonical";
+          badgeText = "Canônico • Referência";
+        } else if (isSanity) {
+          badgeCategory = "sanity";
+          badgeText = "Sanity • Bootstrap";
+        } else if (isBenchmark) {
+          badgeCategory = "benchmark";
+          badgeText = "Benchmark Territorial";
+        }
+
+        const invStatus = inv.status || "executed";
+        const statusClass = invStatus === "formulated" ? "formulated" : (invStatus === "materialized" ? "materialized" : "executed");
+        const statusText = invStatus.toUpperCase();
+
+        const title = inv.title || (study.phenomenon && study.phenomenon.name) || inv.id;
+        const desc = (study.phenomenon && (study.phenomenon.description || study.phenomenon.definition)) || "Sem descrição";
+
+        const supportedClaims = (study.claims || []).filter(c => c.status === "supported").length;
+        const empiricalEvCount = (study.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
+        const structuralEvCount = (study.evidence || []).length - empiricalEvCount;
+
+        const card = document.createElement("div");
+        card.className = "investigation-card";
+        card.innerHTML = `
+          <div class="card-top">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="card-id">${inv.id}</span>
+              <span class="card-status-badge ${statusClass}">${statusText}</span>
+            </div>
+            <span class="card-category-badge ${badgeCategory}">${badgeText}</span>
+          </div>
+          <div class="card-title">${title}</div>
+          <div class="card-desc">${desc}</div>
+          <div class="card-metrics">
+            <div class="metric-item">
+              <span class="label">Realizações</span>
+              <span class="value">${(study.realizations || []).length}</span>
+            </div>
+            <div class="metric-item">
+              <span class="label">Intervenções</span>
+              <span class="value">${(study.interventions || []).length}</span>
+            </div>
+            <div class="metric-item">
+              <span class="label">Evidências Emp.</span>
+              <span class="value" style="color: ${empiricalEvCount > 0 ? "var(--status-preserved)" : "var(--muted)};">${empiricalEvCount}</span>
+            </div>
+          </div>
+          <div class="card-footer">
+            <span>Claims: <strong style="color: var(--status-ready);">${supportedClaims}/${(study.claims || []).length}</strong></span>
+            <span style="color: var(--accent); font-weight: 600;">Abrir Workbench &rarr;</span>
+          </div>
+        `;
+
+        card.addEventListener("click", () => {
+          openStudyWorkbench(inv.id);
+        });
+
+        grid.appendChild(card);
+      });
+
+      // Add New Investigation Card
+      const addCard = document.createElement("div");
+      addCard.className = "add-investigation-card";
+      addCard.innerHTML = `
+        <div class="add-icon">+</div>
+        <div style="font-weight: 700; font-size: 1rem; color: var(--fg);">Formular Nova Investigação</div>
+        <div style="font-size: 0.78rem; text-align: center; max-width: 240px;">
+          Defina um novo fenômeno, contexto, perfil constitutivo e realize intervenções causais.
+        </div>
+      `;
+      addCard.addEventListener("click", () => {
+        switchView("wizard");
+      });
+      grid.appendChild(addCard);
+    } catch (err) {
+      console.error("Erro ao renderizar Lab Home:", err);
+    }
   }
 
   async function openStudyWorkbench(studyId) {
     state.activeStudyId = studyId;
     state.activeStudy = await window.tkEngine.getStudy(studyId);
     state.selectedEntity = null;
-    state.activeRunId = state.activeStudy && state.activeStudy.runs.length ? state.activeStudy.runs[0].id : null;
+    state.activeRunId = state.activeStudy && state.activeStudy.runs && state.activeStudy.runs.length ? state.activeStudy.runs[0].id : null;
     switchView("workbench");
   }
 
