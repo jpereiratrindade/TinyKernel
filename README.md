@@ -90,3 +90,15 @@ A fonte editorial em LaTeX é preservada em:
 O documento é pré-implementação e falsificável. Ele não constitui evidência
 experimental de que um Kernel exista, seja único ou possa ser descoberto por
 intervenções subtrativas.
+
+## Notas conceituais abertas
+
+Desenvolvimentos posteriores ao documento fundador são preservados como notas
+independentes e não reescrevem retroativamente o estado anterior.
+
+- `docs/notes/TK-NOTE-001-ontologia-coerencia-perturbacao-reconfiguracao-resiliencia.md`
+  — investiga a relação candidata entre ontologia, coerência, perturbação,
+  reconfiguração e resiliência, incluindo a hipótese de que Kernel possa ser
+  o mínimo causal que preserva a possibilidade de reconfiguração coerente.
+
+Essas notas são hipóteses abertas e não constituem autoridade de implementação.
