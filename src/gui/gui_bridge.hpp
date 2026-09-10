@@ -57,6 +57,7 @@ public:
   Q_INVOKABLE void injectObservation(const QString &realizationId, const QString &dimension,
                                     bool satisfied, const QString &trace);
   Q_INVOKABLE void adjudicateWitnesses();
+  Q_INVOKABLE void inferClaims();
 
 signals:
   void dataChanged();

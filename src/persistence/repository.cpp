@@ -188,7 +188,8 @@ void Repository::initialize() {
       status TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS evidence_records(
       id TEXT PRIMARY KEY REFERENCES entities(id), investigation_id TEXT NOT NULL, run_id TEXT NOT NULL,
-      witness_id TEXT NOT NULL, artifact TEXT NOT NULL, sha256 TEXT NOT NULL);
+      witness_id TEXT NOT NULL, artifact TEXT NOT NULL, sha256 TEXT NOT NULL,
+      evidence_type TEXT NOT NULL DEFAULT 'EMPIRICAL_OBSERVATION');
     CREATE TABLE IF NOT EXISTS evidence_observations(
       evidence_id TEXT NOT NULL REFERENCES evidence_records(id), observation_id TEXT NOT NULL,
       ordinal INTEGER NOT NULL, PRIMARY KEY(evidence_id,ordinal));
@@ -272,20 +273,21 @@ void Repository::save(const Study &study) {
     }
 
     for (const auto &item : study.evidence) {
-      Statement existing(impl_->database, "SELECT artifact,sha256 FROM evidence_records WHERE id=?");
+      Statement existing(impl_->database, "SELECT artifact,sha256,evidence_type FROM evidence_records WHERE id=?");
       existing.bind(1, item.identity.id);
       if (existing.step_row()) {
-        if (existing.text(0) != item.artifact || existing.text(1) != item.sha256) {
+        if (existing.text(0) != item.artifact || existing.text(1) != item.sha256 || existing.text(2) != to_string(item.evidence_type)) {
           throw std::runtime_error("evidence is immutable: " + item.identity.id);
         }
         continue;
       }
-      save_entity(impl_->database, item.identity, inv, "Evidence");
+      save_entity(impl_->database, item.identity, inv, "Evidence", {{"evidence_type", {to_string(item.evidence_type)}}});
       Statement statement(impl_->database, R"SQL(
-        INSERT INTO evidence_records(id,investigation_id,run_id,witness_id,artifact,sha256)
-        VALUES(?,?,?,?,?,?))SQL");
+        INSERT INTO evidence_records(id,investigation_id,run_id,witness_id,artifact,sha256,evidence_type)
+        VALUES(?,?,?,?,?,?,?))SQL");
       statement.bind(1, item.identity.id); statement.bind(2, inv); statement.bind(3, item.run_id);
       statement.bind(4, item.witness_id); statement.bind(5, item.artifact); statement.bind(6, item.sha256);
+      statement.bind(7, to_string(item.evidence_type));
       statement.step_done();
       for (std::size_t ordinal = 0; ordinal < item.observation_ids.size(); ++ordinal) {
         Statement observation(impl_->database,
@@ -411,11 +413,11 @@ Study Repository::load(const std::string &inv) const {
   }
   {
     Statement statement(impl_->database, R"SQL(
-      SELECT id,run_id,witness_id,artifact,sha256 FROM evidence_records
+      SELECT id,run_id,witness_id,artifact,sha256,evidence_type FROM evidence_records
       WHERE investigation_id=? ORDER BY id)SQL");
     statement.bind(1, inv);
     while (statement.step_row()) {
-      Evidence item{require_identity(impl_->database, statement.text(0)), statement.text(1), statement.text(2), {}, statement.text(3), statement.text(4)};
+      Evidence item{require_identity(impl_->database, statement.text(0)), statement.text(1), statement.text(2), {}, statement.text(3), statement.text(4), evidence_type_from_string(statement.text(5))};
       Statement observations(impl_->database,
           "SELECT observation_id FROM evidence_observations WHERE evidence_id=? ORDER BY ordinal");
       observations.bind(1, item.identity.id);

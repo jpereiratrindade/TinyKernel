@@ -970,6 +970,10 @@ class TkEngine {
       evidence_type: "STRUCTURAL_RECORD"
     });
 
+    if (study.investigation.status === "formulated" || !study.investigation.status) {
+      study.investigation.status = "materialized";
+    }
+
     return study;
   }
 
@@ -1063,7 +1067,7 @@ class TkEngine {
     return study;
   }
 
-  // Explicit Adjudication: Evaluates all empirical evidence and updates claims
+  // Explicit Adjudication: Evaluates all empirical evidence without promoting claims
   async adjudicateWitnesses(study) {
     const studyId = study.investigation.id;
     
@@ -1076,12 +1080,6 @@ class TkEngine {
       study.witnesses.every(w => baseObs.some(o => o.witness_kind === w.kind && o.satisfied));
 
     if (allWitnessesSatisfied) {
-      const suffClaim = study.claims.find(c => c.id.includes(":Q:SUFFICIENCY"));
-      if (suffClaim) {
-        suffClaim.status = "supported";
-        suffClaim.evidence_references = baseEmpiricalEv.map(e => e.id);
-        suffClaim.limitations = "Sustentado sob validação empírica de todos os witnesses preregistrados.";
-      }
       if (baseRealization) baseRealization.outcome = "preserving";
 
       // Record baseline adjudication
@@ -1100,33 +1098,106 @@ class TkEngine {
       });
     }
 
-    // 2. Check performed interventions
+    // 2. Check performed interventions with strict dimensional classification
     for (const itv of study.interventions) {
       if (itv.status === "performed" && itv.target) {
         const targetId = itv.target;
         const targetObs = study.observations.filter(o => o.realization_id === targetId);
-        const targetEv = study.evidence.filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" && e.artifact.includes(targetId));
-        const hasBroken = targetObs.some(o => !o.satisfied);
+        const targetEv = study.evidence.filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" && (e.artifact.includes(targetId) || (e.run_id && e.run_id.includes(targetId))));
 
-        if (allWitnessesSatisfied && hasBroken && itv.target_component) {
-          const runId = `${studyId}:RUN:${itv.kind.toUpperCase()}_${itv.target_component}`;
-          study.adjudications = (study.adjudications || []).filter(a => a.run_id !== runId);
+        // Retrieve actual empirical run ID
+        let actualRunId = `${studyId}:RUN:${targetId.split(":").slice(2).join("_")}`;
+        const runFound = study.runs.find(r => r.target_realization_id === targetId || r.result_realization_id === targetId);
+        if (runFound) actualRunId = runFound.id;
+
+        if (targetObs.length > 0) {
+          let classification = "PRESERVED";
+          let outcome = "preserving";
+          let rationale = "Todos os witnesses observados foram satisfeitos.";
+
+          const hasBrokenObservational = targetObs.some(o => o.witness_kind === "observational" && !o.satisfied);
+          const hasBrokenCausal = targetObs.some(o => o.witness_kind === "causal" && !o.satisfied);
+          const hasBrokenOperational = targetObs.some(o => o.witness_kind === "operational" && !o.satisfied);
+          const hasBrokenDiscriminative = targetObs.some(o => o.witness_kind === "discriminative" && !o.satisfied);
+          const hasBrokenTemporal = targetObs.some(o => o.witness_kind === "temporal" && !o.satisfied);
+
+          if (hasBrokenObservational) {
+            classification = "WITNESS_COMPROMISED";
+            outcome = "undetermined";
+            rationale = "Aparato observacional incapaz de medir determinismo.";
+          } else if (hasBrokenCausal) {
+            classification = "BROKEN_CAUSAL";
+            outcome = "ruptured";
+            rationale = "Ruptura causal empírica observada após intervenção.";
+          } else if (hasBrokenOperational) {
+            classification = "BROKEN_OPERATIONAL";
+            outcome = "ruptured";
+            rationale = "Ruptura operacional observada após intervenção.";
+          } else if (hasBrokenDiscriminative) {
+            classification = "BROKEN_DISCRIMINATIVE";
+            outcome = "ruptured";
+            rationale = "Ruptura discriminativa observada após intervenção.";
+          } else if (hasBrokenTemporal) {
+            classification = "BROKEN_TEMPORAL";
+            outcome = "ruptured";
+            rationale = "Ruptura temporal observada após intervenção.";
+          }
+
+          study.adjudications = (study.adjudications || []).filter(a => a.run_id !== actualRunId);
           study.adjudications.push({
-            id: `${runId}:A`,
+            id: `${actualRunId}:A`,
             schema_version: 1,
             ontology_version: "0.2.0",
-            run_id: runId,
-            outcome: "ruptured",
-            classification: "BROKEN_CAUSAL",
-            rule: "TK-O-0.2.0:causal-necessity-adjudication-v1",
-            rationale: "Ruptura causal observada após intervenção/remoção.",
+            run_id: actualRunId,
+            outcome: outcome,
+            classification: classification,
+            rule: "TK-O-0.2.0:dimensional-adjudication-v1",
+            rationale: rationale,
             evidence_references: targetEv.map(e => e.id)
           });
+        }
+      }
+    }
 
-          const claimId = `${studyId}:Q:${itv.target_component.toUpperCase()}_NECESSITY`;
-          let claim = study.claims.find(c => c.id === claimId);
+    study.investigation.status = "adjudicated";
+    return study;
+  }
+
+  // Explicit Inference: Evaluates claims from adjudications and promotes supported claims
+  async inferClaims(study) {
+    const studyId = study.investigation.id;
+
+    // 1. Evaluate baseline sufficiency (L2)
+    const baseRunId = `${studyId}:RUN:BASELINE_EMPIRICAL`;
+    const baseAdj = (study.adjudications || []).find(a => a.run_id === baseRunId && a.classification === "PRESERVED");
+    const suffClaim = (study.claims || []).find(c => c.id.includes(":Q:SUFFICIENCY") || c.level === "L2");
+
+    if (suffClaim) {
+      if (baseAdj) {
+        suffClaim.status = "supported";
+        suffClaim.evidence_references = baseAdj.evidence_references || [];
+        suffClaim.limitations = "Sustentado sob validação empírica de todos os witnesses preregistrados.";
+      } else {
+        suffClaim.status = "open";
+      }
+    }
+
+    // 2. Evaluate relative necessity (L3)
+    for (const itv of study.interventions || []) {
+      if (itv.status === "performed" && itv.target && itv.target_component) {
+        const targetId = itv.target;
+        let actualRunId = `${studyId}:RUN:${targetId.split(":").slice(2).join("_")}`;
+        const runFound = (study.runs || []).find(r => r.target_realization_id === targetId || r.result_realization_id === targetId);
+        if (runFound) actualRunId = runFound.id;
+
+        const itvAdj = (study.adjudications || []).find(a => a.run_id === actualRunId && a.classification === "BROKEN_CAUSAL");
+        const claimId = `${studyId}:Q:${itv.target_component.toUpperCase()}_NECESSITY`;
+        let claim = (study.claims || []).find(c => c.id === claimId || (c.level === "L3" && c.subject === itv.target_component));
+
+        if (baseAdj && itvAdj) {
+          const combinedEv = [...(baseAdj.evidence_references || []), ...(itvAdj.evidence_references || [])];
           if (!claim) {
-            study.claims.splice(1, 0, {
+            claim = {
               id: claimId,
               schema_version: 1,
               ontology_version: "0.2.0",
@@ -1140,17 +1211,21 @@ class TkEngine {
               provenance_id: `${studyId}:PROV`,
               intervention_scope: [itv.id],
               witness_scope: [`${studyId}:W:CAUSAL`, `${studyId}:W:TEMPORAL`],
-              evidence_references: targetEv.map(e => e.id)
-            });
+              evidence_references: combinedEv
+            };
+            study.claims.splice(1, 0, claim);
           } else {
             claim.status = "supported";
-            claim.evidence_references = targetEv.map(e => e.id);
+            claim.evidence_references = combinedEv;
+            claim.intervention_scope = [itv.id];
           }
+        } else if (claim) {
+          claim.status = "open";
         }
       }
     }
 
-    study.investigation.status = "adjudicated";
+    study.investigation.status = "inferred";
     return study;
   }
 

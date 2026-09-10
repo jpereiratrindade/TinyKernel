@@ -105,7 +105,8 @@ void record_run(Study &study, const Realization &realization,
         "\ntrace=" + result.artifact + "\n";
     const std::string evidence_id = run_id + ":E:" + witness.kind;
     study.evidence.push_back({id(evidence_id), run_id, witness.identity.id,
-                              {observation_id}, artifact, evidence::sha256(artifact)});
+                              {observation_id}, artifact, evidence::sha256(artifact),
+                              ontology::EvidenceType::witness_adjudication});
     evidence_ids.push_back(evidence_id);
   }
   const auto classification = classification_for(result);
@@ -273,7 +274,7 @@ Study make_tk_sait_001() {
   const std::string artifact = "investigation=" + id_str + "\nstatus=formulated\nbaseline=untested\nplanned_interventions=6\nempirical_observations=0\n";
   s.evidence.push_back({id(id_str + ":E:STRUCTURAL_INTEGRITY"), id_str + ":RUN:SPECIFICATION",
                         id_str + ":W:OBSERVATIONAL", {}, artifact, evidence::sha256(artifact),
-                        "STRUCTURAL_RECORD"});
+                        ontology::EvidenceType::structural_record});
 
   s.claims.push_back({id(id_str + ":Q:SUFFICIENCY"), id_str + ":R:BASE",
                       "O arranjo territorial baseline é causalmente suficiente para sustentar o perfil de resiliência.",

@@ -62,7 +62,10 @@ if(BUILD_TESTING)
   foreach(case_name IN ITEMS
       identity graph interventions persistence evidence_immutable adjudication
       claim_limits frontier deterministic_export tk0001_e2e
-      sait_benchmark epistemic_non_implication)
+      sait_benchmark epistemic_non_implication
+      persistence_evidence_type_roundtrip export_evidence_type
+      epistemic_phase_separation adjudication_provenance_run_id
+      l3_strict_causal_gate)
     add_test(NAME "core.${case_name}" COMMAND tinykernel-tests "${case_name}")
   endforeach()
 

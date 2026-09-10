@@ -114,7 +114,8 @@ std::string deterministic_export(const Study &study) {
   out << ",\"evidence\":"; objects(out, study.evidence, [](auto &o, const auto &item) {
     identity(o, item.identity); o << ",\"run_id\":" << quote(item.run_id) << ",\"witness_id\":" << quote(item.witness_id)
       << ",\"observation_ids\":"; strings(o, item.observation_ids);
-    o << ",\"artifact\":" << quote(item.artifact) << ",\"sha256\":" << quote(item.sha256);
+    o << ",\"artifact\":" << quote(item.artifact) << ",\"sha256\":" << quote(item.sha256)
+      << ",\"evidence_type\":" << quote(to_string(item.evidence_type));
   });
   out << ",\"adjudications\":"; objects(out, study.adjudications, [](auto &o, const auto &item) {
     identity(o, item.identity); o << ",\"run_id\":" << quote(item.run_id) << ",\"outcome\":" << quote(to_string(item.outcome))

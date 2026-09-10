@@ -94,7 +94,8 @@ QVariantList GuiBridge::investigations() const {
     int empiricalCount = 0;
     int structuralCount = 0;
     for (const auto &e : s.evidence) {
-      if (e.evidence_type == "EMPIRICAL_OBSERVATION") empiricalCount++;
+      if (e.evidence_type == tinykernel::ontology::EvidenceType::empirical_observation ||
+          e.evidence_type == tinykernel::ontology::EvidenceType::witness_adjudication) empiricalCount++;
       else structuralCount++;
     }
     item["evidenceCount"] = static_cast<int>(s.evidence.size());
@@ -126,7 +127,8 @@ QVariantMap GuiBridge::globalStats() const {
   for (const auto &s : all_studies_) {
     totalEvidence += static_cast<int>(s.evidence.size());
     for (const auto &e : s.evidence) {
-      if (e.evidence_type == "EMPIRICAL_OBSERVATION") totalEmpiricalEvidence++;
+      if (e.evidence_type == tinykernel::ontology::EvidenceType::empirical_observation ||
+          e.evidence_type == tinykernel::ontology::EvidenceType::witness_adjudication) totalEmpiricalEvidence++;
       else totalStructuralEvidence++;
     }
     for (const auto &c : s.claims) {
@@ -390,7 +392,8 @@ void GuiBridge::createInvestigation(const QVariantMap &config) {
     // 1 structural integrity evidence record
     const std::string artifact = "investigation=" + id + "\nstatus=formulated\nbaseline=untested\ncomponents=" + std::to_string(comps.size()) + "\n";
     newStudy.evidence.push_back({make_id(id + ":E:STRUCTURAL_INTEGRITY"), id + ":RUN:SPECIFICATION",
-                                 id + ":W:OBSERVATIONAL", {}, artifact, tinykernel::evidence::sha256(artifact)});
+                                 id + ":W:OBSERVATIONAL", {}, artifact, tinykernel::evidence::sha256(artifact),
+                                 tinykernel::ontology::EvidenceType::structural_record});
 
     // Claims are OPEN until empirical observation is collected
     newStudy.claims.push_back({make_id(id + ":Q:SUFFICIENCY"), id + ":R:BASE",
@@ -456,27 +459,11 @@ void GuiBridge::injectObservation(const QString &realizationId, const QString &d
     if (evIt != study_.evidence.end()) {
       evIt->artifact = artifact;
       evIt->sha256 = tinykernel::evidence::sha256(artifact);
-      evIt->evidence_type = "EMPIRICAL_OBSERVATION";
+      evIt->evidence_type = tinykernel::ontology::EvidenceType::empirical_observation;
     } else {
       study_.evidence.push_back({make_id(evId), runId, witnessId, {obsId}, artifact,
-                                 tinykernel::evidence::sha256(artifact), "EMPIRICAL_OBSERVATION"});
-    }
-
-    // Update realization outcome based strictly on available observations
-    std::vector<bool> observedResults;
-    for (const auto &o : study_.observations) {
-      if (o.realization_id == rId) {
-        observedResults.push_back(o.satisfied);
-      }
-    }
-
-    auto realIt = std::find_if(study_.realizations.begin(), study_.realizations.end(), [&](const auto &r) { return r.identity.id == rId; });
-    if (realIt != study_.realizations.end()) {
-      bool anyBroken = std::any_of(observedResults.begin(), observedResults.end(), [](bool s) { return !s; });
-      if (anyBroken) {
-        // Any broken observation ruptures the realization outcome
-        // (outcome will be rendered properly in frontier analysis)
-      }
+                                 tinykernel::evidence::sha256(artifact),
+                                 tinykernel::ontology::EvidenceType::empirical_observation});
     }
 
     study_.investigation.status = "observed";
@@ -491,16 +478,16 @@ void GuiBridge::injectObservation(const QString &realizationId, const QString &d
 void GuiBridge::adjudicateWitnesses() {
   try {
     const std::string studyId = active_id_;
-    int supportedCount = 0;
+    int adjudicationsProduced = 0;
 
-    // 1. Evaluate baseline sufficiency (L2)
+    // 1. Evaluate baseline empirical observations
     const std::string baseRealizationId = studyId + ":R:BASE";
-    std::vector<std::string> baseWitnesses;
-    for (const auto &w : study_.witnesses) baseWitnesses.push_back(w.kind);
+    std::vector<std::string> baseWitnessKinds;
+    for (const auto &w : study_.witnesses) baseWitnessKinds.push_back(w.kind);
 
     int satisfiedCount = 0;
     std::vector<std::string> satisfiedEvIds;
-    for (const auto &dim : baseWitnesses) {
+    for (const auto &dim : baseWitnessKinds) {
       const auto obs = std::find_if(study_.observations.begin(), study_.observations.end(),
                                     [&](const auto &o) { return o.realization_id == baseRealizationId && o.dimension == dim; });
       if (obs != study_.observations.end() && obs->satisfied) {
@@ -510,80 +497,98 @@ void GuiBridge::adjudicateWitnesses() {
     }
 
     const bool baselinePreserved = (satisfiedCount == static_cast<int>(study_.witnesses.size()) && !study_.witnesses.empty());
-
     if (baselinePreserved) {
-      const std::string runId = studyId + ":RUN:BASELINE_EMPIRICAL";
-      auto adjIt = std::find_if(study_.adjudications.begin(), study_.adjudications.end(), [&](const auto &a) { return a.run_id == runId; });
+      const std::string baseRunId = studyId + ":RUN:BASELINE_EMPIRICAL";
+      auto adjIt = std::find_if(study_.adjudications.begin(), study_.adjudications.end(), [&](const auto &a) { return a.run_id == baseRunId; });
       if (adjIt != study_.adjudications.end()) {
         adjIt->outcome = tinykernel::ontology::Outcome::preserving;
         adjIt->classification = "PRESERVED";
         adjIt->rationale = "Todos os witnesses constitutivos foram empiricamente satisfeitos.";
         adjIt->evidence_references = satisfiedEvIds;
       } else {
-        study_.adjudications.push_back({make_id(runId + ":A"), runId,
+        study_.adjudications.push_back({make_id(baseRunId + ":A"), baseRunId,
                                         tinykernel::ontology::Outcome::preserving, "PRESERVED",
                                         "TK-O-0.2.0:all-constitutive-dimensions-v1",
                                         "Todos os witnesses constitutivos foram empiricamente satisfeitos.",
                                         satisfiedEvIds});
       }
-
-      auto suffClaim = std::find_if(study_.claims.begin(), study_.claims.end(),
-                                    [&](const auto &c) { return c.identity.id.find(":Q:SUFFICIENCY") != std::string::npos; });
-      if (suffClaim != study_.claims.end()) {
-        suffClaim->status = tinykernel::ontology::ClaimStatus::supported;
-        suffClaim->evidence_references = satisfiedEvIds;
-        suffClaim->limitations = "Sustentado sob validação empírica de todos os witnesses preregistrados.";
-        supportedCount++;
-      }
+      adjudicationsProduced++;
     }
 
-    // 2. Evaluate relative necessity (L3) for performed interventions
+    // 2. Evaluate performed interventions with strict dimensional classification
     for (auto &itv : study_.interventions) {
       if (itv.status == "performed" && itv.target_realization_id) {
         const std::string targetId = *itv.target_realization_id;
-        bool hasBrokenObservation = false;
+        
+        // Retrieve real observation run ID
+        std::string actualRunId = studyId + ":RUN:" + targetId;
+        auto runFound = std::find_if(study_.runs.begin(), study_.runs.end(),
+                                     [&](const auto &r) { return r.result_realization_id == targetId; });
+        if (runFound != study_.runs.end()) {
+          actualRunId = runFound->identity.id;
+        }
+
         std::vector<std::string> itvEvIds;
+        bool hasBrokenCausal = false;
+        bool hasBrokenOperational = false;
+        bool hasBrokenDiscriminative = false;
+        bool hasBrokenTemporal = false;
+        bool hasBrokenObservational = false;
 
         for (const auto &o : study_.observations) {
           if (o.realization_id == targetId) {
             itvEvIds.push_back(o.run_id + ":E:" + o.dimension);
-            if (!o.satisfied) hasBrokenObservation = true;
+            if (!o.satisfied) {
+              if (o.dimension == "causal") hasBrokenCausal = true;
+              else if (o.dimension == "operational") hasBrokenOperational = true;
+              else if (o.dimension == "discriminative") hasBrokenDiscriminative = true;
+              else if (o.dimension == "temporal") hasBrokenTemporal = true;
+              else if (o.dimension == "observational") hasBrokenObservational = true;
+            }
           }
         }
 
-        if (baselinePreserved && hasBrokenObservation && !itv.target.empty()) {
-          const std::string runId = studyId + ":RUN:" + itv.kind + "_" + itv.target;
-          auto adjIt = std::find_if(study_.adjudications.begin(), study_.adjudications.end(), [&](const auto &a) { return a.run_id == runId; });
-          if (adjIt != study_.adjudications.end()) {
-            adjIt->outcome = tinykernel::ontology::Outcome::ruptured;
-            adjIt->classification = "BROKEN_CAUSAL";
-            adjIt->rationale = "Ruptura empírica observada após remoção/intervenção.";
-            adjIt->evidence_references = itvEvIds;
-          } else {
-            study_.adjudications.push_back({make_id(runId + ":A"), runId,
-                                            tinykernel::ontology::Outcome::ruptured, "BROKEN_CAUSAL",
-                                            "TK-O-0.2.0:causal-necessity-adjudication-v1",
-                                            "Ruptura empírica observada após remoção/intervenção.",
-                                            itvEvIds});
+        if (!itvEvIds.empty()) {
+          std::string classification = "PRESERVED";
+          tinykernel::ontology::Outcome outcome = tinykernel::ontology::Outcome::preserving;
+          std::string rationale = "Todos os witnesses observados foram satisfeitos.";
+
+          if (hasBrokenObservational) {
+            classification = "WITNESS_COMPROMISED";
+            outcome = tinykernel::ontology::Outcome::undetermined;
+            rationale = "Aparato observacional incapaz de medir determinismo.";
+          } else if (hasBrokenCausal) {
+            classification = "BROKEN_CAUSAL";
+            outcome = tinykernel::ontology::Outcome::ruptured;
+            rationale = "Ruptura causal empírica observada após intervenção.";
+          } else if (hasBrokenOperational) {
+            classification = "BROKEN_OPERATIONAL";
+            outcome = tinykernel::ontology::Outcome::ruptured;
+            rationale = "Ruptura operacional observada após intervenção.";
+          } else if (hasBrokenDiscriminative) {
+            classification = "BROKEN_DISCRIMINATIVE";
+            outcome = tinykernel::ontology::Outcome::ruptured;
+            rationale = "Ruptura discriminativa observada após intervenção.";
+          } else if (hasBrokenTemporal) {
+            classification = "BROKEN_TEMPORAL";
+            outcome = tinykernel::ontology::Outcome::ruptured;
+            rationale = "Ruptura temporal observada após intervenção.";
           }
 
-          const std::string claimId = studyId + ":Q:" + itv.target + "_NECESSITY";
-          auto claimIt = std::find_if(study_.claims.begin(), study_.claims.end(), [&](const auto &c) { return c.identity.id == claimId; });
-          if (claimIt != study_.claims.end()) {
-            claimIt->status = tinykernel::ontology::ClaimStatus::supported;
-            claimIt->evidence_references = itvEvIds;
-            supportedCount++;
+          auto adjIt = std::find_if(study_.adjudications.begin(), study_.adjudications.end(),
+                                    [&](const auto &a) { return a.run_id == actualRunId; });
+          if (adjIt != study_.adjudications.end()) {
+            adjIt->outcome = outcome;
+            adjIt->classification = classification;
+            adjIt->rationale = rationale;
+            adjIt->evidence_references = itvEvIds;
           } else {
-            study_.claims.push_back({make_id(claimId), itv.target,
-                                     "A relação associada possui necessidade relativa nesta realização.",
-                                     study_.investigation.phenomenon_id, study_.investigation.context_id,
-                                     {itv.identity.id}, {studyId + ":W:CAUSAL", studyId + ":W:TEMPORAL"}, itvEvIds,
-                                     tinykernel::ontology::ClaimLevel::l3_relative_necessity,
-                                     tinykernel::ontology::ClaimStatus::supported,
-                                     "Necessidade demonstrada empiricamente por ruptura causal adjudicada.",
-                                     studyId + ":PROV"});
-            supportedCount++;
+            study_.adjudications.push_back({make_id(actualRunId + ":A"), actualRunId,
+                                            outcome, classification,
+                                            "TK-O-0.2.0:dimensional-adjudication-v1",
+                                            rationale, itvEvIds});
           }
+          adjudicationsProduced++;
         }
       }
     }
@@ -591,9 +596,73 @@ void GuiBridge::adjudicateWitnesses() {
     study_.investigation.status = "adjudicated";
     saveStudyToRepository(study_);
     emit dataChanged();
-    setStatus(QString("Adjudicação concluída: %1 claims sustentados sob evidência empírica.").arg(supportedCount));
+    setStatus(QString("Adjudicação concluída: %1 adjudicações registradas. (Claims permanecem OPEN até INFER).").arg(adjudicationsProduced));
   } catch (const std::exception &error) {
     setStatus("Falha na adjudicação: " + QString::fromUtf8(error.what()));
+  }
+}
+
+void GuiBridge::inferClaims() {
+  try {
+    const std::string studyId = active_id_;
+    int supportedCount = 0;
+
+    // Attach evidence references from adjudications to relevant claims
+    const std::string baseRunId = studyId + ":RUN:BASELINE_EMPIRICAL";
+    auto baseAdj = std::find_if(study_.adjudications.begin(), study_.adjudications.end(),
+                                [&](const auto &a) { return a.run_id == baseRunId && a.classification == "PRESERVED"; });
+
+    auto suffClaim = std::find_if(study_.claims.begin(), study_.claims.end(),
+                                  [&](const auto &c) { return c.identity.id.find(":Q:SUFFICIENCY") != std::string::npos; });
+    if (suffClaim != study_.claims.end() && baseAdj != study_.adjudications.end()) {
+      suffClaim->evidence_references = baseAdj->evidence_references;
+    }
+
+    for (auto &itv : study_.interventions) {
+      if (itv.status == "performed" && itv.target_realization_id && !itv.target.empty()) {
+        const std::string targetId = *itv.target_realization_id;
+        std::string actualRunId = studyId + ":RUN:" + targetId;
+        auto runFound = std::find_if(study_.runs.begin(), study_.runs.end(),
+                                     [&](const auto &r) { return r.result_realization_id == targetId; });
+        if (runFound != study_.runs.end()) actualRunId = runFound->identity.id;
+
+        auto itvAdj = std::find_if(study_.adjudications.begin(), study_.adjudications.end(),
+                                   [&](const auto &a) { return a.run_id == actualRunId && a.classification == "BROKEN_CAUSAL"; });
+
+        if (itvAdj != study_.adjudications.end() && baseAdj != study_.adjudications.end()) {
+          std::vector<std::string> combinedEv = baseAdj->evidence_references;
+          combinedEv.insert(combinedEv.end(), itvAdj->evidence_references.begin(), itvAdj->evidence_references.end());
+
+          const std::string claimId = studyId + ":Q:" + itv.target + "_NECESSITY";
+          auto claimIt = std::find_if(study_.claims.begin(), study_.claims.end(), [&](const auto &c) { return c.identity.id == claimId; });
+          if (claimIt != study_.claims.end()) {
+            claimIt->evidence_references = combinedEv;
+            claimIt->intervention_scope = {itv.identity.id};
+          } else {
+            study_.claims.push_back({make_id(claimId), itv.target,
+                                     "A relação associada possui necessidade relativa nesta realização.",
+                                     study_.investigation.phenomenon_id, study_.investigation.context_id,
+                                     {itv.identity.id}, {studyId + ":W:CAUSAL", studyId + ":W:TEMPORAL"}, combinedEv,
+                                     tinykernel::ontology::ClaimLevel::l3_relative_necessity,
+                                     tinykernel::ontology::ClaimStatus::open,
+                                     "Necessidade demonstrada empiricamente por ruptura causal adjudicada.",
+                                     studyId + ":PROV"});
+          }
+        }
+      }
+    }
+
+    tinykernel::knowledge::infer_claims(study_);
+
+    for (const auto &c : study_.claims) {
+      if (c.status == tinykernel::ontology::ClaimStatus::supported) supportedCount++;
+    }
+
+    saveStudyToRepository(study_);
+    emit dataChanged();
+    setStatus(QString("Inferência concluída: %1 claims sustentados sob adjudicação empírica.").arg(supportedCount));
+  } catch (const std::exception &error) {
+    setStatus("Falha na inferência: " + QString::fromUtf8(error.what()));
   }
 }
 
@@ -650,7 +719,12 @@ void GuiBridge::addIntervention(const QString &sourceId, const QString &kind,
         "\nrealization=" + targetRealizationId + "\ncomponents_count=" + std::to_string(newComps.size()) + "\n";
     study_.evidence.push_back({make_id(itvId + ":E:STRUCTURAL_ASSEMBLY"), studyId + ":RUN:SPECIFICATION",
                                studyId + ":W:OBSERVATIONAL", {}, structArtifact,
-                               tinykernel::evidence::sha256(structArtifact), "STRUCTURAL_RECORD"});
+                               tinykernel::evidence::sha256(structArtifact),
+                               tinykernel::ontology::EvidenceType::structural_record});
+
+    if (study_.investigation.status == "formulated" || study_.investigation.status.empty()) {
+      study_.investigation.status = "materialized";
+    }
 
     saveStudyToRepository(study_);
     emit dataChanged();

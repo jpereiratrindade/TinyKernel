@@ -60,25 +60,36 @@ ClaimDecision ClaimAdjudicator::may_support(const Claim &claim, const Study &stu
   }
 
   std::set<std::string> referenced_runs;
+  bool has_empirical_evidence = false;
   for (const auto &reference : claim.evidence_references) {
     const auto found = std::find_if(study.evidence.begin(), study.evidence.end(),
         [&](const auto &item) { return item.identity.id == reference; });
     if (found == study.evidence.end()) return {false, "referenced evidence does not exist"};
+    if (found->evidence_type == ontology::EvidenceType::empirical_observation ||
+        found->evidence_type == ontology::EvidenceType::witness_adjudication) {
+      has_empirical_evidence = true;
+    }
     if (evidence::sha256(found->artifact) != found->sha256) return {false, "evidence digest mismatch"};
     referenced_runs.insert(found->run_id);
   }
 
   if (claim.level == ClaimLevel::l0_ontology) return {true, "versioned ontology scope exists"};
   if (claim.level == ClaimLevel::l1_observation) {
-    return {!claim.evidence_references.empty(), "L1 requires recorded evidence"};
+    return {has_empirical_evidence, "L1 requires recorded empirical evidence"};
+  }
+
+  if (!has_empirical_evidence) {
+    return {false, "L2-L8 require recorded empirical evidence in the referenced scope"};
   }
 
   bool preserving = false;
-  bool ruptured = false;
+  bool causal_ruptured = false;
   for (const auto &adjudication : study.adjudications) {
     if (!referenced_runs.contains(adjudication.run_id)) continue;
-    preserving = preserving || adjudication.outcome == Outcome::preserving;
-    ruptured = ruptured || adjudication.outcome == Outcome::ruptured;
+    if (adjudication.outcome == Outcome::preserving) preserving = true;
+    if (adjudication.outcome == Outcome::ruptured && adjudication.classification == "BROKEN_CAUSAL") {
+      causal_ruptured = true;
+    }
   }
   if (claim.level == ClaimLevel::l2_relative_sufficiency) {
     return {preserving, "L2 requires preserving adjudication in the declared scope"};
@@ -89,8 +100,8 @@ ClaimDecision ClaimAdjudicator::may_support(const Claim &claim, const Study &stu
           return std::any_of(study.interventions.begin(), study.interventions.end(),
                              [&](const auto &item) { return item.identity.id == id && item.status == "performed"; });
         });
-    return {preserving && ruptured && scoped_intervention,
-            "L3 requires preserving baseline, controlled rupture, and performed intervention scope"};
+    return {preserving && causal_ruptured && scoped_intervention,
+            "L3 requires preserving baseline, controlled causal rupture (BROKEN_CAUSAL), and performed intervention scope"};
   }
 
   const bool search_open = std::any_of(study.interventions.begin(), study.interventions.end(),
@@ -106,6 +117,23 @@ ClaimDecision ClaimAdjudicator::may_support(const Claim &claim, const Study &stu
     return {false, "L7 requires preregistered evidence from additional contexts"};
   }
   return {false, "L8 requires accumulated L5-L7 evidence and is not reachable in this investigation"};
+}
+
+void infer_claims(Study &study) {
+  ClaimAdjudicator adjudicator;
+  bool any_supported = false;
+  for (auto &claim : study.claims) {
+    const auto decision = adjudicator.may_support(claim, study);
+    if (decision.allowed) {
+      claim.status = ClaimStatus::supported;
+      any_supported = true;
+    } else {
+      claim.status = ClaimStatus::open;
+    }
+  }
+  if (any_supported || study.investigation.status == "adjudicated") {
+    study.investigation.status = "inferred";
+  }
 }
 
 Frontier analyze_frontier(const Study &study) {

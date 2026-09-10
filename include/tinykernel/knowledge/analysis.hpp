@@ -34,5 +34,6 @@ struct Frontier {
 
 [[nodiscard]] Frontier analyze_frontier(const ontology::Study &study);
 [[nodiscard]] std::string frontier_json(const Frontier &frontier);
+void infer_claims(ontology::Study &study);
 
 } // namespace tinykernel::knowledge

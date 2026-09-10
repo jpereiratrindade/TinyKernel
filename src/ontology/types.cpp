@@ -37,6 +37,15 @@ std::string to_string(const ClaimStatus value) {
   throw std::logic_error("unknown claim status");
 }
 
+std::string to_string(const EvidenceType value) {
+  switch (value) {
+  case EvidenceType::structural_record: return "STRUCTURAL_RECORD";
+  case EvidenceType::empirical_observation: return "EMPIRICAL_OBSERVATION";
+  case EvidenceType::witness_adjudication: return "WITNESS_ADJUDICATION";
+  }
+  throw std::logic_error("unknown evidence type");
+}
+
 ClaimLevel claim_level_from_string(const std::string &value) {
   if (value.size() == 2 && value[0] == 'L' && value[1] >= '0' && value[1] <= '8') {
     return static_cast<ClaimLevel>(value[1] - '0');
@@ -56,6 +65,13 @@ Outcome outcome_from_string(const std::string &value) {
   if (value == "ruptured") return Outcome::ruptured;
   if (value == "undetermined") return Outcome::undetermined;
   throw std::invalid_argument("invalid outcome: " + value);
+}
+
+EvidenceType evidence_type_from_string(const std::string &value) {
+  if (value == "STRUCTURAL_RECORD") return EvidenceType::structural_record;
+  if (value == "EMPIRICAL_OBSERVATION") return EvidenceType::empirical_observation;
+  if (value == "WITNESS_ADJUDICATION") return EvidenceType::witness_adjudication;
+  throw std::invalid_argument("invalid evidence type: " + value);
 }
 
 } // namespace tinykernel::ontology

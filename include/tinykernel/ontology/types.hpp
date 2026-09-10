@@ -78,6 +78,12 @@ struct Witness {
   std::string description;
 };
 
+enum class EvidenceType {
+  structural_record,
+  empirical_observation,
+  witness_adjudication
+};
+
 struct Evidence {
   Identity identity;
   std::string run_id;
@@ -85,7 +91,7 @@ struct Evidence {
   std::vector<std::string> observation_ids;
   std::string artifact;
   std::string sha256;
-  std::string evidence_type{"EMPIRICAL_OBSERVATION"};
+  EvidenceType evidence_type{EvidenceType::empirical_observation};
 };
 
 enum class Outcome { preserving, ruptured, undetermined };
@@ -166,8 +172,10 @@ struct Study {
 std::string to_string(Outcome value);
 std::string to_string(ClaimLevel value);
 std::string to_string(ClaimStatus value);
+std::string to_string(EvidenceType value);
 ClaimLevel claim_level_from_string(const std::string &value);
 ClaimStatus claim_status_from_string(const std::string &value);
 Outcome outcome_from_string(const std::string &value);
+EvidenceType evidence_type_from_string(const std::string &value);
 
 } // namespace tinykernel::ontology

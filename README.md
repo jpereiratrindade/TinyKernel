@@ -31,11 +31,12 @@ realizações, intervenções, witnesses e revisões ontológicas continuam aber
 - `tinykernel`: CLI para workspace, experimentos, claims, frontier e export;
 - `tinykernel-gui`: interface Qt Quick do mesmo núcleo;
 - `tinykernel-web`: interface web interativa no grafismo do ecossistema SisTer;
-- SQLite: memória experimental local, com evidence imutável;
-- export JSON determinístico;
-- ontologia TK-O versionada com discriminação entre registros estruturais e evidências empíricas;
-- escada de claims L0–L8 com gates estritos de suficiência (L2) e necessidade relativa (L3);
-- CTest como autoridade única de testes (15 suites automatizadas).
+- SQLite: memória experimental local, com evidence imutável e preservação rigorosa de `evidence_type`;
+- export JSON determinístico com discriminação canônica de tipos de evidência;
+- ontologia TK-O versionada com discriminação entre registros estruturais (`STRUCTURAL_RECORD`), evidências empíricas (`EMPIRICAL_OBSERVATION`) e evidências de adjudicação (`WITNESS_ADJUDICATION`);
+- ciclo ontológico estrito em 5 fases: $\text{DECLARED} \to \text{MATERIALIZED} \to \text{OBSERVED} \to \text{ADJUDICATED} \to \text{INFERRED}$;
+- escada de claims L0–L8 com gates estritos de suficiência (L2) e necessidade relativa (L3 restrito a `BROKEN_CAUSAL`);
+- CTest como autoridade única de testes (20 suites automatizadas cobrindo núcleo, persistência round-trip, proveniência de Run IDs, CLI e GUI).
 
 A cadeia ponta a ponta é:
 

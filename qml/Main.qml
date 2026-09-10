@@ -535,6 +535,11 @@ ApplicationWindow {
                         onClicked: bridge.adjudicateWitnesses()
                     }
 
+                    PrimaryButton {
+                        text: "⚡ Inferir Claims"
+                        onClicked: bridge.inferClaims()
+                    }
+
                     TkButton {
                         text: "Exportar JSON"
                         onClicked: bridge.exportCurrent()

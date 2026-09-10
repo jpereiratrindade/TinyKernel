@@ -49,6 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnWorkbenchNewObservation = document.getElementById("btn-workbench-new-observation");
   const btnWorkbenchNewIntervention = document.getElementById("btn-workbench-new-intervention");
   const btnWorkbenchAdjudicate = document.getElementById("btn-workbench-adjudicate");
+  const btnWorkbenchInfer = document.getElementById("btn-workbench-infer");
   const btnWorkbenchExport = document.getElementById("btn-workbench-export");
   const workbenchStatusBadge = document.getElementById("workbench-status-badge");
 
@@ -785,7 +786,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnCancelModalObservation.addEventListener("click", () => modalAddObservation.classList.remove("active"));
 
   // ========================================================
-  // ADJUDICAR WITNESSES & ATUALIZAR CLAIMS
+  // ADJUDICAR WITNESSES (SEM INFERÊNCIA AUTOMÁTICA)
   // ========================================================
   btnWorkbenchAdjudicate.addEventListener("click", async () => {
     if (!state.activeStudy) return;
@@ -795,13 +796,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     await window.tkEngine.adjudicateWitnesses(state.activeStudy);
     window.tkEngine.saveStudy(state.activeStudy);
 
-    const supported = state.activeStudy.claims.filter(c => c.status === "supported").length;
-    alert(`Adjudicação concluída! ${supported}/${state.activeStudy.claims.length} claims sustentados por evidência empírica.`);
+    const adjCount = (state.activeStudy.adjudications || []).length;
+    alert(`Adjudicação concluída! ${adjCount} realização(ões) adjudicada(s). Os claims continuam abertos até a etapa de inferência.`);
 
     btnWorkbenchAdjudicate.disabled = false;
     btnWorkbenchAdjudicate.textContent = "⚖ Adjudicar Witnesses";
     renderWorkbench();
   });
+
+  // ========================================================
+  // INFERIR CLAIMS (AVALIAÇÃO EPISTÊMICA FORMAL)
+  // ========================================================
+  if (btnWorkbenchInfer) {
+    btnWorkbenchInfer.addEventListener("click", async () => {
+      if (!state.activeStudy) return;
+      btnWorkbenchInfer.disabled = true;
+      btnWorkbenchInfer.textContent = "Inferindo...";
+
+      await window.tkEngine.inferClaims(state.activeStudy);
+      window.tkEngine.saveStudy(state.activeStudy);
+
+      const supported = state.activeStudy.claims.filter(c => c.status === "supported").length;
+      alert(`Inferência concluída! ${supported}/${state.activeStudy.claims.length} claims sustentados formalmente por evidência empírica.`);
+
+      btnWorkbenchInfer.disabled = false;
+      btnWorkbenchInfer.textContent = "⚡ Inferir Claims";
+      renderWorkbench();
+    });
+  }
 
   // ========================================================
   // GLOBAL LISTENERS

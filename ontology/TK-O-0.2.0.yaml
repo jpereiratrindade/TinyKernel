@@ -58,4 +58,12 @@ intervention_kinds:
 evidence_categories:
   - { id: STRUCTURAL_RECORD, label: "Registro de Especificação Estrutural e Integridade" }
   - { id: EMPIRICAL_OBSERVATION, label: "Observação Empírica de Campo ou Aparato" }
+  - { id: WITNESS_ADJUDICATION, label: "Evidência Derivada de Adjudicação de Witness" }
+
+investigation_phases:
+  - { id: formulated, label: "DECLARED / FORMULATED (Protocolo Preregistrado)" }
+  - { id: materialized, label: "MATERIALIZED (Realizações Estruturais Montadas)" }
+  - { id: observed, label: "OBSERVED (Medições e Observações Empíricas Coletadas)" }
+  - { id: adjudicated, label: "ADJUDICATED (Avaliação Multidimensional de Witnesses)" }
+  - { id: inferred, label: "INFERRED (Sustentação Epistêmica de Claims L0-L8)" }
 
