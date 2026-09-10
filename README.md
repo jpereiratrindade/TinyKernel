@@ -76,3 +76,17 @@ Sempre incompleto significa que nenhuma realização, ontologia ou Kernel deve s
 universalizado além da evidência que o sustenta.
 
 **Sempre pronto. Sempre incompleto.**
+
+## Documento fundador
+
+A formulação fundadora e o programa experimental inicial estão registrados em:
+
+- `docs/TK-FND-00-fundamentos-minimalidade-causal-v0.1.0.md`
+
+A fonte editorial em LaTeX é preservada em:
+
+- `docs/source/TK-FND-00-fundamentos-minimalidade-causal-v0.1.0.tex`
+
+O documento é pré-implementação e falsificável. Ele não constitui evidência
+experimental de que um Kernel exista, seja único ou possa ser descoberto por
+intervenções subtrativas.
