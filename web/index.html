@@ -555,19 +555,25 @@
       </div>
     </div>
 
-    <!-- Modal: Adicionar Intervenção no Workbench -->
+    <!-- Modal: Adicionar / Materializar Intervenção no Workbench -->
     <div class="modal-overlay" id="modal-add-intervention">
-      <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-dialog" style="max-width: 520px;">
         <div class="modal-header">
           <div class="modal-title">
-            <span>☍</span> Adicionar Intervenção ao Espaço Causal
+            <span>☍</span> <span id="modal-intervention-title">Materializar Intervenção Causal</span>
           </div>
           <button class="modal-close" id="btn-close-modal-intervention">&times;</button>
         </div>
         <div class="modal-body">
           <form id="form-add-intervention" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" id="modal-itv-planned-id" value="">
+            
+            <div id="modal-itv-info-banner" style="display: none; padding: 0.6rem 0.8rem; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; font-size: 0.78rem; color: var(--fg); line-height: 1.4;">
+              Intervenção pré-registrada: <strong id="banner-itv-name" style="color: var(--accent);"></strong>
+            </div>
+
             <div class="form-group">
-              <label for="modal-itv-source">Realização de Origem</label>
+              <label for="modal-itv-source">Realização de Origem ($R_0$ / $R_k$)</label>
               <select id="modal-itv-source"></select>
             </div>
             <div class="form-group">
@@ -582,15 +588,28 @@
             </div>
             <div class="form-group">
               <label for="modal-itv-target">Componente Alvo</label>
-              <input type="text" id="modal-itv-target" placeholder="Ex: feedback, update, state, sensor..." required>
+              <input type="text" id="modal-itv-target" placeholder="Ex: feedback, update, state, psii..." required>
             </div>
             <div class="form-group" id="group-modal-itv-replacement" style="display: none;">
               <label for="modal-itv-replacement">Componente de Substituição / Fusão</label>
               <input type="text" id="modal-itv-replacement" placeholder="Ex: feedback_equivalent">
             </div>
+            <div class="form-group">
+              <label for="modal-itv-type">Tipo de Execução</label>
+              <select id="modal-itv-type">
+                <option value="computational">computacional (simulação in silico)</option>
+                <option value="synthetic">sintética (reconstituição / modelo sintético)</option>
+                <option value="experimental">experimental (ensaio de bancada laboratorial)</option>
+                <option value="empirical">empírica (observação em sistema natural de campo)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="modal-itv-protocol">Protocolo / Tratamento / Descrição Operacional</label>
+              <textarea id="modal-itv-protocol" rows="2" placeholder="Ex: inibição enzimática via DCMU ou knockout gênico do complexo OEC" style="font-family: var(--font-sans); font-size: 0.8rem;"></textarea>
+            </div>
             <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
               <button type="button" class="btn" id="btn-cancel-modal-intervention">Cancelar</button>
-              <button type="submit" class="btn btn-primary">Executar Intervenção</button>
+              <button type="submit" class="btn btn-primary" id="btn-submit-intervention">Materializar Intervenção</button>
             </div>
           </form>
         </div>

@@ -491,21 +491,54 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function renderFrontierDock() {
     const s = state.activeStudy;
-    const executedItvs = s.interventions.filter(i => i.status === "performed").length;
-    const plannedItvs = s.interventions.length - executedItvs;
-    const untestedRuns = s.runs.filter(r => r.status === "untested" || r.status === "formulated").length;
+    const chipsContainer = document.getElementById("frontier-chips-container");
+    if (chipsContainer) {
+      chipsContainer.innerHTML = "";
+      if (!s.interventions || !s.interventions.length) {
+        chipsContainer.innerHTML = `<div style="color: var(--muted); font-size: 0.78rem; padding: 0.2rem 0;">Nenhuma intervenção registrada no espaço causal.</div>`;
+      } else {
+        s.interventions.forEach(itv => {
+          const isPerformed = itv.status === "performed";
+          const chip = document.createElement("div");
+          chip.className = `frontier-chip ${isPerformed ? "performed" : "open-tag"}`;
+          
+          const label = `${itv.kind} → ${itv.target_component || itv.id.split(":").slice(2).join(":")}`;
+          if (isPerformed) {
+            chip.innerHTML = `<span>✓</span> <strong>${label}</strong> <span style="font-size: 0.68rem; opacity: 0.8;">(Executada)</span>`;
+            chip.title = `Intervenção executada: ${itv.id}\nOrigem: ${itv.source}\nAlvo: ${itv.target}`;
+            chip.addEventListener("click", () => handleEntitySelection(itv.id, itv));
+          } else {
+            chip.innerHTML = `<span>○</span> <strong>${label}</strong> <span style="font-size: 0.65rem; background: rgba(243, 191, 79, 0.25); color: #fef08a; padding: 1px 6px; border-radius: 4px; font-weight: 700;">MATERIALIZAR</span>`;
+            chip.title = `Intervenção pré-registrada: ${itv.id}\nPredição: ${itv.prediction || "BROKEN_CAUSAL"}\nClique para materializar esta intervenção em uma nova realização.`;
+            chip.addEventListener("click", () => openMaterializeInterventionModal(itv));
+          }
+          chipsContainer.appendChild(chip);
+        });
+      }
+    }
 
-    document.getElementById("frontier-known-realizations").textContent = s.realizations.length;
-    document.getElementById("frontier-unexplored-interventions").textContent = plannedItvs;
-    document.getElementById("frontier-open-questions").textContent = (s.claims || []).filter(c => c.status === "open").length;
-    document.getElementById("frontier-status-text").textContent = plannedItvs > 0 || untestedRuns > 0
-      ? "Espaço Incompleto (Incompleteness by Design)"
-      : "Espaço Causalmente Adjudicado";
+    const executedItvs = (s.interventions || []).filter(i => i.status === "performed").length;
+    const plannedItvs = (s.interventions || []).length - executedItvs;
+    const untestedRuns = (s.runs || []).filter(r => r.status === "untested" || r.status === "formulated").length;
+
+    const elKnown = document.getElementById("frontier-known-realizations");
+    if (elKnown) elKnown.textContent = s.realizations.length;
+    const elUnexplored = document.getElementById("frontier-unexplored-interventions");
+    if (elUnexplored) elUnexplored.textContent = plannedItvs;
+    const elOpenQuestions = document.getElementById("frontier-open-questions");
+    if (elOpenQuestions) elOpenQuestions.textContent = (s.claims || []).filter(c => c.status === "open").length;
+    const elStatusText = document.getElementById("frontier-status-text");
+    if (elStatusText) {
+      elStatusText.textContent = plannedItvs > 0 || untestedRuns > 0
+        ? "Espaço Incompleto (Incompleteness by Design)"
+        : "Espaço Causalmente Adjudicado";
+    }
   }
 
   function renderRuns() {
     const s = state.activeStudy;
-    const list = document.getElementById("runs-list");
+    const list = document.getElementById("runs-list-container");
+    if (!list) return;
     list.innerHTML = "";
 
     if (!s.runs.length) {
@@ -547,61 +580,67 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function renderClaims() {
     const s = state.activeStudy;
-    const list = document.getElementById("claims-list");
-    list.innerHTML = "";
+    const tbody = document.getElementById("claims-table-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
 
     if (!s.claims || !s.claims.length) {
-      list.innerHTML = `<div style="color: var(--muted); font-size: 0.8rem; padding: 0.5rem 0;">Nenhum claim formulado.</div>`;
+      tbody.innerHTML = `<tr><td colspan="4" style="color: var(--muted); text-align: center; padding: 1rem 0; font-size: 0.8rem;">Nenhum claim epistemológico formulado neste estudo.</td></tr>`;
       return;
     }
 
     s.claims.forEach(claim => {
-      const item = document.createElement("div");
-      item.className = "claim-card";
+      const tr = document.createElement("tr");
+      tr.style.cursor = "pointer";
 
       const isSupported = claim.status === "supported";
+      const statusClass = isSupported ? "supported" : "open";
       const statusText = isSupported ? "SUPPORTED" : "OPEN";
 
-      item.innerHTML = `
-        <div class="claim-header">
-          <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <span class="claim-level-pill">${claim.level}</span>
-            <strong style="color: var(--fg); font-size: 0.82rem;">${claim.id.split(":").slice(2).join(":") || claim.id}</strong>
-          </div>
-          <span class="claim-status ${isSupported ? 'supported' : 'open'}">${statusText}</span>
-        </div>
-        <div style="font-size: 0.78rem; color: var(--fg); margin: 0.3rem 0; line-height: 1.35;">
-          ${claim.assertion}
-        </div>
-        <div class="claim-footer">
-          <span>Sujeito: <code>${claim.subject}</code></span>
-          <span>Evidências: <strong>${(claim.evidence_references || []).length}</strong></span>
-        </div>
+      tr.innerHTML = `
+        <td><span class="claim-level-pill">${claim.level || "L0"}</span></td>
+        <td><code>${claim.subject || "—"}</code></td>
+        <td style="line-height: 1.35; font-size: 0.8rem; color: var(--fg);">${claim.assertion || "—"}</td>
+        <td><span class="claim-status ${statusClass}">${statusText}</span></td>
       `;
 
-      item.addEventListener("click", () => {
+      tr.addEventListener("click", () => {
         handleEntitySelection(claim.id, claim);
       });
 
-      list.appendChild(item);
+      tbody.appendChild(tr);
     });
   }
 
   function renderFrontierAnalysis() {
     const s = state.activeStudy;
-    const preserving = s.realizations.filter(r => r.outcome === "preserving");
-    const ruptured = s.realizations.filter(r => r.outcome === "ruptured");
-    const untested = s.realizations.filter(r => !r.outcome || r.outcome === "untested" || r.outcome === "partially_observed");
+    const preserving = (s.realizations || []).filter(r => r.outcome === "preserving");
+    const ruptured = (s.realizations || []).filter(r => r.outcome === "ruptured");
+    const untested = (s.realizations || []).filter(r => !r.outcome || r.outcome === "untested" || r.outcome === "partially_observed");
 
     const minimalCand = preserving.length ? preserving.reduce((min, r) => r.components.length < min.components.length ? r : min, preserving[0]) : null;
+    const container = document.getElementById("frontier-analysis-container");
+    if (!container) return;
 
-    document.getElementById("frontier-analysis-text").innerHTML = `
-      <div style="line-height: 1.5;">
-        <div>• Realizações Conhecidas: <strong>${s.realizations.length}</strong> (${preserving.length} preservadoras, ${ruptured.length} rompidas, ${untested.length} não totalmente observadas)</div>
-        <div>• Realização Minimal Atual: <strong style="color: var(--status-preserved);">${minimalCand ? `${minimalCand.id} (|Σ|=${minimalCand.components.length})` : 'Nenhuma comprovada'}</strong></div>
-        <div>• Intervenções Abertas: <strong>${s.interventions.filter(i => i.status !== 'performed').length}</strong> planejadas</div>
-        <div style="margin-top: 0.35rem; color: #94a3b8; font-style: italic;">
-          Nota Epistêmica: O espaço causal é incompleto por design. Conclusões causais aplicam-se estritamente às intervenções preregistradas e evidências empíricas coletadas.
+    const executedItvs = (s.interventions || []).filter(i => i.status === "performed").length;
+    const plannedItvs = (s.interventions || []).length - executedItvs;
+
+    container.innerHTML = `
+      <div style="line-height: 1.5; font-size: 0.82rem;">
+        <div style="margin-bottom: 0.35rem;">
+          • Realizações no Espaço: <strong>${s.realizations.length}</strong> 
+          (<span style="color: var(--status-preserved); font-weight: 600;">${preserving.length} preservadoras</span>, 
+           <span style="color: var(--status-broken); font-weight: 600;">${ruptured.length} rompidas</span>, 
+           <span style="color: var(--status-ready); font-weight: 600;">${untested.length} não totalmente observadas</span>)
+        </div>
+        <div style="margin-bottom: 0.35rem;">
+          • Realização Minimal Atual: <strong style="color: var(--status-preserved);">${minimalCand ? `${minimalCand.id} (|Σ|=${minimalCand.components.length})` : 'Nenhuma comprovada'}</strong>
+        </div>
+        <div style="margin-bottom: 0.35rem;">
+          • Intervenções Causa-Efeito: <strong>${executedItvs} executadas</strong>, <strong style="color: #f3bf4f;">${plannedItvs} planejadas na fronteira</strong>
+        </div>
+        <div style="margin-top: 0.6rem; padding: 0.5rem; background: rgba(15, 23, 42, 0.5); border-left: 3px solid var(--accent); border-radius: 4px; color: #94a3b8; font-size: 0.75rem; line-height: 1.4;">
+          <strong>Nota Epistêmica (Incompleteness by Design):</strong> O espaço de intervenções é finito e estritamente delimitado pelas ações pré-registradas. A não-observação de uma perturbação impede a generalização universal da minimalidade.
         </div>
       </div>
     `;
@@ -702,11 +741,61 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ========================================================
-  // MODAL: ADICIONAR INTERVENÇÃO DINÂMICA
+  // MODAL: ADICIONAR / MATERIALIZAR INTERVENÇÃO
   // ========================================================
+  function openMaterializeInterventionModal(itv) {
+    if (!state.activeStudy) return;
+    const s = state.activeStudy;
+
+    const modalTitle = document.getElementById("modal-intervention-title");
+    const banner = document.getElementById("modal-itv-info-banner");
+    const bannerName = document.getElementById("banner-itv-name");
+    const plannedIdInput = document.getElementById("modal-itv-planned-id");
+    const btnSubmit = document.getElementById("btn-submit-intervention");
+
+    if (modalTitle) modalTitle.textContent = "Materializar Intervenção Pré-Registrada";
+    if (plannedIdInput) plannedIdInput.value = itv.id;
+    if (banner && bannerName) {
+      banner.style.display = "block";
+      bannerName.textContent = `${itv.id} (${itv.kind} → ${itv.target_component || 'componente'}) | Predição: ${itv.prediction || 'BROKEN_CAUSAL'}`;
+    }
+    if (btnSubmit) btnSubmit.textContent = "Materializar Intervenção";
+
+    modalItvSource.innerHTML = "";
+    s.realizations.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.id;
+      opt.textContent = `${r.id} (${r.label}) [|Σ|=${r.components.length}]`;
+      if (r.id === itv.source || r.isBaseline) opt.selected = true;
+      modalItvSource.appendChild(opt);
+    });
+
+    modalItvKind.value = itv.kind || "remove";
+    modalItvTarget.value = itv.target_component || "";
+    modalItvReplacement.value = itv.replacement_component || "";
+    
+    if (itv.kind === "replace" || itv.kind === "merge") {
+      groupModalItvReplacement.style.display = "flex";
+    } else {
+      groupModalItvReplacement.style.display = "none";
+    }
+
+    modalAddIntervention.classList.add("active");
+  }
+
   btnWorkbenchNewIntervention.addEventListener("click", () => {
     if (!state.activeStudy) return;
     const s = state.activeStudy;
+
+    const modalTitle = document.getElementById("modal-intervention-title");
+    const banner = document.getElementById("modal-itv-info-banner");
+    const plannedIdInput = document.getElementById("modal-itv-planned-id");
+    const btnSubmit = document.getElementById("btn-submit-intervention");
+
+    if (modalTitle) modalTitle.textContent = "Adicionar Nova Intervenção ao Espaço Causal";
+    if (plannedIdInput) plannedIdInput.value = "";
+    if (banner) banner.style.display = "none";
+    if (btnSubmit) btnSubmit.textContent = "Adicionar Intervenção";
 
     modalItvSource.innerHTML = "";
     s.realizations.forEach(r => {
@@ -716,8 +805,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       modalItvSource.appendChild(opt);
     });
 
+    modalItvKind.value = "remove";
     modalItvTarget.value = "";
     modalItvReplacement.value = "";
+    groupModalItvReplacement.style.display = "none";
     modalAddIntervention.classList.add("active");
   });
 
@@ -736,14 +827,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     const kind = modalItvKind.value;
     const targetComp = modalItvTarget.value.trim();
     const replComp = modalItvReplacement.value.trim();
+    const plannedIdInput = document.getElementById("modal-itv-planned-id");
+    const plannedId = plannedIdInput ? plannedIdInput.value : "";
+    const execType = document.getElementById("modal-itv-type") ? document.getElementById("modal-itv-type").value : "computational";
+    const protocol = document.getElementById("modal-itv-protocol") ? document.getElementById("modal-itv-protocol").value.trim() : "";
 
     if (!targetComp) return;
 
     await window.tkEngine.applyIntervention(state.activeStudy, {
+      planned_id: plannedId,
       source: sourceId,
       kind: kind,
       target_component: targetComp,
-      replacement_component: replComp
+      replacement_component: replComp,
+      execution_type: execType,
+      protocol: protocol
     });
 
     window.tkEngine.saveStudy(state.activeStudy);

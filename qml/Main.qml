@@ -723,6 +723,79 @@ ApplicationWindow {
                                     }
                                 }
                             }
+
+                            // Bottom Frontier Dock
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 44
+                                color: "#0b1320"
+                                radius: 6
+                                border.color: "#1e293b"
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 6
+                                    spacing: 8
+                                    Label {
+                                        text: "FRONTEIRA:"
+                                        color: "#94a3b8"
+                                        font.bold: true
+                                        font.pixelSize: 10
+                                    }
+                                    ScrollView {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                                        Row {
+                                            spacing: 6
+                                            Repeater {
+                                                model: bridge.interventions
+                                                delegate: Rectangle {
+                                                    required property var modelData
+                                                    height: 26
+                                                    width: itvRow.implicitWidth + 14
+                                                    radius: 13
+                                                    color: modelData.status === "performed" ? "#132e26" : "#2a2213"
+                                                    border.color: modelData.status === "performed" ? "#34d399" : "#f3bf4f"
+                                                    border.width: 1
+
+                                                    Row {
+                                                        id: itvRow
+                                                        anchors.centerIn: parent
+                                                        spacing: 4
+                                                        Label {
+                                                            text: (modelData.status === "performed" ? "✓ " : "○ ") + modelData.kind + " → " + (modelData.target || modelData.id)
+                                                            color: modelData.status === "performed" ? "#34d399" : "#fef08a"
+                                                            font.pixelSize: 10
+                                                            font.bold: true
+                                                        }
+                                                        Label {
+                                                            visible: modelData.status !== "performed"
+                                                            text: "MATERIALIZAR"
+                                                            color: "#f3bf4f"
+                                                            font.pixelSize: 8
+                                                            font.bold: true
+                                                        }
+                                                    }
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: {
+                                                            if (modelData.status === "performed") {
+                                                                bridge.selectEntity(modelData.id)
+                                                            } else {
+                                                                comboKind.currentIndex = comboKind.find(modelData.kind) >= 0 ? comboKind.find(modelData.kind) : 0
+                                                                itvTargetField.text = modelData.target || ""
+                                                                itvReplField.text = ""
+                                                                dialogIntervention.open()
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -942,7 +1015,8 @@ ApplicationWindow {
         }
 
         onAccepted: {
-            bridge.addIntervention("TK-0001:R:BASE", comboKind.currentText, itvTargetField.text, itvReplField.text)
+            const baseId = bridge.activeInvestigationId + ":R:BASE"
+            bridge.addIntervention(baseId, comboKind.currentText, itvTargetField.text, itvReplField.text)
         }
     }
 

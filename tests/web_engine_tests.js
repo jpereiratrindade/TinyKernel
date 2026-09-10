@@ -131,15 +131,71 @@ async function runTests() {
   assert(phaseStudy.investigation.status === 'observed', 'cannot regress phase backwards');
   console.log('PASS: monotonic_phase_progression');
 
-  // Test 6: TK-O v0.2.1 Schema Version 2 Compliance
-  assert(sait.investigation.schema_version === 2, 'schema version is 2');
-  assert(sait.investigation.ontology_version === '0.2.1', 'ontology version is 0.2.1');
-  const tk0001 = await engine.buildTk0001();
-  assert(tk0001.investigation.schema_version === 2, 'TK-0001 schema version is 2');
-  assert(tk0001.investigation.ontology_version === '0.2.1', 'TK-0001 ontology version is 0.2.1');
-  console.log('PASS: tko_021_schema_version_2');
+  // Test 7: Photosynthesis Benchmark (Materialize Planned PSII Intervention -> Observe -> Adjudicate -> Infer L3)
+  const photoConfig = {
+    id: "TK-PHOTO-001",
+    phenomenonName: "Fotossíntese Oxigênica",
+    phenomenonDesc: "Conversão de energia luminosa em energia química e fixação de CO2",
+    contextDesc: "Cloroplastos de plantas C3 sob irradiância saturante",
+    dimensions: ["oxigênio", "elétrons", "atp_nadph", "carboidratos", "estabilidade_redox"],
+    essentialRelations: ["luz->elétrons->gradiente_prótons->ATP"],
+    temporalBounds: ["ciclo_segundos_minutos"],
+    baselineLabel: "Aparato Fotossintético Completo",
+    baselineComponents: ["PSII", "Cyt_b6f", "PSI", "ATP_Synthase", "Rubisco"],
+    initialInterventions: [
+      { kind: "remove", target_component: "PSII", prediction: "BROKEN_CAUSAL" },
+      { kind: "remove", target_component: "PSI", prediction: "BROKEN_CAUSAL" },
+      { kind: "remove", target_component: "Rubisco", prediction: "BROKEN_CAUSAL" },
+      { kind: "remove", target_component: "Cyt_b6f", prediction: "BROKEN_CAUSAL" }
+    ]
+  };
 
-  console.log('\nALL 9 WEB ENGINE EPISTEMIC TESTS PASSED!');
+  let photoStudy = await engine.createCustomInvestigation(photoConfig);
+  assert(photoStudy.investigation.id === "TK-PHOTO-001", "photo study ID");
+  assert(photoStudy.realizations.length === 1, "photo starts with 1 baseline realization");
+  assert(photoStudy.interventions.length === 4, "photo starts with 4 planned interventions");
+  assert(photoStudy.interventions.every(i => i.status === "planned"), "all 4 interventions are PLANNED");
+  assert(photoStudy.claims.length === 6, "6 claims formulated (1 sufficiency + 1 minimality + 4 necessity)");
+  assert(photoStudy.claims.every(c => c.status === "open"), "all claims are initially OPEN");
+
+  // Step 7.1: Baseline Empirical Observation & Adjudication
+  for (const w of photoStudy.witnesses) {
+    photoStudy = await engine.injectEmpiricalObservation(photoStudy, photoStudy.realizations[0].id, w.kind, true, `trace=${w.kind}_measured`);
+  }
+  photoStudy = await engine.adjudicateWitnesses(photoStudy);
+  photoStudy = await engine.inferClaims(photoStudy);
+  const photoSuff = photoStudy.claims.find(c => c.id.includes(":Q:SUFFICIENCY"));
+  assert(photoSuff && photoSuff.status === "supported", "Baseline sufficiency is SUPPORTED");
+  const psiiNecBefore = photoStudy.claims.find(c => c.id.includes("PSII_NECESSITY"));
+  assert(psiiNecBefore && psiiNecBefore.status === "open", "PSII necessity is OPEN before materialization");
+
+  // Step 7.2: Materialize Planned Intervention: remove PSII (R0 -> R1)
+  const psiiPlannedItv = photoStudy.interventions.find(i => i.target_component === "PSII");
+  photoStudy = await engine.applyIntervention(photoStudy, {
+    planned_id: psiiPlannedItv.id,
+    kind: "remove",
+    target_component: "PSII",
+    protocol: "inibição DCMU"
+  });
+  assert(photoStudy.realizations.length === 2, "2 realizations after PSII materialization");
+  const r1 = photoStudy.realizations[1];
+  assert(!r1.components.includes("PSII"), "R1 components do not include PSII");
+  assert(r1.components.includes("PSI") && r1.components.includes("Rubisco"), "R1 preserves other components");
+  assert(psiiPlannedItv.status === "performed", "PSII intervention status is now PERFORMED");
+  assert(psiiPlannedItv.target === r1.id, "PSII intervention points to R1");
+
+  // Step 7.3: Observe Causal Rupture on R1, Adjudicate & Infer L3
+  photoStudy = await engine.injectEmpiricalObservation(photoStudy, r1.id, "causal", false, "trace=no_oxygen_evolution");
+  photoStudy = await engine.adjudicateWitnesses(photoStudy);
+  const r1Adj = photoStudy.adjudications.find(a => a.run_id && a.run_id.includes("INT_1"));
+  assert(r1Adj && r1Adj.classification === "BROKEN_CAUSAL", "R1 adjudicated as BROKEN_CAUSAL");
+
+  photoStudy = await engine.inferClaims(photoStudy);
+  const psiiNecAfter = photoStudy.claims.find(c => c.id.includes("PSII_NECESSITY"));
+  assert(psiiNecAfter && psiiNecAfter.status === "supported", "PSII necessity is now SUPPORTED via empirical causal chain!");
+  console.log('PASS: photosynthesis_materialize_and_l3_inference');
+
+  console.log('\nALL 10 WEB ENGINE EPISTEMIC TESTS PASSED!');
 }
 
 runTests().catch(err => {

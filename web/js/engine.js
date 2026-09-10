@@ -731,6 +731,10 @@ class TkEngine {
     return study;
   }
 
+  async createCustomInvestigation(config) {
+    return this.createGenericStudy(config);
+  }
+
   // Universal Wizard Creator: Creates study in state FORMULATED (no synthetic leaps)
   async createGenericStudy(config) {
     const studyId = config.id || `TK-${String(Date.now()).slice(-4)}`;
@@ -841,8 +845,9 @@ class TkEngine {
     // Register initial interventions as PLANNED (not automatically executed)
     if (config.initialInterventions && config.initialInterventions.length) {
       config.initialInterventions.forEach((itvCfg, i) => {
+        const itvId = `${studyId}:I:${(itvCfg.kind || "remove").toUpperCase()}_${itvCfg.target_component || i+1}`;
         study.interventions.push({
-          id: `${studyId}:I:${(itvCfg.kind || "remove").toUpperCase()}_${itvCfg.target_component || i+1}`,
+          id: itvId,
           schema_version: 2,
           ontology_version: "0.2.1",
           investigation_id: studyId,
@@ -851,9 +856,29 @@ class TkEngine {
           target: null,
           target_component: itvCfg.target_component,
           replacement_component: itvCfg.replacement_component || "",
-          prediction: "untested",
+          prediction: itvCfg.prediction || "untested",
           status: "planned"
         });
+
+        // Formulate corresponding L3 necessity claim for removal perturbations
+        if ((itvCfg.kind === "remove" || !itvCfg.kind) && itvCfg.target_component) {
+          const compUpper = itvCfg.target_component.toUpperCase();
+          study.claims.push({
+            id: `${studyId}:Q:${compUpper}_NECESSITY`,
+            schema_version: 2,
+            ontology_version: "0.2.1",
+            subject: `${studyId}:R:BASE`,
+            assertion: `O componente '${itvCfg.target_component}' é causalmente necessário para a suficiência da baseline.`,
+            phenomenon_id: `${studyId}:P`,
+            context_id: `${studyId}:C`,
+            level: "L3",
+            status: "open",
+            limitations: "Aguardando materialização e observação empírica de perturbação.",
+            provenance_id: `${studyId}:PROV`,
+            intervention_scope: [itvId],
+            witness_scope: [`${studyId}:W:CAUSAL`, `${studyId}:W:TEMPORAL`]
+          });
+        }
       });
     }
 
@@ -926,12 +951,18 @@ class TkEngine {
       y: yOffset
     };
 
-    // Check if there is an existing planned intervention for this target
-    let plannedItv = study.interventions.find(i => i.kind === kind && i.target_component === targetComp);
+    // Check if there is an existing planned intervention for this target or specific ID
+    let plannedItv = itvCfg.planned_id
+      ? study.interventions.find(i => i.id === itvCfg.planned_id)
+      : study.interventions.find(i => i.kind === kind && i.target_component === targetComp && i.status !== "performed");
+
     let itvId;
     if (plannedItv) {
+      plannedItv.source = source.id;
       plannedItv.target = targetRealizationId;
       plannedItv.status = "performed";
+      if (itvCfg.execution_type) plannedItv.execution_type = itvCfg.execution_type;
+      if (itvCfg.protocol) plannedItv.protocol = itvCfg.protocol;
       itvId = plannedItv.id;
     } else {
       itvId = `${studyId}:I:${kind.toUpperCase()}_${targetComp || itvIndex}`;
@@ -947,6 +978,8 @@ class TkEngine {
         replacement_component: replComp,
         prediction: "BROKEN_CAUSAL",
         status: "performed",
+        execution_type: itvCfg.execution_type || "computational",
+        protocol: itvCfg.protocol || "",
         x: 210,
         y: yOffset + 15
       };
@@ -955,14 +988,29 @@ class TkEngine {
 
     study.realizations.push(derivedRealization);
 
+    // Create associated Run for this materialized intervention
+    const runId = `${studyId}:RUN:${targetRealizationId.split(":").slice(2).join("_")}`;
+    if (!study.runs.find(r => r.id === runId || r.target_realization_id === targetRealizationId)) {
+      study.runs.push({
+        id: runId,
+        schema_version: 2,
+        ontology_version: "0.2.1",
+        investigation_id: studyId,
+        intervention_id: itvId,
+        source_realization_id: source.id,
+        target_realization_id: targetRealizationId,
+        status: "untested"
+      });
+    }
+
     // Record structural assembly record (not empirical evidence)
-    const structArtifact = `run=${studyId}:MATERIALIZED\nsource=${source.id}\nintervention=${itvId}\nrealization=${targetRealizationId}\ncomponents=[${newComponents.join(",")}]\n`;
+    const structArtifact = `run=${studyId}:MATERIALIZED\nsource=${source.id}\nintervention=${itvId}\nrealization=${targetRealizationId}\ncomponents=[${newComponents.join(",")}]\nprotocol=${itvCfg.protocol || "default"}\n`;
     const structSha256 = await this.sha256(structArtifact);
     study.evidence.push({
       id: `${itvId}:E:STRUCTURAL_ASSEMBLY`,
       schema_version: 2,
       ontology_version: "0.2.1",
-      run_id: `${studyId}:RUN:SPECIFICATION`,
+      run_id: runId,
       witness_id: `${studyId}:W:OBSERVATIONAL`,
       observation_ids: [],
       artifact: structArtifact,
