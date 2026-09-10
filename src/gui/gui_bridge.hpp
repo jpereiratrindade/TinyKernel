@@ -54,6 +54,9 @@ public:
   Q_INVOKABLE void createInvestigation(const QVariantMap &config);
   Q_INVOKABLE void addIntervention(const QString &sourceId, const QString &kind,
                                   const QString &targetComponent, const QString &replacementComponent);
+  Q_INVOKABLE void injectObservation(const QString &realizationId, const QString &dimension,
+                                    bool satisfied, const QString &trace);
+  Q_INVOKABLE void adjudicateWitnesses();
 
 signals:
   void dataChanged();

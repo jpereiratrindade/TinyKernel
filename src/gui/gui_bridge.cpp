@@ -25,6 +25,78 @@ tinykernel::ontology::Identity make_id(std::string value) {
   return tinykernel::ontology::Identity{std::move(value), 1, "0.2.0"};
 }
 
+tinykernel::ontology::Study build_tk_sait_001() {
+  const std::string id = "TK-SAIT-001";
+  tinykernel::ontology::Study s;
+  s.investigation = {make_id(id), "Resiliência do Sistema Agroalimentar Territorial (SAIT)",
+                     id + ":P", id + ":C", id + ":PHI",
+                     "Gamma=complexidade_constitutiva_decrescente", "formulated"};
+  s.phenomenon = {make_id(id + ":P"), "resiliência de sistema agroalimentar territorial",
+                  "Capacidade de manter estabilidade produtiva, nutricional e hídrica sob perturbações climáticas e econômicas."};
+  s.context = {make_id(id + ":C"), "Território semiárido/agreste, agricultura familiar, chuvas irregulares."};
+  s.constitutive_profile = {make_id(id + ":PHI"),
+                            {"estabilidade nutricional", "segurança hídrica", "autonomia sementes"},
+                            {"solo_vivo->resiliencia_hidrica", "biodiversidade->segurança_nutricional", "feiras_locais->autonomia_economica"},
+                            {"ciclo_anual_safra", "periodo_estiagem_plurianual"}};
+  s.witnesses = {
+      {make_id(id + ":W:OPERATIONAL"), "operational", "Produção observada e abastecimento contínuo."},
+      {make_id(id + ":W:CAUSAL"), "causal", "Retenção hídrica e fertilidade dependem dos componentes agroecológicos."},
+      {make_id(id + ":W:DISCRIMINATIVE"), "discriminative", "Distinção nítida entre sistemas biodiversos e convencionais degradados."},
+      {make_id(id + ":W:OBSERVATIONAL"), "observational", "Aparato de amostragem de solo e colheita operacional."},
+      {make_id(id + ":W:TEMPORAL"), "temporal", "Estabilidade mantida durante o ciclo de estiagem."}
+  };
+
+  const std::vector<std::string> baseComps = {
+      "solo_vivo", "agrobiodiversidade", "reflorestamento_ciliar",
+      "armazenamento_hidrico", "sementes_locais", "circuitos_curtos_feiras"
+  };
+  s.realizations.push_back({make_id(id + ":R:BASE"), id, "sistema agroflorestal completo (SAIT baseline)",
+                            baseComps, static_cast<std::uint32_t>(baseComps.size())});
+  s.structures.push_back({make_id(id + ":R:BASE:SIGMA"), id + ":R:BASE", baseComps, baseComps});
+  s.provenance.push_back({make_id(id + ":PROV"), "territorial_benchmark", "agroecology_protocol_v1",
+                          "2026-09-10T00:00:00-03:00",
+                          "Benchmark de sistema agroalimentar territorial formulado com rigor epistemológico."});
+
+  const std::vector<std::string> targets = {
+      "circuitos_curtos_feiras", "sementes_locais", "armazenamento_hidrico",
+      "agrobiodiversidade", "reflorestamento_ciliar", "solo_vivo"
+  };
+  for (const auto &target : targets) {
+    s.interventions.push_back({
+        make_id(id + ":I:REMOVE_" + target), id, "remove", id + ":R:BASE", std::nullopt,
+        target, "", "BROKEN_CAUSAL", "planned"
+    });
+  }
+
+  const std::string artifact = "investigation=" + id + "\nstatus=formulated\nbaseline=untested\nplanned_interventions=6\n";
+  s.evidence.push_back({make_id(id + ":E:STRUCTURAL_INTEGRITY"), id + ":RUN:SPECIFICATION",
+                        id + ":W:OBSERVATIONAL", {}, artifact, tinykernel::evidence::sha256(artifact)});
+
+  s.claims.push_back({make_id(id + ":Q:SUFFICIENCY"), id + ":R:BASE",
+                      "O arranjo territorial baseline é causalmente suficiente para sustentar o perfil de resiliência.",
+                      id + ":P", id + ":C", {},
+                      {id + ":W:OPERATIONAL", id + ":W:CAUSAL", id + ":W:DISCRIMINATIVE", id + ":W:OBSERVATIONAL", id + ":W:TEMPORAL"},
+                      {}, tinykernel::ontology::ClaimLevel::l2_relative_sufficiency,
+                      tinykernel::ontology::ClaimStatus::open,
+                      "Aguardando campanhas empíricas de campo.", id + ":PROV"});
+
+  s.claims.push_back({make_id(id + ":Q:RELATIVE_MINIMALITY"), id + ":R:BASE",
+                      "O arranjo é minimal no espaço de reduções agroecológicas sob a ordem Gamma.",
+                      id + ":P", id + ":C", {}, {}, {},
+                      tinykernel::ontology::ClaimLevel::l5_relative_minimality,
+                      tinykernel::ontology::ClaimStatus::open,
+                      "Aguardando testes empíricos das 6 intervenções planejadas.", id + ":PROV"});
+
+  s.claims.push_back({make_id(id + ":Q:ROBUSTNESS"), id + ":R:BASE",
+                      "A estabilidade produtiva e hídrica é robusta a variações pluviométricas sazonais.",
+                      id + ":P", id + ":C", {}, {}, {},
+                      tinykernel::ontology::ClaimLevel::l7_contextual_robustness,
+                      tinykernel::ontology::ClaimStatus::open,
+                      "Requer observações de campo em safras consecutivas.", id + ":PROV"});
+
+  return s;
+}
+
 } // namespace
 
 GuiBridge::GuiBridge(const QString &workspace, QObject *parent)
@@ -38,6 +110,7 @@ void GuiBridge::refreshStudies() {
   all_studies_.clear();
   all_studies_.push_back(tinykernel::experiment::execute_tk0000());
   all_studies_.push_back(tinykernel::experiment::execute_tk0001());
+  all_studies_.push_back(build_tk_sait_001());
 
   const auto database = std::filesystem::path(workspace_.toStdString()) / "tinykernel.sqlite3";
   if (std::filesystem::exists(database)) {
@@ -46,7 +119,7 @@ void GuiBridge::refreshStudies() {
       repository.initialize();
       const auto list = repository.list();
       for (const auto &id : list) {
-        if (id != "TK-0000" && id != "TK-0001") {
+        if (id != "TK-0000" && id != "TK-0001" && id != "TK-SAIT-001") {
           all_studies_.push_back(repository.load(id));
         }
       }
@@ -65,7 +138,9 @@ void GuiBridge::loadStudy(const std::string &id) {
   if (it != all_studies_.end()) {
     study_ = *it;
   } else {
-    study_ = (id == "TK-0000") ? tinykernel::experiment::execute_tk0000() : tinykernel::experiment::execute_tk0001();
+    study_ = (id == "TK-0000") ? tinykernel::experiment::execute_tk0000()
+           : (id == "TK-SAIT-001") ? build_tk_sait_001()
+           : tinykernel::experiment::execute_tk0001();
   }
   emit activeInvestigationIdChanged();
   emit dataChanged();
@@ -94,6 +169,8 @@ QVariantList GuiBridge::investigations() const {
     item["totalClaimsCount"] = static_cast<int>(s.claims.size());
     item["isCanonical"] = (s.investigation.identity.id == "TK-0001");
     item["isSanity"] = (s.investigation.identity.id == "TK-0000");
+    item["isBenchmark"] = (s.investigation.identity.id == "TK-SAIT-001");
+    item["status"] = QString::fromStdString(s.investigation.status.empty() ? "executed" : s.investigation.status);
 
     list.push_back(item);
   }
@@ -340,7 +417,7 @@ void GuiBridge::createInvestigation(const QVariantMap &config) {
 
     tinykernel::ontology::Study newStudy;
     newStudy.investigation = {make_id(id), name, id + ":P", id + ":C", id + ":PHI",
-                              "Gamma=active_causal_relations", "executed"};
+                              "Gamma=active_causal_relations", "formulated"};
     newStudy.phenomenon = {make_id(id + ":P"), name, desc};
     newStudy.context = {make_id(id + ":C"), context};
     newStudy.constitutive_profile = {make_id(id + ":PHI"),
@@ -362,32 +439,19 @@ void GuiBridge::createInvestigation(const QVariantMap &config) {
                                    "deterministic adapter", "2026-09-10T00:00:00-03:00",
                                    "Investigação criada interativamente pelo usuário."});
 
-    // Record baseline run
-    const std::string runId = id + ":RUN:BASELINE";
-    newStudy.runs.push_back({make_id(runId), id, std::nullopt, id + ":R:BASE", id + ":R:BASE", "completed"});
+    // 1 structural integrity evidence record
+    const std::string artifact = "investigation=" + id + "\nstatus=formulated\nbaseline=untested\ncomponents=" + std::to_string(comps.size()) + "\n";
+    newStudy.evidence.push_back({make_id(id + ":E:STRUCTURAL_INTEGRITY"), id + ":RUN:SPECIFICATION",
+                                 id + ":W:OBSERVATIONAL", {}, artifact, tinykernel::evidence::sha256(artifact)});
 
-    std::vector<std::string> evidenceIds;
-    for (const auto &w : newStudy.witnesses) {
-      const std::string obsId = runId + ":O:" + w.kind;
-      newStudy.observations.push_back({make_id(obsId), runId, id + ":R:BASE", w.identity.id, w.kind, "satisfied", true});
-      const std::string artifact = "run=" + runId + "\nrealization=" + id + ":R:BASE\ndimension=" + w.kind + "\nsatisfied=true\ntrace=operational=true;causal=true\n";
-      const std::string evId = runId + ":E:" + w.kind;
-      newStudy.evidence.push_back({make_id(evId), runId, w.identity.id, {obsId}, artifact, tinykernel::evidence::sha256(artifact)});
-      evidenceIds.push_back(evId);
-    }
-
-    newStudy.adjudications.push_back({make_id(runId + ":A"), runId, tinykernel::ontology::Outcome::preserving,
-                                      "PRESERVED", "TK-O-0.2.0:all-constitutive-dimensions-v1",
-                                      "Todos os witnesses constitutivos preregistrados foram satisfeitos.",
-                                      evidenceIds});
-
+    // Claims are OPEN until empirical observation is collected
     newStudy.claims.push_back({make_id(id + ":Q:SUFFICIENCY"), id + ":R:BASE",
                                "A realização baseline é suficiente sob o protocolo preregistrado.",
                                id + ":P", id + ":C", {},
                                {id + ":W:OPERATIONAL", id + ":W:CAUSAL", id + ":W:DISCRIMINATIVE", id + ":W:OBSERVATIONAL", id + ":W:TEMPORAL"},
-                               evidenceIds, tinykernel::ontology::ClaimLevel::l2_relative_sufficiency,
-                               tinykernel::ontology::ClaimStatus::supported,
-                               "Limitado ao contexto, perfil e baseline declarados.", id + ":PROV"});
+                               {}, tinykernel::ontology::ClaimLevel::l2_relative_sufficiency,
+                               tinykernel::ontology::ClaimStatus::open,
+                               "Aguardando testes empíricos da baseline.", id + ":PROV"});
 
     newStudy.claims.push_back({make_id(id + ":Q:RELATIVE_MINIMALITY"), id + ":R:BASE",
                                "A realização é minimal na ordem Gamma declarada.",
@@ -401,6 +465,76 @@ void GuiBridge::createInvestigation(const QVariantMap &config) {
     openInvestigation(QString::fromStdString(id));
   } catch (const std::exception &error) {
     setStatus("Falha ao criar investigação: " + QString::fromUtf8(error.what()));
+  }
+}
+
+void GuiBridge::injectObservation(const QString &realizationId, const QString &dimension,
+                                 bool satisfied, const QString &trace) {
+  try {
+    const std::string studyId = active_id_;
+    const std::string rId = realizationId.isEmpty() ? study_.realizations[0].identity.id : realizationId.toStdString();
+    const std::string dim = dimension.toStdString();
+    const std::string rawTrace = trace.toStdString();
+
+    const std::string runId = studyId + ":RUN:" + (rId == (studyId + ":R:BASE") ? "BASELINE_EMPIRICAL" : rId);
+    
+    // Add run if not existing
+    auto runIt = std::find_if(study_.runs.begin(), study_.runs.end(), [&](const auto &r) { return r.identity.id == runId; });
+    if (runIt == study_.runs.end()) {
+      study_.runs.push_back({make_id(runId), studyId, std::nullopt, studyId + ":R:BASE", rId, "completed"});
+    }
+
+    std::vector<std::string> evidenceIds;
+    for (const auto &w : study_.witnesses) {
+      const bool isTargetDim = (w.kind == dim || dim.empty());
+      const bool isSat = isTargetDim ? satisfied : true;
+      const std::string obsId = runId + ":O:" + w.kind;
+      study_.observations.push_back({make_id(obsId), runId, rId, w.identity.id, w.kind,
+                                     isSat ? "satisfied" : "not_satisfied", isSat});
+      const std::string artifact = "run=" + runId + "\nrealization=" + rId + "\ndimension=" + w.kind +
+          "\nsatisfied=" + (isSat ? "true" : "false") + "\nempirical_trace=" + (rawTrace.empty() ? "measured=true" : rawTrace) + "\n";
+      const std::string evId = runId + ":E:" + w.kind;
+      study_.evidence.push_back({make_id(evId), runId, w.identity.id, {obsId}, artifact, tinykernel::evidence::sha256(artifact)});
+      evidenceIds.push_back(evId);
+    }
+
+    study_.adjudications.push_back({make_id(runId + ":A"), runId,
+                                    satisfied ? tinykernel::ontology::Outcome::preserving : tinykernel::ontology::Outcome::ruptured,
+                                    satisfied ? "PRESERVED" : "BROKEN_CAUSAL", "TK-O-0.2.0:empirical-verification-v1",
+                                    satisfied ? "Observação empírica satisfez os witnesses." : "Falha empírica observada no aparato.",
+                                    evidenceIds});
+
+    study_.investigation.status = "executed";
+    saveStudyToRepository(study_);
+    emit dataChanged();
+    setStatus("Observação empírica injetada com sucesso.");
+  } catch (const std::exception &error) {
+    setStatus("Falha ao injetar observação: " + QString::fromUtf8(error.what()));
+  }
+}
+
+void GuiBridge::adjudicateWitnesses() {
+  try {
+    const std::string studyId = active_id_;
+    int supportedCount = 0;
+
+    // Check baseline
+    const auto baseRun = std::find_if(study_.runs.begin(), study_.runs.end(),
+                                      [&](const auto &r) { return r.result_realization_id.find(":BASE") != std::string::npos; });
+    if (baseRun != study_.runs.end()) {
+      auto suffClaim = std::find_if(study_.claims.begin(), study_.claims.end(),
+                                    [&](const auto &c) { return c.identity.id.find(":Q:SUFFICIENCY") != std::string::npos; });
+      if (suffClaim != study_.claims.end()) {
+        suffClaim->status = tinykernel::ontology::ClaimStatus::supported;
+        supportedCount++;
+      }
+    }
+
+    saveStudyToRepository(study_);
+    emit dataChanged();
+    setStatus(QString("Adjudicação concluída: %1 claims atualizados.").arg(supportedCount));
+  } catch (const std::exception &error) {
+    setStatus("Falha na adjudicação: " + QString::fromUtf8(error.what()));
   }
 }
 

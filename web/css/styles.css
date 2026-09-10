@@ -415,6 +415,12 @@ body {
   border-color: rgba(114, 215, 207, 0.4);
 }
 
+.card-category-badge.benchmark {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
 .card-category-badge.sanity {
   background: rgba(243, 191, 79, 0.15);
   color: var(--status-ready);
@@ -425,6 +431,33 @@ body {
   background: rgba(56, 189, 248, 0.15);
   color: var(--accent);
   border-color: rgba(56, 189, 248, 0.4);
+}
+
+.card-status-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.card-status-badge.formulated {
+  background: rgba(148, 163, 184, 0.14);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.card-status-badge.materialized {
+  background: rgba(243, 191, 79, 0.14);
+  color: var(--status-ready);
+  border: 1px solid var(--status-ready-border);
+}
+
+.card-status-badge.executed {
+  background: var(--status-preserved-bg);
+  color: var(--status-preserved);
+  border: 1px solid var(--status-preserved-border);
 }
 
 .card-title {
@@ -1023,6 +1056,54 @@ body {
   background: var(--status-ruptured-bg);
   border: 1px solid var(--status-ruptured-border);
   color: var(--status-ruptured);
+}
+
+.run-status-pill.untested {
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #94a3b8;
+}
+
+.run-status-pill.planned {
+  background: rgba(243, 191, 79, 0.12);
+  border: 1px solid var(--status-ready-border);
+  color: var(--status-ready);
+}
+
+.run-status-pill.materialized {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: var(--accent);
+}
+
+.evidence-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.12rem 0.45rem;
+  border-radius: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.evidence-badge.structural {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.evidence-badge.empirical {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.evidence-badge.witness {
+  background: rgba(243, 191, 79, 0.15);
+  color: #f3bf4f;
+  border: 1px solid rgba(243, 191, 79, 0.35);
 }
 
 .run-card-meta {

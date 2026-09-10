@@ -193,6 +193,21 @@ Arquitetura e Recursos da Interface Web:
 - **Nível 2 — Assistente de Nova Investigação (`Wizard TK-000X`)**: Construtor guiado em 6 passos para formular novas perguntas científicas sem codificação: $(P, C, \Phi) \rightarrow R \rightarrow I \rightarrow W \rightarrow E \rightarrow Q$;
 - **Nível 3 — Workbench Analítico**: Detalhe científico com Grafo Causal $G_P = (R, I)$ vetorial interativo, adição dinâmica de intervenções (`remove`, `replace`, `disable`, `merge`, `perturb`), runs determinísticos, verificador criptográfico SHA-256 e escada de claims (L0–L8).
 
+## Pipeline Epistemológico: Especificação ≠ Observação
+
+O TinyKernel implementa o **Princípio da Não-Implicação Causal**:
+
+$$(P, C, \Phi, R_0, I) \not\Rightarrow E_{\text{empírica}}$$
+
+Uma investigação passa por 5 fases estritas:
+1. **DECLARED (`formulated`)**: Especificação formal do fenômeno ($P$), contexto ($C$), perfil ($\Phi$), baseline ($R_0$) e intervenções planejadas ($I$). Produz apenas registros de integridade estrutural (SHA-256 da especificação). Claims permanecem `OPEN`.
+2. **MATERIALIZED (`materialized`)**: Construção do aparato ou modelo no espaço operacional.
+3. **OBSERVED (`executed`)**: Injeção de medições reais, rastros de campo ou logs empíricos nas realizações.
+4. **ADJUDICATED**: Avaliação multidimensional dos *witnesses* constitutivos preregistrados contra os dados observados.
+5. **INFERRED**: Sustentação estrita de claims (L2 de suficiência, L3 de necessidade relativa) condicionada a evidências empíricas efetivas.
+
+O benchmark **`TK-SAIT-001`** (Resiliência de Sistema Agroalimentar Territorial) demonstra essa separação: ele nasce em estado `FORMULATED` com baseline `UNTESTED`, 6 intervenções planejadas e claims abertos, impedindo a tautologia de gerar evidências sintéticas a priori.
+
 ## Arquitetura e fundamento
 
 - [TK-ARCH-00 — arquitetura implementada](docs/TK-ARCH-00-arquitetura-experimental-v0.1.0.md)

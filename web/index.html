@@ -286,22 +286,33 @@
          ======================================================== -->
     <main class="view-container" id="view-workbench">
       <!-- Top Action Bar inside Workbench -->
-      <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
         <div style="display: flex; align-items: center; gap: 1rem;">
           <button class="btn btn-sm" id="btn-workbench-back-to-lab">
             <span>&larr;</span> Voltar ao Catálogo
           </button>
-          <h2 id="workbench-investigation-title" style="font-size: 1.3rem; font-weight: 800; color: var(--fg);">
-            TK-0001 — Persistência Adaptativa
-          </h2>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <h2 id="workbench-investigation-title" style="font-size: 1.3rem; font-weight: 800; color: var(--fg);">
+                TK-0001 — Persistência Adaptativa
+              </h2>
+              <span id="workbench-status-badge" class="card-status-badge executed">EXECUTADA</span>
+            </div>
+            <div id="workbench-epistemic-motto" style="font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem;">
+              Pipelines epistemológicos: Especificação &#8800; Materialização &#8800; Observação Empírica
+            </div>
+          </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <button class="btn btn-primary" id="btn-workbench-new-intervention">
-            <span>+</span> Nova Intervenção
+        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+          <button class="btn btn-teal" id="btn-workbench-new-observation" title="Injetar medição real ou traço de campo">
+            <span>🔬</span> + Registrar Observação Empírica
           </button>
-          <button class="btn" id="btn-workbench-run">
-            <span>▶</span> Reexecutar Estudo
+          <button class="btn btn-primary" id="btn-workbench-new-intervention">
+            <span>☍</span> + Nova Intervenção
+          </button>
+          <button class="btn" id="btn-workbench-adjudicate" title="Adjudicar witnesses e atualizar claims">
+            <span>⚖</span> Adjudicar Witnesses
           </button>
           <button class="btn" id="btn-workbench-export">
             <span>↓</span> Exportar JSON
@@ -317,7 +328,7 @@
             <span style="color: var(--accent);">Gₚ</span>
           </div>
           <div class="stat-value" id="stat-realizations">3</div>
-          <div class="stat-caption">Espaço de materializações sob &Gamma;</div>
+          <div class="stat-caption" id="stat-realizations-caption">Espaço de materializações sob &Gamma;</div>
         </div>
 
         <div class="stat-card">
@@ -326,25 +337,25 @@
             <span style="color: var(--teal-tko);">TKO</span>
           </div>
           <div class="stat-value" id="stat-interventions">5</div>
-          <div class="stat-caption" id="stat-interventions-caption">2 executadas • 3 planejadas</div>
+          <div class="stat-caption" id="stat-interventions-caption">0 executadas • 5 planejadas</div>
         </div>
 
         <div class="stat-card">
           <div class="stat-label">
-            <span>Witnesses Preregistrados</span>
-            <span style="color: var(--status-ready);">W</span>
+            <span>Registros Estruturais</span>
+            <span style="color: #94a3b8;">SHA-256</span>
           </div>
-          <div class="stat-value" id="stat-witnesses">5</div>
-          <div class="stat-caption">Dimensões constitutivas do perfil &Phi;</div>
+          <div class="stat-value" id="stat-structural-records">1</div>
+          <div class="stat-caption">Integridade formal pré-registrada</div>
         </div>
 
         <div class="stat-card">
           <div class="stat-label">
-            <span>Evidências Imutáveis</span>
-            <span style="color: var(--status-preserved);">SHA-256</span>
+            <span>Evidências Empíricas</span>
+            <span style="color: var(--status-preserved);">Dados Reais</span>
           </div>
-          <div class="stat-value" id="stat-evidence">15</div>
-          <div class="stat-caption">Digests criptográficos auditáveis</div>
+          <div class="stat-value" id="stat-empirical-evidence">0</div>
+          <div class="stat-caption">Medições e traços observados</div>
         </div>
 
         <div class="stat-card">
@@ -352,8 +363,8 @@
             <span>Claims Sustentados</span>
             <span style="color: var(--status-ready);">L0–L8</span>
           </div>
-          <div class="stat-value" id="stat-claims">2/3</div>
-          <div class="stat-caption" id="stat-claims-caption">L2 (Suficiência) • L3 (Necessidade)</div>
+          <div class="stat-value" id="stat-claims">0/8</div>
+          <div class="stat-caption" id="stat-claims-caption">Suficiência (L2) • Necessidade (L3)</div>
         </div>
       </section>
 
@@ -492,6 +503,51 @@
         </section>
       </div>
     </main>
+
+    <!-- Modal: Registrar Observação Empírica -->
+    <div class="modal-overlay" id="modal-add-observation">
+      <div class="modal-dialog" style="max-width: 550px;">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>🔬</span> Registrar Observação Empírica de Campo
+          </div>
+          <button class="modal-close" id="btn-close-modal-observation">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-add-observation" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="form-group">
+              <label for="modal-obs-realization">Realização Avaliada</label>
+              <select id="modal-obs-realization"></select>
+            </div>
+            <div class="form-group">
+              <label for="modal-obs-dimension">Dimensão / Witness do Perfil &Phi;</label>
+              <select id="modal-obs-dimension">
+                <option value="operational">operational — Comportamento funcional observável</option>
+                <option value="causal">causal — Dependência direta da relação causal</option>
+                <option value="discriminative">discriminative — Preservação das distinções de estado</option>
+                <option value="observational">observational — Integridade do canal de mensuração</option>
+                <option value="temporal">temporal — Respeito aos limites temporais</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="modal-obs-status">Status do Witness na Medição</label>
+              <select id="modal-obs-status">
+                <option value="true">Satisfeito / Preservado (Satisfied)</option>
+                <option value="false">Não Satisfeito / Rompido (Broken)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="modal-obs-trace">Traço de Medição / Dados Brutos / Log</label>
+              <textarea id="modal-obs-trace" rows="3" placeholder="Ex: medição de biomassa=42.1kg; estabilidade_hidrica=0.88; colheita_continua=true" style="font-family: var(--font-mono); font-size: 0.8rem;"></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+              <button type="button" class="btn" id="btn-cancel-modal-observation">Cancelar</button>
+              <button type="submit" class="btn btn-teal">Injetar Evidência Empírica</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- Modal: Adicionar Intervenção no Workbench -->
     <div class="modal-overlay" id="modal-add-intervention">

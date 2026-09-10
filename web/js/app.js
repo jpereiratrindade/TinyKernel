@@ -46,9 +46,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Workbench Elements
   const btnWorkbenchBackToLab = document.getElementById("btn-workbench-back-to-lab");
+  const btnWorkbenchNewObservation = document.getElementById("btn-workbench-new-observation");
   const btnWorkbenchNewIntervention = document.getElementById("btn-workbench-new-intervention");
-  const btnWorkbenchRun = document.getElementById("btn-workbench-run");
+  const btnWorkbenchAdjudicate = document.getElementById("btn-workbench-adjudicate");
   const btnWorkbenchExport = document.getElementById("btn-workbench-export");
+  const workbenchStatusBadge = document.getElementById("workbench-status-badge");
 
   // Modals
   const modalOverlay = document.getElementById("modal-overlay");
@@ -65,6 +67,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const modalItvTarget = document.getElementById("modal-itv-target");
   const modalItvReplacement = document.getElementById("modal-itv-replacement");
   const groupModalItvReplacement = document.getElementById("group-modal-itv-replacement");
+
+  const modalAddObservation = document.getElementById("modal-add-observation");
+  const btnCloseModalObservation = document.getElementById("btn-close-modal-observation");
+  const btnCancelModalObservation = document.getElementById("btn-cancel-modal-observation");
+  const formAddObservation = document.getElementById("form-add-observation");
+  const modalObsRealization = document.getElementById("modal-obs-realization");
+  const modalObsDimension = document.getElementById("modal-obs-dimension");
+  const modalObsStatus = document.getElementById("modal-obs-status");
+  const modalObsTrace = document.getElementById("modal-obs-trace");
 
   // Wizard Elements
   const btnWizPrev = document.getElementById("btn-wiz-prev");
@@ -125,17 +136,37 @@ document.addEventListener("DOMContentLoaded", async () => {
       const inv = study.investigation;
       const isCanonical = inv.id === "TK-0001";
       const isSanity = inv.id === "TK-0000";
+      const isBenchmark = inv.id === "TK-SAIT-001";
       
-      const badgeCategory = isCanonical ? "canonical" : (isSanity ? "sanity" : "user");
-      const badgeText = isCanonical ? "Canônico • Referência" : (isSanity ? "Sanity • Bootstrap" : "Investigação Inédita");
+      let badgeCategory = "user";
+      let badgeText = "Investigação Inédita";
+      if (isCanonical) {
+        badgeCategory = "canonical";
+        badgeText = "Canônico • Referência";
+      } else if (isSanity) {
+        badgeCategory = "sanity";
+        badgeText = "Sanity • Bootstrap";
+      } else if (isBenchmark) {
+        badgeCategory = "benchmark";
+        badgeText = "Benchmark Territorial";
+      }
+
+      const invStatus = inv.status || "executed";
+      const statusClass = invStatus === "formulated" ? "formulated" : (invStatus === "materialized" ? "materialized" : "executed");
+      const statusText = invStatus.toUpperCase();
 
       const supportedClaims = (study.claims || []).filter(c => c.status === "supported").length;
+      const empiricalEvCount = (study.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
+      const structuralEvCount = (study.evidence || []).length - empiricalEvCount;
 
       const card = document.createElement("div");
       card.className = "investigation-card";
       card.innerHTML = `
         <div class="card-top">
-          <span class="card-id">${inv.id}</span>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="card-id">${inv.id}</span>
+            <span class="card-status-badge ${statusClass}">${statusText}</span>
+          </div>
           <span class="card-category-badge ${badgeCategory}">${badgeText}</span>
         </div>
         <div class="card-title">${inv.title || study.phenomenon.name}</div>
@@ -150,8 +181,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             <span class="value">${(study.interventions || []).length}</span>
           </div>
           <div class="metric-item">
-            <span class="label">Evidências</span>
-            <span class="value">${(study.evidence || []).length}</span>
+            <span class="label">Evidências Emp.</span>
+            <span class="value" style="color: ${empiricalEvCount > 0 ? "var(--status-preserved)" : "var(--muted)};">${empiricalEvCount}</span>
           </div>
         </div>
         <div class="card-footer">
@@ -364,6 +395,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const s = state.activeStudy;
 
     document.getElementById("workbench-investigation-title").textContent = `${s.investigation.id} — ${s.investigation.title || s.phenomenon.name}`;
+    
+    // Status Badge
+    const invStatus = s.investigation.status || "executed";
+    workbenchStatusBadge.className = `card-status-badge ${invStatus}`;
+    workbenchStatusBadge.textContent = invStatus.toUpperCase();
+
     renderStats();
     renderPhenomenon();
     renderGraph();
@@ -378,15 +415,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     const s = state.activeStudy;
     document.getElementById("stat-realizations").textContent = s.realizations.length;
     document.getElementById("stat-interventions").textContent = s.interventions.length;
-    document.getElementById("stat-witnesses").textContent = s.witnesses.length;
-    document.getElementById("stat-evidence").textContent = s.evidence.length;
+    
+    // Separate structural integrity records from empirical field observations
+    const empiricalEvCount = (s.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
+    const structuralEvCount = (s.evidence || []).length - empiricalEvCount;
 
-    const supportedClaims = s.claims.filter(c => c.status === "supported").length;
-    document.getElementById("stat-claims").textContent = `${supportedClaims}/${s.claims.length}`;
+    document.getElementById("stat-structural-records").textContent = structuralEvCount;
+    document.getElementById("stat-empirical-evidence").textContent = empiricalEvCount;
 
-    const executedItvs = s.interventions.filter(i => i.status === "performed").length;
-    const plannedItvs = s.interventions.length - executedItvs;
+    const supportedClaims = (s.claims || []).filter(c => c.status === "supported").length;
+    document.getElementById("stat-claims").textContent = `${supportedClaims}/${(s.claims || []).length}`;
+
+    const executedItvs = (s.interventions || []).filter(i => i.status === "performed").length;
+    const plannedItvs = (s.interventions || []).length - executedItvs;
     document.getElementById("stat-interventions-caption").textContent = `${executedItvs} executadas • ${plannedItvs} planejadas`;
+
+    const untestedRuns = (s.runs || []).filter(r => r.status === "untested" || r.status === "formulated").length;
+    document.getElementById("stat-realizations-caption").textContent = `${s.realizations.length} no espaço (${untestedRuns} não testadas)`;
   }
 
   function renderPhenomenon() {
@@ -449,20 +494,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     s.runs.forEach(run => {
       const adj = s.adjudications.find(a => a.run_id === run.id);
       const isPreserved = adj && adj.outcome === "preserving";
-      const outcomeText = adj ? adj.classification : "PENDING";
+      const isUntested = run.status === "untested" || !adj || adj.classification === "UNTESTED";
+      
+      let pillClass = "untested";
+      let outcomeText = "UNTESTED";
+      if (!isUntested) {
+        pillClass = isPreserved ? "preserved" : "broken";
+        outcomeText = adj ? adj.classification : "PENDING";
+      }
+
       const evidenceForRun = s.evidence.filter(e => e.run_id === run.id);
+      const empiricalForRun = evidenceForRun.filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
 
       const card = document.createElement("div");
       card.className = `run-card ${state.activeRunId === run.id ? "active" : ""}`;
       card.innerHTML = `
         <div class="run-card-header">
           <span class="run-id">${run.id.split(":").slice(2).join(":")}</span>
-          <span class="run-status-pill ${isPreserved ? "preserved" : "broken"}">${outcomeText}</span>
+          <span class="run-status-pill ${pillClass}">${outcomeText}</span>
         </div>
         <div class="run-card-meta">
-          <span>${evidenceForRun.length} evidências SHA-256</span>
+          <span>${empiricalForRun} obs. empíricas • ${evidenceForRun.length} registros</span>
           <span>•</span>
-          <span>${adj ? adj.outcome : "pending"}</span>
+          <span>${adj ? adj.outcome : "untested"}</span>
         </div>
       `;
 
@@ -509,18 +563,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     const container = document.getElementById("frontier-analysis-container");
     const s = state.activeStudy;
     const plannedInterventions = s.interventions.filter(i => i.status !== "performed");
+    const empiricalEvCount = (s.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
 
     container.innerHTML = `
       <div class="callout-box warning">
         <strong>Fronteira Epistêmica Aberta</strong>
         <p>As candidatas são minimais apenas no espaço conhecido e sob a ordem &Gamma; declarada.</p>
         <p style="margin-top: 0.4rem; color: #f3bf4f; font-weight: 600;">
-          ${plannedInterventions.length > 0 ? `${plannedInterventions.length} intervenções planejadas impedem promoção a L4–L8.` : "Espaço aberto para novas intervenções empíricas."}
+          ${plannedInterventions.length > 0 ? `${plannedInterventions.length} intervenções planejadas aguardam materialização empírica.` : "Espaço atual totalmente materializado."}
         </p>
       </div>
       <div class="callout-box">
-        <strong>Incompletude por Design</strong>
-        <p>A ontologia TK-O v0.2.0 veta saltos indutivos universais sem intervenções empíricas verificadas em testemunhas imutáveis.</p>
+        <strong>Princípio da Não-Implicação: Especificação &#8802; Evidência</strong>
+        <p>A ontologia TK-O v0.2.0 veta que declarações formais atuem como prova de suas próprias hipóteses causais. Total de observações empíricas colhidas: <strong>${empiricalEvCount}</strong>.</p>
       </div>
     `;
   }
@@ -537,16 +592,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       container.innerHTML = `
         <div class="inspector-card">
           <h4>Inspeção de Execução: ${run ? run.id : "Nenhuma"}</h4>
-          <div><strong>Classificação:</strong> ${adj ? adj.classification : "—"}</div>
+          <div><strong>Status da Run:</strong> <span class="run-status-pill ${run && (run.status === 'untested' || run.status === 'formulated') ? 'untested' : 'preserved'}">${run ? (run.status || 'completed').toUpperCase() : '—'}</span></div>
+          <div><strong>Classificação Causal:</strong> ${adj ? adj.classification : "UNTESTED (Aguardando observação)"}</div>
           <div><strong>Regra Adjudicada:</strong> <code>${adj ? adj.rule : "—"}</code></div>
-          <div><strong>Justificativa:</strong> ${adj ? adj.rationale : "—"}</div>
-          <div style="margin-top: 0.5rem;"><strong>Evidências Verificadas (SHA-256):</strong></div>
-          ${evs.map(ev => `
-            <div style="margin-top: 0.35rem;">
-              <span style="color: #94a3b8; font-size: 0.72rem;">${ev.id.split(":").slice(3).join(":")}:</span>
-              <div class="hash-preview">${ev.sha256}</div>
-            </div>
-          `).join("")}
+          <div><strong>Justificativa:</strong> ${adj ? adj.rationale : "Nenhuma adjudicação realizada."}</div>
+          <div style="margin-top: 0.5rem;"><strong>Registros & Evidências (${evs.length}):</strong></div>
+          ${evs.length === 0 ? '<div style="color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem;">Nenhuma evidência injetada ainda. Use o botão <em>+ Registrar Observação Empírica</em> acima.</div>' : ''}
+          ${evs.map(ev => {
+            const isEmpirical = ev.evidence_type === "EMPIRICAL_OBSERVATION" || (ev.artifact && !ev.artifact.includes("specification_integrity"));
+            const badgeType = isEmpirical ? "empirical" : "structural";
+            const badgeLabel = isEmpirical ? "Evidência Empírica" : "Registro Estrutural";
+            return `
+              <div style="margin-top: 0.4rem; padding: 0.35rem; background: rgba(15, 23, 42, 0.6); border-radius: 0.35rem; border: 1px solid rgba(148, 163, 184, 0.15);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.2rem;">
+                  <span style="color: #94a3b8; font-size: 0.72rem;">${ev.id.split(":").slice(2).join(":")}</span>
+                  <span class="evidence-badge ${badgeType}">${badgeLabel}</span>
+                </div>
+                <div class="hash-preview">${ev.sha256}</div>
+                ${ev.artifact ? `<pre style="font-size: 0.68rem; color: #cbd5e1; margin-top: 0.25rem; white-space: pre-wrap;">${ev.artifact}</pre>` : ''}
+              </div>
+            `;
+          }).join("")}
         </div>
       `;
       return;
@@ -560,9 +626,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div><strong>Nível:</strong> <span class="claim-level-pill">${entity.level}</span></div>
           <div><strong>Sujeito:</strong> ${entity.subject}</div>
           <div><strong>Afirmação:</strong> ${entity.assertion}</div>
-          <div><strong>Status:</strong> ${entity.status.toUpperCase()}</div>
+          <div><strong>Status:</strong> <span class="claim-status ${entity.status === 'supported' ? 'supported' : 'open'}">${entity.status.toUpperCase()}</span></div>
           <div><strong>Limitações:</strong> ${entity.limitations || "Nenhuma declarada"}</div>
-          <div style="margin-top: 0.4rem;"><strong>Testemunhas:</strong> ${(entity.witness_scope || []).join(", ") || "Nenhuma"}</div>
+          <div style="margin-top: 0.4rem;"><strong>Testemunhas / Escopo:</strong> ${(entity.witness_scope || []).join(", ") || "Nenhuma"}</div>
         </div>
       `;
     } else if (entity.kind) {
@@ -575,7 +641,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div><strong>Componente Alvo:</strong> <code>${entity.target_component || "—"}</code></div>
           <div><strong>Substituição:</strong> <code>${entity.replacement_component || "—"}</code></div>
           <div><strong>Predição:</strong> ${entity.prediction}</div>
-          <div><strong>Status:</strong> ${entity.status}</div>
+          <div><strong>Status:</strong> <span class="run-status-pill ${entity.status === 'performed' ? 'preserved' : 'planned'}">${entity.status.toUpperCase()}</span></div>
         </div>
       `;
     } else if (entity.components) {
@@ -584,8 +650,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           <h4>Realização: ${entity.id}</h4>
           <div><strong>Rótulo:</strong> ${entity.label}</div>
           <div><strong>Complexidade (|&Sigma;|):</strong> ${entity.components.length}</div>
-          <div><strong>Resultado Causal:</strong> <span style="color: ${entity.outcome === "preserving" ? "#34d399" : "#f87171"}; font-weight: 700;">${(entity.outcome || "").toUpperCase()}</span></div>
-          <div style="margin-top: 0.4rem;"><strong>Componentes Ativos:</strong></div>
+          <div><strong>Resultado Causal:</strong> <span style="color: ${entity.outcome === "preserving" ? "#34d399" : (entity.outcome === "ruptured" ? "#f87171" : "#94a3b8")}; font-weight: 700;">${(entity.outcome || "UNTESTED").toUpperCase()}</span></div>
+          <div style="margin-top: 0.4rem;"><strong>Componentes Declarados:</strong></div>
           <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.25rem;">
             ${entity.components.map(c => `<span class="sister-tag">${c}</span>`).join("")}
           </div>
@@ -662,6 +728,66 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnCancelModalIntervention.addEventListener("click", () => modalAddIntervention.classList.remove("active"));
 
   // ========================================================
+  // MODAL: REGISTRAR OBSERVAÇÃO EMPÍRICA
+  // ========================================================
+  btnWorkbenchNewObservation.addEventListener("click", () => {
+    if (!state.activeStudy) return;
+    const s = state.activeStudy;
+
+    modalObsRealization.innerHTML = "";
+    s.realizations.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.id;
+      opt.textContent = `${r.id} (${r.label}) [|Σ|=${r.components.length}]`;
+      modalObsRealization.appendChild(opt);
+    });
+
+    modalObsTrace.value = "";
+    modalAddObservation.classList.add("active");
+  });
+
+  formAddObservation.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const realizationId = modalObsRealization.value;
+    const dimension = modalObsDimension.value;
+    const satisfied = modalObsStatus.value === "true";
+    const trace = modalObsTrace.value.trim() || `measurement_status=${satisfied}; timestamp=${new Date().toISOString()}`;
+
+    await window.tkEngine.injectEmpiricalObservation(state.activeStudy, {
+      realization_id: realizationId,
+      dimension: dimension,
+      satisfied: satisfied,
+      trace: trace
+    });
+
+    window.tkEngine.saveStudy(state.activeStudy);
+    modalAddObservation.classList.remove("active");
+    renderWorkbench();
+  });
+
+  btnCloseModalObservation.addEventListener("click", () => modalAddObservation.classList.remove("active"));
+  btnCancelModalObservation.addEventListener("click", () => modalAddObservation.classList.remove("active"));
+
+  // ========================================================
+  // ADJUDICAR WITNESSES & ATUALIZAR CLAIMS
+  // ========================================================
+  btnWorkbenchAdjudicate.addEventListener("click", async () => {
+    if (!state.activeStudy) return;
+    btnWorkbenchAdjudicate.disabled = true;
+    btnWorkbenchAdjudicate.textContent = "Adjudicando...";
+
+    await window.tkEngine.adjudicateWitnesses(state.activeStudy);
+    window.tkEngine.saveStudy(state.activeStudy);
+
+    const supported = state.activeStudy.claims.filter(c => c.status === "supported").length;
+    alert(`Adjudicação concluída! ${supported}/${state.activeStudy.claims.length} claims sustentados por evidência empírica.`);
+
+    btnWorkbenchAdjudicate.disabled = false;
+    btnWorkbenchAdjudicate.textContent = "⚖ Adjudicar Witnesses";
+    renderWorkbench();
+  });
+
+  // ========================================================
   // GLOBAL LISTENERS
   // ========================================================
   btnBrandHome.addEventListener("click", () => switchView("lab-home"));
@@ -669,15 +795,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnNavNewInvestigation.addEventListener("click", () => switchView("wizard"));
   btnHeroNewInvestigation.addEventListener("click", () => switchView("wizard"));
   btnHeroOpenCanonical.addEventListener("click", () => openStudyWorkbench("TK-0001"));
-
-  btnWorkbenchRun.addEventListener("click", async () => {
-    btnWorkbenchRun.disabled = true;
-    btnWorkbenchRun.textContent = "Reexecutando...";
-    await new Promise(r => setTimeout(r, 200));
-    renderWorkbench();
-    btnWorkbenchRun.disabled = false;
-    btnWorkbenchRun.textContent = "▶ Reexecutar Estudo";
-  });
 
   btnWorkbenchExport.addEventListener("click", () => {
     const jsonStr = JSON.stringify(state.activeStudy, null, 2);

@@ -324,14 +324,14 @@ ApplicationWindow {
                                 Item { Layout.fillWidth: true }
                                 Rectangle {
                                     radius: 8
-                                    color: modelData.isCanonical ? "#13353b" : (modelData.isSanity ? "#352c16" : "#172d42")
-                                    border.color: modelData.isCanonical ? "#72d7cf" : (modelData.isSanity ? "#f3bf4f" : "#38bdf8")
-                                    Layout.preferredWidth: modelData.isCanonical ? 130 : 100
+                                    color: modelData.isCanonical ? "#13353b" : (modelData.isSanity ? "#352c16" : (modelData.isBenchmark ? "#2e1065" : "#172d42"))
+                                    border.color: modelData.isCanonical ? "#72d7cf" : (modelData.isSanity ? "#f3bf4f" : (modelData.isBenchmark ? "#c084fc" : "#38bdf8"))
+                                    Layout.preferredWidth: modelData.isCanonical ? 130 : (modelData.isBenchmark ? 135 : 100)
                                     Layout.preferredHeight: 20
                                     Label {
                                         anchors.centerIn: parent
-                                        text: modelData.isCanonical ? "Canônico • Referência" : (modelData.isSanity ? "Sanity Check" : "Investigação Inédita")
-                                        color: modelData.isCanonical ? "#72d7cf" : (modelData.isSanity ? "#f3bf4f" : "#38bdf8")
+                                        text: modelData.isCanonical ? "Canônico • Referência" : (modelData.isSanity ? "Sanity Check" : (modelData.isBenchmark ? "Benchmark Territorial" : "Investigação Inédita"))
+                                        color: modelData.isCanonical ? "#72d7cf" : (modelData.isSanity ? "#f3bf4f" : (modelData.isBenchmark ? "#c084fc" : "#38bdf8"))
                                         font.pixelSize: 9
                                         font.bold: true
                                     }
@@ -520,14 +520,19 @@ ApplicationWindow {
                         Layout.fillWidth: true
                     }
 
+                    TkButton {
+                        text: "🔬 + Registrar Observação"
+                        onClicked: dialogObservation.open()
+                    }
+
                     PrimaryButton {
                         text: "+ Nova Intervenção"
                         onClicked: dialogIntervention.open()
                     }
 
                     TkButton {
-                        text: "Reexecutar Estudo"
-                        onClicked: bridge.runInvestigation()
+                        text: "⚖ Adjudicar Witnesses"
+                        onClicked: bridge.adjudicateWitnesses()
                     }
 
                     TkButton {
@@ -933,6 +938,55 @@ ApplicationWindow {
 
         onAccepted: {
             bridge.addIntervention("TK-0001:R:BASE", comboKind.currentText, itvTargetField.text, itvReplField.text)
+        }
+    }
+
+    // Dialog Modal: Registrar Observação Empírica
+    Dialog {
+        id: dialogObservation
+        title: "Registrar Observação Empírica de Campo"
+        anchors.centerIn: parent
+        width: 460
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        background: Rectangle {
+            color: "#0f172a"
+            border.color: "#34d399"
+            radius: 10
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 12
+
+            Label { text: "Dimensão Constitutiva:"; color: "#34d399"; font.bold: true }
+            ComboBox {
+                id: comboObsDimension
+                model: ["operational", "causal", "discriminative", "observational", "temporal"]
+                Layout.fillWidth: true
+            }
+
+            Label { text: "Status da Medição / Witness:"; color: "#34d399"; font.bold: true }
+            ComboBox {
+                id: comboObsStatus
+                model: ["Satisfeito (Preserved)", "Não Satisfeito (Broken)"]
+                Layout.fillWidth: true
+            }
+
+            Label { text: "Traço de Medição / Log:"; color: "#34d399"; font.bold: true }
+            TextField {
+                id: obsTraceField
+                placeholderText: "Ex: medicao_biomassa=42kg; status=preservado"
+                Layout.fillWidth: true
+                color: "#f8fafc"
+                background: Rectangle { color: "#1e293b"; radius: 6 }
+            }
+        }
+
+        onAccepted: {
+            const isSat = comboObsStatus.currentIndex === 0
+            bridge.injectObservation("", comboObsDimension.currentText, isSat, obsTraceField.text)
         }
     }
 }
