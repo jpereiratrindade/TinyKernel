@@ -55,3 +55,7 @@ intervention_kinds:
   - merge
   - perturb
 
+evidence_categories:
+  - { id: STRUCTURAL_RECORD, label: "Registro de Especificação Estrutural e Integridade" }
+  - { id: EMPIRICAL_OBSERVATION, label: "Observação Empírica de Campo ou Aparato" }
+

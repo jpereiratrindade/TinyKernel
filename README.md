@@ -9,9 +9,10 @@ fenômenos, realizações e intervenções; executa investigações; registra ob
 evidências; limita claims à força da evidência; e mostra a fronteira experimental
 conhecida.
 
-A implementação atual materializa a ontologia operacional **TK-O v0.2.0** e os
-experimentos TK-0000 e TK-0001 sem declarar uma ontologia final ou um Kernel
-universal.
+A implementação atual materializa a ontologia operacional **TK-O v0.2.0**, os
+experimentos de referência `TK-0000` (Sanity) e `TK-0001` (Persistência Adaptativa),
+e o benchmark territorial `TK-SAIT-001` (Resiliência de Sistema Agroalimentar Territorial)
+sem declarar uma ontologia final ou um Kernel universal.
 
 ## Estado
 
@@ -32,8 +33,9 @@ realizações, intervenções, witnesses e revisões ontológicas continuam aber
 - `tinykernel-web`: interface web interativa no grafismo do ecossistema SisTer;
 - SQLite: memória experimental local, com evidence imutável;
 - export JSON determinístico;
-- ontologia TK-O versionada e escada de claims L0–L8;
-- CTest como autoridade única de testes.
+- ontologia TK-O versionada com discriminação entre registros estruturais e evidências empíricas;
+- escada de claims L0–L8 com gates estritos de suficiência (L2) e necessidade relativa (L3);
+- CTest como autoridade única de testes (15 suites automatizadas).
 
 A cadeia ponta a ponta é:
 
@@ -105,9 +107,8 @@ Esse comando:
 
 1. configura CMake com GUI e testes habilitados;
 2. constrói o núcleo, CLI, GUI e testes;
-3. executa todo o CTest, incluindo smoke de startup da GUI;
-4. verifica TK-O, operadores, TK-0000, TK-0001, causal space, limites de claims,
-   integridade SQLite, digests e export determinístico;
+3. executa todo o CTest, incluindo smoke de startup da GUI e workflow;
+4. verifica TK-O, operadores, TK-0000, TK-0001, benchmark TK-SAIT-001, gates de não-implicação causal, causal space, limites de claims, integridade SQLite, digests e export determinístico;
 5. retorna status diferente de zero quando qualquer gate falha.
 
 ## Executar TK-0001
