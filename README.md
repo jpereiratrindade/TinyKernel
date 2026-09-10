@@ -1,403 +1,199 @@
 # TinyKernel
 
-**Laboratório experimental de minimalidade causal**
+**Laboratório experimental de estruturas causais minimais**
 
 > **Sempre pronto. Sempre incompleto.**
 
-TinyKernel investiga uma pergunta deliberadamente aberta:
+TinyKernel é método, instrumento e memória experimental. O sistema representa
+fenômenos, realizações e intervenções; executa investigações; registra observações e
+evidências; limita claims à força da evidência; e mostra a fronteira experimental
+conhecida.
 
-> **O que precisa ser causalmente preservado para que um fenômeno continue
-> sendo aquilo que é — inclusive quando sua configuração pode mudar?**
+A implementação atual materializa a ontologia operacional **TK-O v0.2.0** e os
+experimentos TK-0000 e TK-0001 sem declarar uma ontologia final ou um Kernel
+universal.
 
-O projeto não presume que exista um Kernel único, universal ou previamente
-identificável.
-
-Seu objeto fundador é a **minimalidade causal**.
-
-Sua fronteira conceitual atual acrescenta uma hipótese ainda aberta:
-
-> **talvez o mínimo relevante não seja aquilo que permanece imóvel, mas aquilo
-> que preserva a possibilidade de reconfiguração coerente.**
-
-Este README é uma **projeção do estado atual da pesquisa**.
-A autoridade epistemológica permanece nos documentos versionados.
-
----
-
-## Linhagem
-
-TinyKernel nasce do encontro entre:
-
-- **Sister-Kernel** — identidade, primitivas, invariantes e evolução;
-- **TinyLogicLM** — capacidade aprendida como cadeia causal observável;
-- **TinyLogicVision** — observação, representação, inferência, proveniência e
-  distinções semânticas que não podem ser colapsadas sem perda.
-
-TinyKernel é um laboratório independente. Resultados futuros não são
-automaticamente transferidos a outros projetos.
-
----
-
-## Fundamento — TK-FND-00
-
-O documento fundador muda a pergunta de:
-
-> quais são os componentes mínimos?
-
-para:
-
-> **qual é o menor circuito causal que ainda produz o fenômeno?**
-
-Ele estabelece a **minimalidade causal** como objeto de pesquisa e introduz,
-como elementos operacionais candidatos:
+## Estado
 
 ```text
-fenômeno
-contexto
-realização
-witness
-intervenção
-suficiência
-necessidade relativa
-irredutibilidade
-causalidade
-significado
-observabilidade
-realizações alternativas
+READY
+INCOMPLETE BY DESIGN
 ```
 
-Sua inversão experimental inicial é:
+`READY` significa que o estado atual compila, executa, verifica e reproduz os
+experimentos publicados. `INCOMPLETE BY DESIGN` significa que novos contextos,
+realizações, intervenções, witnesses e revisões ontológicas continuam abertos.
+
+## O que existe
+
+- `libtinykernel`: núcleo C++ independente da apresentação;
+- `tinykernel`: CLI para workspace, experimentos, claims, frontier e export;
+- `tinykernel-gui`: interface Qt Quick do mesmo núcleo;
+- SQLite: memória experimental local, com evidence imutável;
+- export JSON determinístico;
+- ontologia TK-O versionada e escada de claims L0–L8;
+- CTest como autoridade única de testes.
+
+A cadeia ponta a ponta é:
 
 ```text
-construir <-> remover
+Phenomenon
+→ ConstitutiveProfile + Context
+→ Realization
+→ Intervention
+→ Run
+→ Observation
+→ Witness
+→ Evidence (SHA-256)
+→ Adjudication
+→ Claim
+→ Frontier
 ```
 
-O `TK-FND-00` não demonstra que Kernel exista, seja único ou possa ser
-descoberto por simples ablação.
+## Dependências
 
----
+- Linux;
+- compilador com o modo C++26 disponível;
+- CMake 3.28 ou posterior;
+- Ninja;
+- SQLite 3.35 ou posterior, incluindo headers de desenvolvimento;
+- Qt 6.5 ou posterior com Core, Gui, Qml, Quick e Quick Controls 2.
 
-## Fronteira aberta — TK-NOTE-001
+Em Fedora, os pacotes de desenvolvimento relevantes incluem:
 
-A nota sucessora introduz uma hipótese dinâmica:
+```bash
+sudo dnf install cmake ninja-build gcc-c++ sqlite-devel \
+  qt6-qtbase-devel qt6-qtdeclarative-devel
+```
 
-> **Resiliência é manter-se coerente enquanto se reconfigura diante da
-> perturbação.**
+Em Ubuntu/Debian, os nomes usuais são:
 
-O termo **enquanto** é central.
+```bash
+sudo apt install cmake ninja-build g++ libsqlite3-dev \
+  qt6-base-dev qt6-declarative-dev
+```
 
-A reconfiguração passa a ser considerada parte do mecanismo candidato:
+O configure falha explicitamente quando a GUI está habilitada e os módulos Qt Quick
+de desenvolvimento não estão disponíveis. Para trabalho isolado no núcleo, use
+`-DTINYKERNEL_BUILD_GUI=OFF`; esse modo não satisfaz sozinho o READY contract
+completo.
+
+## Construir
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+O executável de conveniência configura e constrói automaticamente:
+
+```bash
+./bin/tinykernel version
+```
+
+## Verificar
+
+A partir de um clone limpo com as dependências instaladas:
+
+```bash
+./bin/tinykernel verify
+```
+
+Esse comando:
+
+1. configura CMake com GUI e testes habilitados;
+2. constrói o núcleo, CLI, GUI e testes;
+3. executa todo o CTest, incluindo smoke de startup da GUI;
+4. verifica TK-O, operadores, TK-0000, TK-0001, causal space, limites de claims,
+   integridade SQLite, digests e export determinístico;
+5. retorna status diferente de zero quando qualquer gate falha.
+
+## Executar TK-0001
+
+Crie uma memória experimental local e execute a investigação:
+
+```bash
+./bin/tinykernel init ./workspace
+./bin/tinykernel --workspace ./workspace run TK-0001
+./bin/tinykernel --workspace ./workspace frontier TK-0001
+./bin/tinykernel --workspace ./workspace claims TK-0001
+./bin/tinykernel --workspace ./workspace export TK-0001 > tk-0001.json
+```
+
+TK-0001 investiga **persistência adaptativa**, uma formulação deliberadamente mais
+fraca que “aprendizado”:
 
 ```text
-ONTOLOGIA CANDIDATA
-    ↓
-COERÊNCIA CANDIDATA
-    ↓
-PERTURBAÇÃO
-    ↓
-DESLOCAMENTO
-    ↓
-RECONFIGURAÇÃO
-    ↓
-TRAJETÓRIA
-    ↓
-COERÊNCIA ATRAVÉS DA MUDANÇA?
-    ↓
-WITNESS
-    ↓
-EVIDÊNCIA
-    ↓
-REVISÃO
+experiência
+→ alteração de estado
+→ persistência
+→ comportamento posterior alterado
 ```
 
-A `TK-NOTE-001` permanece:
+O protocolo executa uma baseline e duas trajetórias:
+
+- substituir feedback por uma realização equivalente: `PRESERVED`;
+- remover atualização: `BROKEN_CAUSAL`.
+
+Três intervenções permanecem abertas: desabilitar persistência, fundir estado e ação,
+e perturbar feedback. A investigação sustenta claims L2 e L3; o claim L5 permanece
+aberto. Nenhuma minimalidade global é declarada.
+
+TK-0000, preregistrado antes de TK-0001, verifica somente o aparato:
+
+```bash
+./bin/tinykernel --workspace ./workspace experiment TK-0000
+```
+
+## CLI
 
 ```text
-CONCEPTUAL BRIDGE / OPEN / NOT ADOPTED
+tinykernel version
+tinykernel verify
+tinykernel init <workspace>
+tinykernel [--workspace PATH] list
+tinykernel [--workspace PATH] show <investigation> [--json]
+tinykernel [--workspace PATH] run <investigation> [--json]
+tinykernel [--workspace PATH] frontier <investigation> [--json]
+tinykernel [--workspace PATH] claims <investigation> [--json]
+tinykernel [--workspace PATH] export <investigation>
+tinykernel gui [workspace]
 ```
 
-Ela não possui autoridade de implementação.
+`--json` está disponível nas consultas analíticas. O export é sempre JSON canônico.
 
----
+## GUI
 
-## Questões emergentes
+Após executar TK-0001, abra a representação gráfica:
 
-A primeira tensão experimental é:
-
-```text
-necessidade em configuração fixa
-!=
-necessidade em sistema reconfigurável
+```bash
+./bin/tinykernel gui ./workspace
 ```
 
-Um elemento pode parecer necessário quando é removido e o sistema é observado
-imediatamente, mas revelar-se substituível quando existe oportunidade de
-reconfiguração.
-
-Exemplo conceitual:
-
-```text
-A -> B -> C
-```
-
-Após remover `B`:
-
-```text
-A -> ? -> C
-```
-
-pode haver falha imediata.
-
-Mas, sob reconfiguração:
-
-```text
-A -> X -> C
-```
-
-pode emergir uma realização alternativa coerente.
-
-Isso não demonstra que `B` seja dispensável. Cria uma pergunta:
-
-> **A necessidade observada em uma configuração permanece necessária quando o
-> sistema pode se reconfigurar?**
-
-A segunda tensão é:
-
-```text
-coerência de estado
-!=
-necessariamente
-coerência de trajetória
-```
-
-Uma trajetória candidata é:
-
-```text
-S_t
--> perturbação
--> deslocamento
--> reconfiguração
--> S_t+1
-```
-
-Não se exige:
-
-```text
-S_t+1 = S_t
-```
-
-A pergunta pode ser:
-
-> **a trajetória de transformação preserva continuidade causal suficiente para
-> que o fenômeno permaneça coerente enquanto se reconfigura?**
-
-Essas questões permanecem abertas.
-
----
-
-## Hipóteses em tensão
-
-TinyKernel preserva atualmente três possibilidades candidatas:
-
-1. **Minimalidade configuracional** — uma realização pode ser localmente
-   irredutível sob um contexto, witnesses e protocolo explicitados.
-
-2. **Minimalidade reconfiguracional** — o mínimo relevante pode depender da
-   possibilidade de reorganização após uma perturbação.
-
-3. **Minimalidade de trajetória** — a unidade relevante pode estar nas relações
-   causais que precisam permanecer válidas durante a transformação, e não em
-   uma configuração isolada.
-
-Nenhuma deve ser promovida a definição final antes de experimentos capazes de
-fazê-las divergir.
-
----
-
-## Perturbação e evidência
-
-Remoção continua sendo um operador experimental importante, mas passa a ser
-tratada como uma classe possível de perturbação.
-
-Outras perturbações candidatas podem afetar:
-
-```text
-estado
-estrutura
-parâmetros
-contexto
-evidência
-semântica
-temporalidade
-```
-
-Esses nomes não constituem API nem ontologia adotada.
-
-Também preservamos a distinção:
-
-```text
-resiliência do fenômeno
-!=
-robustez da inferência sobre o fenômeno
-```
-
-Perturbar o sistema investiga o fenômeno:
-
-```text
-sistema
--> perturbação
--> deslocamento
--> reconfiguração
--> coerência?
-```
-
-Perturbar a evidência investiga a inferência:
-
-```text
-evidência
--> reamostragem
--> nova inferência
--> mesma conclusão?
-```
-
-Essa distinção abre uma ponte futura com reamostragem, suficiência amostral e
-ecologia quantitativa sem importar prematuramente um método específico.
-
----
-
-## Postura experimental
-
-TinyKernel não existe para implementar uma teoria de Kernel já conhecida.
-
-Existe para construir situações pequenas nas quais hipóteses concorrentes
-possam produzir previsões diferentes.
-
-Uma comparação futura particularmente relevante é:
-
-```text
-ablação
--> witness imediato
-```
-
-versus:
-
-```text
-ablação
--> oportunidade de reconfiguração
--> trajetória
--> witness
-```
-
-Se os procedimentos produzirem conclusões distintas sobre necessidade, essa
-diferença será evidência a investigar.
-
----
-
-## Estado material
-
-TinyKernel permanece em fase **pré-implementação**.
-
-Ainda não existem resultados experimentais próprios nem implementação
-substantiva.
-
-O repositório contém atualmente:
-
-```text
-README.md
-LICENSE
-docs/
-  TK-FND-00-fundamentos-minimalidade-causal-v0.1.0.md
-  notes/
-    TK-NOTE-001-ontologia-coerencia-perturbacao-reconfiguracao-resiliencia.md
-  source/
-    TK-FND-00-fundamentos-minimalidade-causal-v0.1.0.tex
-experiments/
-  .gitkeep
-```
-
----
-
-## Próximo passo autorizado
-
-O `TK-FND-00` estabelece:
-
-> **documentar TK-0000 antes de implementar TK-0001**
-
-Essa autorização permanece vigente.
-
-`TK-0000` deve provar o **aparato experimental**, não procurar um Kernel
-substantivo.
-
-Sua forma fundadora continua sendo:
-
-```text
-baseline
--> witness
--> intervention
--> witness
--> classification
-```
-
-A `TK-NOTE-001` não altera esse requisito por autoridade própria.
-
-Ao preregistrar `TK-0000`, a relação entre intervenção, mudança, trajetória e
-reconfiguração deve ser examinada explicitamente como questão de desenho — não
-assumida silenciosamente como resposta.
-
----
-
-## Documentos
-
-- [TK-FND-00 — Fundamentos para uma Ciência Experimental da Minimalidade Causal](docs/TK-FND-00-fundamentos-minimalidade-causal-v0.1.0.md)
-- [TK-NOTE-001 — Ontologia, coerência, perturbação, reconfiguração e resiliência](docs/notes/TK-NOTE-001-ontologia-coerencia-perturbacao-reconfiguracao-resiliencia.md)
-- [Fonte LaTeX do TK-FND-00](docs/source/TK-FND-00-fundamentos-minimalidade-causal-v0.1.0.tex)
-
-O `TK-FND-00` preserva o estado fundador.
-
-Notas posteriores registram a evolução conceitual sem reescrever
-retroativamente estados anteriores.
-
----
-
-## READY != COMPLETE
-
-No estágio documental atual, **pronto** significa:
-
-```text
-estado versionado
-proveniência preservada
-documentos reconstruíveis
-hipóteses explícitas
-limites explícitos
-história não reescrita
-```
-
-Quando existir aparato executável, `READY` deverá também exigir:
-
-```text
-build
-execução
-verificação
-reprodutibilidade
-witnesses explícitos
-```
-
-**Incompleto** significa que nenhuma realização, ontologia ou definição de
-Kernel pode ser universalizada além da evidência que a sustenta.
-
-> **Completude operacional não implica completude ontológica.**
-
----
+A tela mostra:
+
+- fenômeno, contexto e perfil constitutivo;
+- causal space interativo;
+- runs e evidências;
+- claims e níveis;
+- frontier e limites;
+- proveniência da realização ou intervenção selecionada.
+
+QML contém somente apresentação. Classificação causal, adjudicação, claims e frontier
+são produzidos pelas APIs C++ compartilhadas com a CLI.
+
+## Arquitetura e fundamento
+
+- [TK-ARCH-00 — arquitetura implementada](docs/TK-ARCH-00-arquitetura-experimental-v0.1.0.md)
+- [TK-O v0.2.0](ontology/TK-O-0.2.0.yaml)
+- [TK-FND-00 v0.1.0](docs/TK-FND-00-fundamentos-minimalidade-causal-v0.1.0.md)
+- [TK-FND-00 v0.2.0 — fonte LaTeX](docs/source/TK-FND-00-fundamentos-ontologicos-v0.2.0.tex)
+- [TK-NOTE-001](docs/notes/TK-NOTE-001-ontologia-coerencia-perturbacao-reconfiguracao-resiliencia.md)
+
+Os documentos fundadores não são reescritos para acomodar o software. A arquitetura
+é uma materialização versionada e revisável dos contratos científicos atuais.
 
 ## Licença
 
 GNU General Public License v3.0 (`GPL-3.0-only`).
-
----
-
-> **TinyKernel não procura aquilo que não pode mudar.**
->
-> **Procura descobrir o que precisa continuar possível para que algo possa
-> mudar sem deixar de ser aquilo que é.**
-
-**Sempre pronto. Sempre incompleto.**
