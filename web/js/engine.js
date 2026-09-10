@@ -1,12 +1,13 @@
 /**
  * TinyKernel Web Causal Engine — TK-O v0.2.0
- * Deterministic Implementation of Causal Engine, Witnesses, and SHA-256 Evidence
+ * Universal Causal Space Laboratory Engine & Canonical Reference Studies (TK-0000, TK-0001)
  */
 
 class TkEngine {
   constructor() {
     this.ontologyVersion = "0.2.0";
     this.schemaVersion = 1;
+    this.storageKey = "tinykernel_workspace_studies_v1";
   }
 
   // Calculate SHA-256 hash using Web Crypto API or pure fallback
@@ -101,7 +102,67 @@ class TkEngine {
     ];
   }
 
-  // Adapter for TK-0001
+  // Generic Observation & Adjudication for user-defined investigations
+  observeGeneric(realization, study) {
+    const comps = realization.components || [];
+    const has = c => comps.includes(c);
+    
+    // Check if essential components or relations defined in profile are maintained
+    const phi = study.constitutive_profile || {};
+    const essentialTerms = phi.essential_relations || [];
+    
+    // An intervention preserves causal structure if essential relations remain satisfied
+    let essentialIntact = true;
+    let missingEssential = [];
+    
+    // Check baseline relations vs current components
+    if (realization.isBaseline) {
+      essentialIntact = true;
+    } else if (realization.interventionKind === "remove" || realization.interventionKind === "disable") {
+      // Removing a component breaks causal if it was part of baseline
+      essentialIntact = false;
+      missingEssential.push(realization.targetComponent || "component");
+    } else if (realization.interventionKind === "replace") {
+      // Equivalent replacement preserves
+      essentialIntact = true;
+    } else if (realization.interventionKind === "perturb") {
+      essentialIntact = false;
+    }
+
+    const operational = comps.length > 0;
+    const causal = essentialIntact && operational;
+    const discriminative = true;
+    const observable = true;
+    const temporal = essentialIntact;
+
+    const trace = `components=[${comps.join(",")}];essential_intact=${essentialIntact};operational=${operational};causal=${causal};temporal=${temporal}`;
+
+    return {
+      observable,
+      operational,
+      causal,
+      discriminative,
+      temporal,
+      artifact: trace
+    };
+  }
+
+  classificationFor(result) {
+    if (!result.observable) return "WITNESS_COMPROMISED";
+    if (!result.operational) return "BROKEN_OPERATIONAL";
+    if (!result.causal) return "BROKEN_CAUSAL";
+    if (!result.discriminative) return "BROKEN_DISCRIMINATIVE";
+    if (!result.temporal) return "BROKEN_TEMPORAL";
+    return "PRESERVED";
+  }
+
+  outcomeFor(classification) {
+    if (classification === "PRESERVED") return "preserving";
+    if (classification === "WITNESS_COMPROMISED" || classification === "INCONCLUSIVE") return "undetermined";
+    return "ruptured";
+  }
+
+  // Canonical Reference: TK-0001 (Adaptive Persistence)
   observeTk0001(realization) {
     const comps = realization.components || [];
     const has = c => comps.includes(c);
@@ -121,7 +182,7 @@ class TkEngine {
     };
   }
 
-  // Adapter for TK-0000
+  // Canonical Reference: TK-0000 (Apparatus Bootstrap)
   observeTk0000(realization) {
     const comps = realization.components || [];
     const marker = comps.includes("sentinel");
@@ -135,21 +196,6 @@ class TkEngine {
     };
   }
 
-  classificationFor(result) {
-    if (!result.observable) return "WITNESS_COMPROMISED";
-    if (!result.operational) return "BROKEN_OPERATIONAL";
-    if (!result.causal) return "BROKEN_CAUSAL";
-    if (!result.discriminative) return "BROKEN_DISCRIMINATIVE";
-    if (!result.temporal) return "BROKEN_TEMPORAL";
-    return "PRESERVED";
-  }
-
-  outcomeFor(classification) {
-    if (classification === "PRESERVED") return "preserving";
-    if (classification === "WITNESS_COMPROMISED" || classification === "INCONCLUSIVE") return "undetermined";
-    return "ruptured";
-  }
-
   async buildTk0001() {
     const study = {
       investigation: {
@@ -161,7 +207,9 @@ class TkEngine {
         context_id: "TK-0001:C",
         profile_id: "TK-0001:PHI",
         order_declaration: "Gamma=active_causal_relations",
-        status: "executed"
+        status: "executed",
+        category: "canonical_reference",
+        created_at: "2026-09-09T00:00:00-03:00"
       },
       phenomenon: {
         id: "TK-0001:P",
@@ -358,7 +406,6 @@ class TkEngine {
       ]
     };
 
-    // Synthesize executed runs with cryptographic hashes
     const runConfigs = [
       { suffix: "BASELINE", realization: study.realizations[0], intervention: null },
       { suffix: "REMOVE_UPDATE", realization: study.realizations[2], intervention: study.interventions[1] },
@@ -449,7 +496,9 @@ class TkEngine {
         context_id: "TK-0000:C",
         profile_id: "TK-0000:PHI",
         order_declaration: "Gamma=active_causal_relations",
-        status: "executed"
+        status: "executed",
+        category: "sanity_check",
+        created_at: "2026-09-09T00:00:00-03:00"
       },
       phenomenon: {
         id: "TK-0000:P",
@@ -626,6 +675,363 @@ class TkEngine {
     }
 
     return study;
+  }
+
+  // Universal Study Creator (Wizard output to executable study)
+  async createGenericStudy(config) {
+    const studyId = config.id || `TK-${String(Date.now()).slice(-4)}`;
+    const title = config.title || config.phenomenonName || "Nova Investigação";
+    const baselineComponents = config.baselineComponents || [];
+
+    const study = {
+      investigation: {
+        id: studyId,
+        schema_version: 1,
+        ontology_version: "0.2.0",
+        title: title,
+        phenomenon_id: `${studyId}:P`,
+        context_id: `${studyId}:C`,
+        profile_id: `${studyId}:PHI`,
+        order_declaration: config.orderDeclaration || "Gamma=active_causal_relations",
+        status: "executed",
+        category: "user_investigation",
+        created_at: new Date().toISOString()
+      },
+      phenomenon: {
+        id: `${studyId}:P`,
+        schema_version: 1,
+        ontology_version: "0.2.0",
+        name: config.phenomenonName || title,
+        description: config.phenomenonDesc || "Fenômeno experimental formulado pelo pesquisador."
+      },
+      context: {
+        id: `${studyId}:C`,
+        schema_version: 1,
+        ontology_version: "0.2.0",
+        description: config.contextDesc || "Ambiente determinístico com observação rigorosa."
+      },
+      constitutive_profile: {
+        id: `${studyId}:PHI`,
+        schema_version: 1,
+        ontology_version: "0.2.0",
+        dimensions: config.dimensions && config.dimensions.length ? config.dimensions : ["estado observável"],
+        essential_relations: config.essentialRelations && config.essentialRelations.length ? config.essentialRelations : ["componente->resultado"],
+        temporal_bounds: config.temporalBounds && config.temporalBounds.length ? config.temporalBounds : ["estabilidade pós-intervenção"]
+      },
+      witnesses: this.witnesses(studyId),
+      realizations: [
+        {
+          id: `${studyId}:R:BASE`,
+          schema_version: 1,
+          ontology_version: "0.2.0",
+          investigation_id: studyId,
+          label: config.baselineLabel || "baseline inicial",
+          components: baselineComponents,
+          complexity: baselineComponents.length,
+          outcome: "preserving",
+          isBaseline: true,
+          x: 40,
+          y: 80
+        }
+      ],
+      interventions: [],
+      runs: [],
+      observations: [],
+      evidence: [],
+      adjudications: [],
+      claims: [
+        {
+          id: `${studyId}:Q:SUFFICIENCY`,
+          schema_version: 1,
+          ontology_version: "0.2.0",
+          subject: `${studyId}:R:BASE`,
+          assertion: "A realização baseline é suficiente sob o protocolo preregistrado.",
+          phenomenon_id: `${studyId}:P`,
+          context_id: `${studyId}:C`,
+          level: "L2",
+          status: "supported",
+          limitations: "Limitado ao contexto, perfil e realização inicial declarados.",
+          provenance_id: `${studyId}:PROV`,
+          intervention_scope: [],
+          witness_scope: [`${studyId}:W:OPERATIONAL`, `${studyId}:W:CAUSAL`, `${studyId}:W:DISCRIMINATIVE`, `${studyId}:W:OBSERVATIONAL`, `${studyId}:W:TEMPORAL`]
+        },
+        {
+          id: `${studyId}:Q:RELATIVE_MINIMALITY`,
+          schema_version: 1,
+          ontology_version: "0.2.0",
+          subject: `${studyId}:R:BASE`,
+          assertion: "A realização é minimal na ordem Gamma declarada.",
+          phenomenon_id: `${studyId}:P`,
+          context_id: `${studyId}:C`,
+          level: "L5",
+          status: "open",
+          limitations: "Espaço incompleto: reduções planejadas e alternativas continuam abertas.",
+          provenance_id: `${studyId}:PROV`,
+          intervention_scope: [],
+          witness_scope: []
+        }
+      ],
+      provenance: [
+        {
+          id: `${studyId}:PROV`,
+          schema_version: 1,
+          ontology_version: "0.2.0",
+          source: "interactive_wizard",
+          method: "generic deterministic causal adapter",
+          timestamp: new Date().toISOString(),
+          detail: "Investigação formulada interativamente no laboratório TinyKernel."
+        }
+      ]
+    };
+
+    // Record baseline run
+    await this.recordRun(study, study.realizations[0], null, "BASELINE");
+
+    // Add and execute initial interventions if provided
+    if (config.initialInterventions && config.initialInterventions.length) {
+      for (const itvCfg of config.initialInterventions) {
+        await this.applyIntervention(study, itvCfg);
+      }
+    }
+
+    return study;
+  }
+
+  // Execute a new intervention on an active study in real time
+  async applyIntervention(study, itvCfg) {
+    const studyId = study.investigation.id;
+    const itvIndex = study.interventions.length + 1;
+    const kind = itvCfg.kind || "remove";
+    const targetComp = itvCfg.target_component || "";
+    const replComp = itvCfg.replacement_component || "";
+    const sourceRealizationId = itvCfg.source || `${studyId}:R:BASE`;
+
+    const source = study.realizations.find(r => r.id === sourceRealizationId) || study.realizations[0];
+    
+    // Derive new components set based on intervention operator
+    let newComponents = [...(source.components || [])];
+    let targetLabel = "";
+
+    if (kind === "remove") {
+      newComponents = newComponents.filter(c => c !== targetComp);
+      targetLabel = `sem ${targetComp}`;
+    } else if (kind === "replace") {
+      newComponents = newComponents.map(c => c === targetComp ? replComp : c);
+      targetLabel = `${targetComp} → ${replComp}`;
+    } else if (kind === "disable") {
+      newComponents = newComponents.filter(c => c !== targetComp);
+      targetLabel = `${targetComp} desabilitado`;
+    } else if (kind === "merge") {
+      newComponents = newComponents.filter(c => c !== targetComp && c !== replComp);
+      newComponents.push(`${targetComp}_${replComp}`);
+      targetLabel = `${targetComp}+${replComp} fundidos`;
+    } else if (kind === "perturb") {
+      newComponents = newComponents.map(c => c === targetComp ? `${targetComp}_perturbed` : c);
+      targetLabel = `${targetComp} perturbado`;
+    }
+
+    const targetRealizationId = `${studyId}:R:INT_${itvIndex}`;
+    const itvId = `${studyId}:I:${kind.toUpperCase()}_${targetComp || itvIndex}`;
+
+    // Compute y position to distribute visually in causal space
+    const yOffset = 30 + (study.realizations.length * 65);
+
+    const derivedRealization = {
+      id: targetRealizationId,
+      schema_version: 1,
+      ontology_version: "0.2.0",
+      investigation_id: studyId,
+      label: targetLabel,
+      components: newComponents,
+      complexity: newComponents.length,
+      outcome: "pending",
+      isBaseline: false,
+      interventionKind: kind,
+      targetComponent: targetComp,
+      x: 340,
+      y: yOffset
+    };
+
+    const intervention = {
+      id: itvId,
+      schema_version: 1,
+      ontology_version: "0.2.0",
+      investigation_id: studyId,
+      kind: kind,
+      source: source.id,
+      target: targetRealizationId,
+      target_component: targetComp,
+      replacement_component: replComp,
+      prediction: itvCfg.prediction || (kind === "replace" ? "PRESERVED" : "BROKEN_CAUSAL"),
+      status: "performed",
+      x: 210,
+      y: yOffset + 15
+    };
+
+    study.realizations.push(derivedRealization);
+    study.interventions.push(intervention);
+
+    // Record run and compute SHA-256 evidence digests
+    await this.recordRun(study, derivedRealization, intervention, `${kind.toUpperCase()}_${targetComp || itvIndex}`);
+
+    // If an intervention broke causal relation, establish necessity claim (L3)
+    if (derivedRealization.outcome === "ruptured" && targetComp) {
+      const claimId = `${studyId}:Q:${targetComp.toUpperCase()}_NECESSITY`;
+      if (!study.claims.find(c => c.id === claimId)) {
+        study.claims.splice(1, 0, {
+          id: claimId,
+          schema_version: 1,
+          ontology_version: "0.2.0",
+          subject: targetComp,
+          assertion: `A relação associada a '${targetComp}' possui necessidade relativa nesta realização.`,
+          phenomenon_id: study.investigation.phenomenon_id,
+          context_id: study.investigation.context_id,
+          level: "L3",
+          status: "supported",
+          limitations: "Não transfere necessidade a outras realizações, contextos ou granularidades.",
+          provenance_id: `${studyId}:PROV`,
+          intervention_scope: [itvId],
+          witness_scope: [`${studyId}:W:CAUSAL`, `${studyId}:W:TEMPORAL`]
+        });
+      }
+    }
+
+    return study;
+  }
+
+  // Record a deterministic run with SHA-256 evidence digests
+  async recordRun(study, realization, intervention, suffix) {
+    const studyId = study.investigation.id;
+    const runId = `${studyId}:RUN:${suffix}`;
+
+    study.runs.push({
+      id: runId,
+      schema_version: 1,
+      ontology_version: "0.2.0",
+      investigation_id: studyId,
+      intervention_id: intervention ? intervention.id : null,
+      source_realization_id: intervention ? intervention.source : realization.id,
+      target_realization_id: realization.id,
+      status: "completed"
+    });
+
+    const obsResult = this.observeGeneric(realization, study);
+    const classification = this.classificationFor(obsResult);
+    const outcome = this.outcomeFor(classification);
+    realization.outcome = outcome;
+
+    const evidenceIds = [];
+
+    for (const witness of study.witnesses) {
+      let satisfied = false;
+      if (witness.kind === "operational") satisfied = obsResult.operational;
+      else if (witness.kind === "causal") satisfied = obsResult.causal;
+      else if (witness.kind === "discriminative") satisfied = obsResult.discriminative;
+      else if (witness.kind === "observational") satisfied = obsResult.observable;
+      else if (witness.kind === "temporal") satisfied = obsResult.temporal;
+
+      const obsId = `${runId}:O:${witness.kind}`;
+      study.observations.push({
+        id: obsId,
+        schema_version: 1,
+        ontology_version: "0.2.0",
+        run_id: runId,
+        realization_id: realization.id,
+        witness_id: witness.id,
+        witness_kind: witness.kind,
+        outcome: satisfied ? "satisfied" : "not_satisfied",
+        satisfied: satisfied
+      });
+
+      const artifact = `run=${runId}\nrealization=${realization.id}\ndimension=${witness.kind}\nsatisfied=${satisfied ? "true" : "false"}\ntrace=${obsResult.artifact}\n`;
+      const sha256 = await this.sha256(artifact);
+      const evidenceId = `${runId}:E:${witness.kind}`;
+
+      study.evidence.push({
+        id: evidenceId,
+        schema_version: 1,
+        ontology_version: "0.2.0",
+        run_id: runId,
+        witness_id: witness.id,
+        observation_ids: [obsId],
+        artifact: artifact,
+        sha256: sha256
+      });
+      evidenceIds.push(evidenceId);
+    }
+
+    study.adjudications.push({
+      id: `${runId}:A`,
+      schema_version: 1,
+      ontology_version: "0.2.0",
+      run_id: runId,
+      outcome: outcome,
+      classification: classification,
+      rule: "TK-O-0.2.0:all-constitutive-dimensions-v1",
+      rationale: classification === "PRESERVED"
+        ? "Todos os witnesses constitutivos preregistrados foram satisfeitos."
+        : "Ao menos uma dimensão constitutiva preregistrada não foi satisfeita.",
+      evidence_references: evidenceIds
+    });
+  }
+
+  // Workspace Storage Management (Local Repository)
+  async getAllStudies() {
+    let custom = [];
+    if (typeof localStorage !== "undefined") {
+      try {
+        const raw = localStorage.getItem(this.storageKey);
+        if (raw) custom = JSON.parse(raw);
+      } catch (e) {
+        console.warn("Falha ao ler localStorage", e);
+      }
+    }
+
+    const defaultTk0000 = await this.buildTk0000();
+    const defaultTk0001 = await this.buildTk0001();
+
+    const map = new Map();
+    map.set("TK-0000", defaultTk0000);
+    map.set("TK-0001", defaultTk0001);
+
+    for (const st of custom) {
+      if (st && st.investigation && st.investigation.id) {
+        map.set(st.investigation.id, st);
+      }
+    }
+
+    return Array.from(map.values());
+  }
+
+  async getStudy(id) {
+    const studies = await this.getAllStudies();
+    return studies.find(s => s.investigation.id === id) || null;
+  }
+
+  saveStudy(study) {
+    if (typeof localStorage === "undefined") return;
+    try {
+      const raw = localStorage.getItem(this.storageKey);
+      let list = raw ? JSON.parse(raw) : [];
+      list = list.filter(s => s.investigation.id !== study.investigation.id);
+      list.push(study);
+      localStorage.setItem(this.storageKey, JSON.stringify(list));
+    } catch (e) {
+      console.warn("Falha ao salvar no localStorage", e);
+    }
+  }
+
+  deleteStudy(id) {
+    if (typeof localStorage === "undefined") return;
+    if (id === "TK-0000" || id === "TK-0001") return; // Protect canonical references
+    try {
+      const raw = localStorage.getItem(this.storageKey);
+      let list = raw ? JSON.parse(raw) : [];
+      list = list.filter(s => s.investigation.id !== id);
+      localStorage.setItem(this.storageKey, JSON.stringify(list));
+    } catch (e) {
+      console.warn("Falha ao deletar do localStorage", e);
+    }
   }
 }
 

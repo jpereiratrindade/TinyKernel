@@ -3,44 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TinyKernel — Causal Space & Epistemic Frontier (SisTer Ecosystem)</title>
-  <meta name="description" content="Laboratório experimental de estruturas causais minimais — Interface Web no grafismo do ecossistema SisTer.">
+  <title>TinyKernel — Laboratório Experimental de Minimalidade Causal</title>
+  <meta name="description" content="Laboratório experimental de estruturas causais minimais — Interface do Ecossistema SisTer.">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2338bdf8'/><circle cx='50' cy='50' r='20' fill='%230f172a'/></svg>">
 </head>
 <body>
   <div class="app-shell">
-    <!-- Header (SisTer Style) -->
+    <!-- Header Global (SisTer Style) -->
     <header class="app-header">
       <div class="brand-section">
-        <div class="brand-logo-group">
+        <div class="brand-logo-group" id="btn-brand-home" title="Ir para a Home do Laboratório">
           <div class="brand-title">TinyKernel</div>
           <span class="sister-tag">TK-O v0.2.0</span>
         </div>
-        <div class="brand-subtitle">
-          <span>Laboratório Experimental de Estruturas Causais Minimais</span>
+        
+        <!-- Dynamic Breadcrumb Navigation -->
+        <div class="breadcrumb-nav" id="header-breadcrumbs">
+          <span class="breadcrumb-separator">/</span>
+          <span id="breadcrumb-current" style="color: var(--fg); font-weight: 600;">Laboratório</span>
         </div>
       </div>
 
       <div class="header-actions">
-        <!-- Experiment Selector -->
-        <div class="selector-pill">
-          <label for="exp-selector">Experimento:</label>
-          <select id="exp-selector">
-            <option value="TK-0001" selected>TK-0001 (Persistência Adaptativa)</option>
-            <option value="TK-0000">TK-0000 (Sanity Aparato)</option>
-          </select>
-        </div>
-
-        <!-- Action Buttons -->
-        <button class="btn btn-primary" id="btn-run-investigation">
-          <span>▶</span> Executar Investigação
+        <!-- Global Lab Actions -->
+        <button class="btn btn-primary" id="btn-nav-new-investigation">
+          <span>+</span> Nova Investigação
         </button>
-        <button class="btn" id="btn-export-json">
-          <span>↓</span> Exportar JSON
-        </button>
-        <button class="btn" id="btn-import-json">
+        <button class="btn" id="btn-global-import">
           <span>↑</span> Importar Workspace
+        </button>
+        <button class="btn" id="btn-global-export">
+          <span>↓</span> Exportar Workspace
         </button>
         <input type="file" id="file-import-input" accept=".json" style="display: none;">
 
@@ -52,8 +46,269 @@
       </div>
     </header>
 
-    <!-- Main Dashboard Container -->
-    <main class="main-dashboard">
+    <!-- ========================================================
+         VIEW 1: LAB HOME (CATÁLOGO DE INVESTIGAÇÕES)
+         ======================================================== -->
+    <main class="view-container active" id="view-lab-home">
+      <!-- Hero Section do Laboratório -->
+      <section class="lab-hero">
+        <div class="lab-hero-content">
+          <h1 class="lab-hero-title">Laboratório Experimental de Causalidade Mínima</h1>
+          <p class="lab-hero-motto">
+            Descobrir, por <strong>construção</strong>, <strong>intervenção</strong> e <strong>comparação</strong>, quais estruturas são suficientes e quais relações se tornam necessárias para a preservação de um fenômeno definido em determinado contexto.
+          </p>
+          <div style="display: flex; gap: 0.6rem; margin-top: 0.25rem; font-size: 0.78rem; color: var(--muted);">
+            <span>Mecanismo Geral:</span>
+            <code style="color: var(--teal-tko); font-family: var(--font-mono);">(P, C, &Phi;) &rarr; R &rarr; I &rarr; W &rarr; E &rarr; Q</code>
+          </div>
+        </div>
+        <div class="lab-hero-actions">
+          <button class="btn btn-primary btn-lg" id="btn-hero-new-investigation">
+            <span>+</span> Formular Nova Investigação
+          </button>
+          <button class="btn btn-teal" id="btn-hero-open-canonical">
+            <span>🔬</span> Abrir TK-0001 (Referência)
+          </button>
+        </div>
+      </section>
+
+      <!-- Global Workspace Metrics Banner -->
+      <section class="stats-banner" aria-label="Métricas do Laboratório">
+        <div class="stat-card stat-card--emphasis">
+          <div class="stat-label">
+            <span>Investigações no Workspace</span>
+            <span style="color: var(--accent);">TK-O</span>
+          </div>
+          <div class="stat-value" id="global-stat-investigations">2</div>
+          <div class="stat-caption">Espécimes e estudos ativos</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Evidências Imutáveis</span>
+            <span style="color: var(--status-preserved);">SHA-256</span>
+          </div>
+          <div class="stat-value" id="global-stat-evidence">20</div>
+          <div class="stat-caption">Digests criptográficos auditáveis</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Claims Sustentados</span>
+            <span style="color: var(--status-ready);">L0–L8</span>
+          </div>
+          <div class="stat-value" id="global-stat-claims">3</div>
+          <div class="stat-caption">Suficiência (L2) e Necessidade (L3)</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Fronteira Experimental</span>
+            <span style="color: var(--status-open);">&Gamma;</span>
+          </div>
+          <div class="stat-value" id="global-stat-frontier">Aberta</div>
+          <div class="stat-caption">Incompleto por design (sem saltos indutivos)</div>
+        </div>
+      </section>
+
+      <!-- Catálogo de Investigações -->
+      <section class="catalog-section" aria-label="Catálogo de Investigações">
+        <div class="catalog-section-header">
+          <h2 class="catalog-title">
+            <span>◈</span> Catálogo de Investigações Ativas
+          </h2>
+          <span style="font-size: 0.8rem; color: var(--muted);">Clique em uma investigação para abrir o workbench analítico</span>
+        </div>
+
+        <div class="investigations-grid" id="investigations-grid-container">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+    </main>
+
+    <!-- ========================================================
+         VIEW 2: WIZARD DE NOVA INVESTIGAÇÃO (6 PASSOS)
+         ======================================================== -->
+    <main class="view-container" id="view-wizard">
+      <div class="wizard-container">
+        <div class="wizard-header">
+          <h1 style="font-size: 1.6rem; font-weight: 800; color: var(--fg);">Formular Nova Investigação Causal</h1>
+          <p style="color: var(--muted); font-size: 0.85rem;">
+            Construa um novo espécime experimental sem restrições a priori sobre estado ou componentes.
+          </p>
+        </div>
+
+        <!-- Stepper Visual -->
+        <div class="wizard-stepper">
+          <div class="step-indicator active" data-step="1">
+            <span class="step-number">1</span>
+            <span>Fenômeno (P)</span>
+          </div>
+          <div class="step-indicator" data-step="2">
+            <span class="step-number">2</span>
+            <span>Contexto (C)</span>
+          </div>
+          <div class="step-indicator" data-step="3">
+            <span class="step-number">3</span>
+            <span>Perfil (&Phi;)</span>
+          </div>
+          <div class="step-indicator" data-step="4">
+            <span class="step-number">4</span>
+            <span>Baseline (R₀)</span>
+          </div>
+          <div class="step-indicator" data-step="5">
+            <span class="step-number">5</span>
+            <span>Witnesses (W)</span>
+          </div>
+          <div class="step-indicator" data-step="6">
+            <span class="step-number">6</span>
+            <span>Intervenções (I)</span>
+          </div>
+        </div>
+
+        <!-- Wizard Step Panes -->
+        <div class="wizard-body">
+          <!-- Passo 1: Fenômeno -->
+          <div class="wizard-step-pane active" id="wizard-pane-1">
+            <h3 style="color: var(--teal-tko); font-size: 1.05rem;">1. O que você quer investigar?</h3>
+            <div class="form-group">
+              <label for="wiz-id">Identificador do Estudo</label>
+              <input type="text" id="wiz-id" placeholder="Ex: TK-0002" value="TK-0002">
+              <span class="form-hint">Identificador único no workspace experimental.</span>
+            </div>
+            <div class="form-group">
+              <label for="wiz-phenom-name">Nome do Fenômeno</label>
+              <input type="text" id="wiz-phenom-name" placeholder="Ex: discriminação sensorial / regulação homeostática">
+            </div>
+            <div class="form-group">
+              <label for="wiz-phenom-desc">Descrição do Fenômeno</label>
+              <textarea id="wiz-phenom-desc" rows="3" placeholder="Descreva o que caracteriza o fenômeno sob observação..."></textarea>
+            </div>
+          </div>
+
+          <!-- Passo 2: Contexto Operacional -->
+          <div class="wizard-step-pane" id="wizard-pane-2">
+            <h3 style="color: var(--teal-tko); font-size: 1.05rem;">2. Em que contexto e condições de contorno?</h3>
+            <div class="form-group">
+              <label for="wiz-context-desc">Condições de Contorno e Granularidade (&Gamma;)</label>
+              <textarea id="wiz-context-desc" rows="3" placeholder="Ex: Execução local determinística, processo único, valores contínuos/binários..."></textarea>
+              <span class="form-hint">O contexto delimita onde as alegações de minimalidade podem ser sustentadas.</span>
+            </div>
+          </div>
+
+          <!-- Passo 3: Perfil Constitutivo -->
+          <div class="wizard-step-pane" id="wizard-pane-3">
+            <h3 style="color: var(--teal-tko); font-size: 1.05rem;">3. O que precisa permanecer verdadeiro para o fenômeno existir?</h3>
+            <div class="form-group">
+              <label for="wiz-dim-input">Dimensões Constitutivas (pressione Enter para adicionar)</label>
+              <input type="text" id="wiz-dim-input" placeholder="Ex: estado antes/depois, resposta discriminada...">
+              <div class="tag-list-builder" id="wiz-dim-tags"></div>
+            </div>
+            <div class="form-group">
+              <label for="wiz-rel-input">Relações Essenciais</label>
+              <input type="text" id="wiz-rel-input" placeholder="Ex: estímulo->resposta, detector->filtro...">
+              <div class="tag-list-builder" id="wiz-rel-tags"></div>
+            </div>
+            <div class="form-group">
+              <label for="wiz-temp-input">Restrições Temporais</label>
+              <input type="text" id="wiz-temp-input" placeholder="Ex: resposta dentro do ciclo t+1...">
+              <div class="tag-list-builder" id="wiz-temp-tags"></div>
+            </div>
+          </div>
+
+          <!-- Passo 4: Realização Baseline -->
+          <div class="wizard-step-pane" id="wizard-pane-4">
+            <h3 style="color: var(--teal-tko); font-size: 1.05rem;">4. Qual é a realização candidata inicial (R₀)?</h3>
+            <div class="form-group">
+              <label for="wiz-baseline-label">Rótulo da Baseline</label>
+              <input type="text" id="wiz-baseline-label" placeholder="Ex: baseline sensorial completa" value="baseline completa">
+            </div>
+            <div class="form-group">
+              <label for="wiz-comp-input">Componentes Estruturais (&Sigma;) (pressione Enter)</label>
+              <input type="text" id="wiz-comp-input" placeholder="Ex: sensor, threshold, integrator, actuator...">
+              <div class="tag-list-builder" id="wiz-comp-tags"></div>
+              <span class="form-hint">Estes componentes compõem a realização inicial R₀ antes de qualquer intervenção.</span>
+            </div>
+          </div>
+
+          <!-- Passo 5: Testemunhas -->
+          <div class="wizard-step-pane" id="wizard-pane-5">
+            <h3 style="color: var(--teal-tko); font-size: 1.05rem;">5. Critérios de Observação (Witnesses W)</h3>
+            <p style="font-size: 0.82rem; color: var(--muted);">O TinyKernel instancia automaticamente os 5 witnesses constitutivos do TK-O v0.2.0:</p>
+            <div style="display: grid; gap: 0.6rem; margin-top: 0.5rem;">
+              <div class="info-box"><strong>Operacional (W:OPERATIONAL):</strong> O sistema produz comportamento observável sob &Gamma;.</div>
+              <div class="info-box"><strong>Causal (W:CAUSAL):</strong> A saída depende das relações causais preregistradas.</div>
+              <div class="info-box"><strong>Discriminativo (W:DISCRIMINATIVE):</strong> As distinções do perfil permanecem separáveis.</div>
+              <div class="info-box"><strong>Observacional (W:OBSERVATIONAL):</strong> O aparato permanece capaz de observar.</div>
+              <div class="info-box"><strong>Temporal (W:TEMPORAL):</strong> A restrição temporal preregistrada é satisfeita.</div>
+            </div>
+          </div>
+
+          <!-- Passo 6: Intervenções Iniciais -->
+          <div class="wizard-step-pane" id="wizard-pane-6">
+            <h3 style="color: var(--teal-tko); font-size: 1.05rem;">6. Que intervenções iniciais deseja testar?</h3>
+            <p style="font-size: 0.82rem; color: var(--muted);">Configure intervenções para subtrair, substituir ou perturbar componentes:</p>
+            
+            <div style="display: flex; gap: 0.75rem; align-items: flex-end; margin-top: 0.5rem;">
+              <div class="form-group" style="flex: 1;">
+                <label for="wiz-itv-kind">Operador</label>
+                <select id="wiz-itv-kind">
+                  <option value="remove">remove (remover componente)</option>
+                  <option value="replace">replace (substituir por equivalente)</option>
+                  <option value="disable">disable (desabilitar)</option>
+                  <option value="perturb">perturb (injetar ruído/perturbação)</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label for="wiz-itv-target">Componente Alvo</label>
+                <input type="text" id="wiz-itv-target" placeholder="Ex: threshold">
+              </div>
+              <button class="btn btn-teal" type="button" id="btn-wiz-add-itv">Adicionar</button>
+            </div>
+
+            <div style="margin-top: 1rem;">
+              <span class="form-hint" style="font-weight: 700;">Intervenções Preregistradas para Execução Imediata:</span>
+              <div class="tag-list-builder" id="wiz-itv-list" style="margin-top: 0.35rem;"></div>
+            </div>
+          </div>
+
+          <!-- Wizard Navigation Buttons -->
+          <div class="wizard-footer">
+            <button class="btn" id="btn-wiz-prev" disabled>&larr; Voltar</button>
+            <button class="btn btn-primary" id="btn-wiz-next">Próximo &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ========================================================
+         VIEW 3: WORKBENCH DA INVESTIGAÇÃO ESPECÍFICA
+         ======================================================== -->
+    <main class="view-container" id="view-workbench">
+      <!-- Top Action Bar inside Workbench -->
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <button class="btn btn-sm" id="btn-workbench-back-to-lab">
+            <span>&larr;</span> Voltar ao Catálogo
+          </button>
+          <h2 id="workbench-investigation-title" style="font-size: 1.3rem; font-weight: 800; color: var(--fg);">
+            TK-0001 — Persistência Adaptativa
+          </h2>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <button class="btn btn-primary" id="btn-workbench-new-intervention">
+            <span>+</span> Nova Intervenção
+          </button>
+          <button class="btn" id="btn-workbench-run">
+            <span>▶</span> Reexecutar Estudo
+          </button>
+          <button class="btn" id="btn-workbench-export">
+            <span>↓</span> Exportar JSON
+          </button>
+        </div>
+      </div>
+
       <!-- Top KPI Stats Banner -->
       <section class="stats-banner" aria-label="Estatísticas do Espaço Causal">
         <div class="stat-card stat-card--emphasis">
@@ -71,7 +326,7 @@
             <span style="color: var(--teal-tko);">TKO</span>
           </div>
           <div class="stat-value" id="stat-interventions">5</div>
-          <div class="stat-caption">2 executadas • 3 planejadas (abertas)</div>
+          <div class="stat-caption" id="stat-interventions-caption">2 executadas • 3 planejadas</div>
         </div>
 
         <div class="stat-card">
@@ -98,7 +353,7 @@
             <span style="color: var(--status-ready);">L0–L8</span>
           </div>
           <div class="stat-value" id="stat-claims">2/3</div>
-          <div class="stat-caption">L2 (Suficiência) • L3 (Necessidade)</div>
+          <div class="stat-caption" id="stat-claims-caption">L2 (Suficiência) • L3 (Necessidade)</div>
         </div>
       </section>
 
@@ -238,7 +493,49 @@
       </div>
     </main>
 
-    <!-- Modal for JSON Export / Evidence Details -->
+    <!-- Modal: Adicionar Intervenção no Workbench -->
+    <div class="modal-overlay" id="modal-add-intervention">
+      <div class="modal-dialog" style="max-width: 500px;">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>☍</span> Adicionar Intervenção ao Espaço Causal
+          </div>
+          <button class="modal-close" id="btn-close-modal-intervention">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-add-intervention" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="form-group">
+              <label for="modal-itv-source">Realização de Origem</label>
+              <select id="modal-itv-source"></select>
+            </div>
+            <div class="form-group">
+              <label for="modal-itv-kind">Operador de Intervenção</label>
+              <select id="modal-itv-kind">
+                <option value="remove">remove (remover componente)</option>
+                <option value="replace">replace (substituir por equivalente)</option>
+                <option value="disable">disable (desabilitar)</option>
+                <option value="merge">merge (fundir dois componentes)</option>
+                <option value="perturb">perturb (perturbar/injetar ruído)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="modal-itv-target">Componente Alvo</label>
+              <input type="text" id="modal-itv-target" placeholder="Ex: feedback, update, state, sensor..." required>
+            </div>
+            <div class="form-group" id="group-modal-itv-replacement" style="display: none;">
+              <label for="modal-itv-replacement">Componente de Substituição / Fusão</label>
+              <input type="text" id="modal-itv-replacement" placeholder="Ex: feedback_equivalent">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+              <button type="button" class="btn" id="btn-cancel-modal-intervention">Cancelar</button>
+              <button type="submit" class="btn btn-primary">Executar Intervenção</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Exportação / Visualização JSON -->
     <div class="modal-overlay" id="modal-overlay">
       <div class="modal-dialog">
         <div class="modal-header">

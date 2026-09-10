@@ -198,13 +198,10 @@ Para utilizar a interface web com o grafismo e padrão visual do ecossistema **S
 ./bin/tinykernel-web --open
 ```
 
-Recursos da Interface Web:
-- Visual baseado em *dark obsidian/slate glassmorphism* e paleta de acentos do SisTer;
-- Dashboard analítico com KPIs e contadores de evidência;
-- Grafo Causal $G_P = (R, I)$ vetorial interativo com nós arrastáveis e curvas direcionadas;
-- Inspeção dinâmica de runs, witnesses e hashes SHA-256 de evidências imutáveis;
-- Escada epistêmica de claims (L0 a L8) e análise de fronteira/incompletude;
-- Importação e exportação de workspaces JSON determinísticos.
+Arquitetura e Recursos da Interface Web:
+- **Nível 1 — Home do Laboratório (`Lab Home`)**: Catálogo geral de investigações (`TK-0000`, `TK-0001` de calibração e investigações do usuário), métricas globais e exportação/importação de workspaces;
+- **Nível 2 — Assistente de Nova Investigação (`Wizard TK-000X`)**: Construtor guiado em 6 passos para formular novas perguntas científicas sem codificação: $(P, C, \Phi) \rightarrow R \rightarrow I \rightarrow W \rightarrow E \rightarrow Q$;
+- **Nível 3 — Workbench Analítico**: Detalhe científico com Grafo Causal $G_P = (R, I)$ vetorial interativo, adição dinâmica de intervenções (`remove`, `replace`, `disable`, `merge`, `perturb`), runs determinísticos, verificador criptográfico SHA-256 e escada de claims (L0–L8).
 
 ## Arquitetura e fundamento
 

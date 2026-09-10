@@ -1,55 +1,369 @@
 /**
  * TinyKernel Web Application Controller (SisTer Style)
+ * Full Multi-View Laboratory Architecture: Lab Home -> Wizard TK-000X -> Workbench
  */
 
 document.addEventListener("DOMContentLoaded", async () => {
   const state = {
+    currentView: "lab-home", // 'lab-home' | 'wizard' | 'workbench'
+    activeStudyId: null,
     activeStudy: null,
     selectedEntity: null,
     activeRunId: null,
     graph: null,
-    experimentKey: "TK-0001"
+    wizard: {
+      currentStep: 1,
+      maxSteps: 6,
+      data: {
+        id: "TK-0002",
+        phenomenonName: "",
+        phenomenonDesc: "",
+        contextDesc: "",
+        dimensions: [],
+        essentialRelations: [],
+        temporalBounds: [],
+        baselineLabel: "baseline completa",
+        baselineComponents: [],
+        initialInterventions: []
+      }
+    }
   };
 
-  // DOM Elements
-  const expSelector = document.getElementById("exp-selector");
-  const btnRun = document.getElementById("btn-run-investigation");
-  const btnExport = document.getElementById("btn-export-json");
-  const btnImport = document.getElementById("btn-import-json");
-  const btnModalClose = document.getElementById("btn-modal-close");
+  // View Containers
+  const viewLabHome = document.getElementById("view-lab-home");
+  const viewWizard = document.getElementById("view-wizard");
+  const viewWorkbench = document.getElementById("view-workbench");
+  const breadcrumbCurrent = document.getElementById("breadcrumb-current");
+
+  // Global Header Elements
+  const btnBrandHome = document.getElementById("btn-brand-home");
+  const btnNavNewInvestigation = document.getElementById("btn-nav-new-investigation");
+  const btnHeroNewInvestigation = document.getElementById("btn-hero-new-investigation");
+  const btnHeroOpenCanonical = document.getElementById("btn-hero-open-canonical");
+  const btnGlobalImport = document.getElementById("btn-global-import");
+  const btnGlobalExport = document.getElementById("btn-global-export");
+  const fileImportInput = document.getElementById("file-import-input");
+
+  // Workbench Elements
+  const btnWorkbenchBackToLab = document.getElementById("btn-workbench-back-to-lab");
+  const btnWorkbenchNewIntervention = document.getElementById("btn-workbench-new-intervention");
+  const btnWorkbenchRun = document.getElementById("btn-workbench-run");
+  const btnWorkbenchExport = document.getElementById("btn-workbench-export");
+
+  // Modals
   const modalOverlay = document.getElementById("modal-overlay");
   const modalTitle = document.getElementById("modal-title");
   const modalContent = document.getElementById("modal-content");
-  const fileInput = document.getElementById("file-import-input");
+  const btnModalClose = document.getElementById("btn-modal-close");
 
-  // Init Graph
+  const modalAddIntervention = document.getElementById("modal-add-intervention");
+  const btnCloseModalIntervention = document.getElementById("btn-close-modal-intervention");
+  const btnCancelModalIntervention = document.getElementById("btn-cancel-modal-intervention");
+  const formAddIntervention = document.getElementById("form-add-intervention");
+  const modalItvSource = document.getElementById("modal-itv-source");
+  const modalItvKind = document.getElementById("modal-itv-kind");
+  const modalItvTarget = document.getElementById("modal-itv-target");
+  const modalItvReplacement = document.getElementById("modal-itv-replacement");
+  const groupModalItvReplacement = document.getElementById("group-modal-itv-replacement");
+
+  // Wizard Elements
+  const btnWizPrev = document.getElementById("btn-wiz-prev");
+  const btnWizNext = document.getElementById("btn-wiz-next");
+  const stepIndicators = document.querySelectorAll(".step-indicator");
+
+  // Initialize SVG Causal Graph
   state.graph = new TkCausalGraph("graph-container", (id, raw) => {
     handleEntitySelection(id, raw);
   });
 
-  // Load Initial Experiment
-  async function loadExperiment(key) {
-    state.experimentKey = key;
-    if (key === "TK-0001") {
-      state.activeStudy = await window.tkEngine.buildTk0001();
-    } else if (key === "TK-0000") {
-      state.activeStudy = await window.tkEngine.buildTk0000();
+  // ========================================================
+  // ROUTING & VIEW NAVIGATION
+  // ========================================================
+  function switchView(viewName) {
+    state.currentView = viewName;
+    viewLabHome.classList.remove("active");
+    viewWizard.classList.remove("active");
+    viewWorkbench.classList.remove("active");
+
+    if (viewName === "lab-home") {
+      viewLabHome.classList.add("active");
+      breadcrumbCurrent.textContent = "Laboratório";
+      renderLabHome();
+    } else if (viewName === "wizard") {
+      viewWizard.classList.add("active");
+      breadcrumbCurrent.textContent = "Nova Investigação";
+      initWizard();
+    } else if (viewName === "workbench") {
+      viewWorkbench.classList.add("active");
+      breadcrumbCurrent.textContent = state.activeStudy ? `${state.activeStudy.investigation.id} — ${state.activeStudy.investigation.title}` : "Workbench";
+      renderWorkbench();
     }
+  }
+
+  // ========================================================
+  // VIEW 1: LAB HOME (CATALOG OF INVESTIGATIONS)
+  // ========================================================
+  async function renderLabHome() {
+    const studies = await window.tkEngine.getAllStudies();
+
+    // Global Stats
+    let totalEvidence = 0;
+    let totalClaims = 0;
+    studies.forEach(s => {
+      totalEvidence += (s.evidence || []).length;
+      totalClaims += (s.claims || []).filter(c => c.status === "supported").length;
+    });
+
+    document.getElementById("global-stat-investigations").textContent = studies.length;
+    document.getElementById("global-stat-evidence").textContent = totalEvidence;
+    document.getElementById("global-stat-claims").textContent = totalClaims;
+
+    const grid = document.getElementById("investigations-grid-container");
+    grid.innerHTML = "";
+
+    studies.forEach(study => {
+      const inv = study.investigation;
+      const isCanonical = inv.id === "TK-0001";
+      const isSanity = inv.id === "TK-0000";
+      
+      const badgeCategory = isCanonical ? "canonical" : (isSanity ? "sanity" : "user");
+      const badgeText = isCanonical ? "Canônico • Referência" : (isSanity ? "Sanity • Bootstrap" : "Investigação Inédita");
+
+      const supportedClaims = (study.claims || []).filter(c => c.status === "supported").length;
+
+      const card = document.createElement("div");
+      card.className = "investigation-card";
+      card.innerHTML = `
+        <div class="card-top">
+          <span class="card-id">${inv.id}</span>
+          <span class="card-category-badge ${badgeCategory}">${badgeText}</span>
+        </div>
+        <div class="card-title">${inv.title || study.phenomenon.name}</div>
+        <div class="card-desc">${study.phenomenon.description || "Sem descrição"}</div>
+        <div class="card-metrics">
+          <div class="metric-item">
+            <span class="label">Realizações</span>
+            <span class="value">${(study.realizations || []).length}</span>
+          </div>
+          <div class="metric-item">
+            <span class="label">Intervenções</span>
+            <span class="value">${(study.interventions || []).length}</span>
+          </div>
+          <div class="metric-item">
+            <span class="label">Evidências</span>
+            <span class="value">${(study.evidence || []).length}</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span>Claims: <strong style="color: var(--status-ready);">${supportedClaims}/${(study.claims || []).length}</strong></span>
+          <span style="color: var(--accent); font-weight: 600;">Abrir Workbench &rarr;</span>
+        </div>
+      `;
+
+      card.addEventListener("click", () => {
+        openStudyWorkbench(inv.id);
+      });
+
+      grid.appendChild(card);
+    });
+
+    // Add New Investigation Card
+    const addCard = document.createElement("div");
+    addCard.className = "add-investigation-card";
+    addCard.innerHTML = `
+      <div class="add-icon">+</div>
+      <div style="font-weight: 700; font-size: 1rem; color: var(--fg);">Formular Nova Investigação</div>
+      <div style="font-size: 0.78rem; text-align: center; max-width: 240px;">
+        Defina um novo fenômeno, contexto, perfil constitutivo e realize intervenções causais.
+      </div>
+    `;
+    addCard.addEventListener("click", () => {
+      switchView("wizard");
+    });
+    grid.appendChild(addCard);
+  }
+
+  async function openStudyWorkbench(studyId) {
+    state.activeStudyId = studyId;
+    state.activeStudy = await window.tkEngine.getStudy(studyId);
     state.selectedEntity = null;
-    state.activeRunId = state.activeStudy.runs.length > 0 ? state.activeStudy.runs[0].id : null;
-    renderAll();
+    state.activeRunId = state.activeStudy && state.activeStudy.runs.length ? state.activeStudy.runs[0].id : null;
+    switchView("workbench");
   }
 
-  // Handle entity selection across any component
-  function handleEntitySelection(id, entity) {
-    state.selectedEntity = { id, data: entity };
-    renderInspector(id, entity);
+  // ========================================================
+  // VIEW 2: WIZARD CONTROLLER
+  // ========================================================
+  function initWizard() {
+    state.wizard.currentStep = 1;
+    // Auto increment ID based on existing count
+    window.tkEngine.getAllStudies().then(all => {
+      const nextNum = all.length;
+      document.getElementById("wiz-id").value = `TK-${String(nextNum).padStart(4, "0")}`;
+    });
+
+    // Clear tag builders
+    renderTagList("wiz-dim-tags", state.wizard.data.dimensions, removeDimension);
+    renderTagList("wiz-rel-tags", state.wizard.data.essentialRelations, removeRelation);
+    renderTagList("wiz-temp-tags", state.wizard.data.temporalBounds, removeTemporal);
+    renderTagList("wiz-comp-tags", state.wizard.data.baselineComponents, removeComponent);
+    renderInterventionList();
+
+    updateWizardSteps();
   }
 
-  // Render everything
-  function renderAll() {
+  function updateWizardSteps() {
+    stepIndicators.forEach(ind => {
+      const step = parseInt(ind.getAttribute("data-step"));
+      ind.classList.remove("active", "done");
+      if (step === state.wizard.currentStep) ind.classList.add("active");
+      else if (step < state.wizard.currentStep) ind.classList.add("done");
+    });
+
+    for (let i = 1; i <= state.wizard.maxSteps; i++) {
+      const pane = document.getElementById(`wizard-pane-${i}`);
+      if (pane) {
+        if (i === state.wizard.currentStep) pane.classList.add("active");
+        else pane.classList.remove("active");
+      }
+    }
+
+    btnWizPrev.disabled = state.wizard.currentStep === 1;
+    btnWizNext.textContent = state.wizard.currentStep === state.wizard.maxSteps ? "Executar & Abrir Investigação" : "Próximo →";
+  }
+
+  function renderTagList(containerId, list, onRemove) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+    list.forEach((item, index) => {
+      const pill = document.createElement("span");
+      pill.className = "tag-pill";
+      pill.innerHTML = `<span>${item}</span><button type="button">&times;</button>`;
+      pill.querySelector("button").addEventListener("click", () => onRemove(index));
+      container.appendChild(pill);
+    });
+  }
+
+  function removeDimension(index) {
+    state.wizard.data.dimensions.splice(index, 1);
+    renderTagList("wiz-dim-tags", state.wizard.data.dimensions, removeDimension);
+  }
+  function removeRelation(index) {
+    state.wizard.data.essentialRelations.splice(index, 1);
+    renderTagList("wiz-rel-tags", state.wizard.data.essentialRelations, removeRelation);
+  }
+  function removeTemporal(index) {
+    state.wizard.data.temporalBounds.splice(index, 1);
+    renderTagList("wiz-temp-tags", state.wizard.data.temporalBounds, removeTemporal);
+  }
+  function removeComponent(index) {
+    state.wizard.data.baselineComponents.splice(index, 1);
+    renderTagList("wiz-comp-tags", state.wizard.data.baselineComponents, removeComponent);
+  }
+
+  function renderInterventionList() {
+    const listContainer = document.getElementById("wiz-itv-list");
+    listContainer.innerHTML = "";
+    state.wizard.data.initialInterventions.forEach((itv, index) => {
+      const pill = document.createElement("span");
+      pill.className = "tag-pill";
+      pill.innerHTML = `<span><strong>${itv.kind}</strong>: ${itv.target_component}</span><button type="button">&times;</button>`;
+      pill.querySelector("button").addEventListener("click", () => {
+        state.wizard.data.initialInterventions.splice(index, 1);
+        renderInterventionList();
+      });
+      listContainer.appendChild(pill);
+    });
+  }
+
+  // Tag inputs on Enter key
+  function setupTagInput(inputId, onAdd) {
+    const input = document.getElementById(inputId);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const val = input.value.trim();
+        if (val) {
+          onAdd(val);
+          input.value = "";
+        }
+      }
+    });
+  }
+
+  setupTagInput("wiz-dim-input", (val) => {
+    state.wizard.data.dimensions.push(val);
+    renderTagList("wiz-dim-tags", state.wizard.data.dimensions, removeDimension);
+  });
+  setupTagInput("wiz-rel-input", (val) => {
+    state.wizard.data.essentialRelations.push(val);
+    renderTagList("wiz-rel-tags", state.wizard.data.essentialRelations, removeRelation);
+  });
+  setupTagInput("wiz-temp-input", (val) => {
+    state.wizard.data.temporalBounds.push(val);
+    renderTagList("wiz-temp-tags", state.wizard.data.temporalBounds, removeTemporal);
+  });
+  setupTagInput("wiz-comp-input", (val) => {
+    state.wizard.data.baselineComponents.push(val);
+    renderTagList("wiz-comp-tags", state.wizard.data.baselineComponents, removeComponent);
+  });
+
+  document.getElementById("btn-wiz-add-itv").addEventListener("click", () => {
+    const kind = document.getElementById("wiz-itv-kind").value;
+    const target = document.getElementById("wiz-itv-target").value.trim();
+    if (!target) return;
+    state.wizard.data.initialInterventions.push({
+      kind,
+      target_component: target
+    });
+    document.getElementById("wiz-itv-target").value = "";
+    renderInterventionList();
+  });
+
+  btnWizPrev.addEventListener("click", () => {
+    if (state.wizard.currentStep > 1) {
+      state.wizard.currentStep--;
+      updateWizardSteps();
+    }
+  });
+
+  btnWizNext.addEventListener("click", async () => {
+    if (state.wizard.currentStep < state.wizard.maxSteps) {
+      state.wizard.currentStep++;
+      updateWizardSteps();
+    } else {
+      // Step 6 completed: Create & Instantiate Study
+      btnWizNext.disabled = true;
+      btnWizNext.textContent = "Materializando & Executando...";
+
+      const data = state.wizard.data;
+      data.id = document.getElementById("wiz-id").value.trim() || `TK-${Date.now().toString().slice(-4)}`;
+      data.phenomenonName = document.getElementById("wiz-phenom-name").value.trim() || data.id;
+      data.phenomenonDesc = document.getElementById("wiz-phenom-desc").value.trim() || "Fenômeno experimental formulado pelo pesquisador.";
+      data.contextDesc = document.getElementById("wiz-context-desc").value.trim() || "Execução local determinística, processo único, inteiros binários.";
+      data.baselineLabel = document.getElementById("wiz-baseline-label").value.trim() || "baseline completa";
+
+      // If user provided no components, provide defaults
+      if (!data.baselineComponents.length) {
+        data.baselineComponents = ["sensor", "integrator", "threshold", "actuator"];
+      }
+
+      const newStudy = await window.tkEngine.createGenericStudy(data);
+      window.tkEngine.saveStudy(newStudy);
+
+      btnWizNext.disabled = false;
+      openStudyWorkbench(newStudy.investigation.id);
+    }
+  });
+
+  // ========================================================
+  // VIEW 3: WORKBENCH CONTROLLER
+  // ========================================================
+  function renderWorkbench() {
     if (!state.activeStudy) return;
+    const s = state.activeStudy;
 
+    document.getElementById("workbench-investigation-title").textContent = `${s.investigation.id} — ${s.investigation.title || s.phenomenon.name}`;
     renderStats();
     renderPhenomenon();
     renderGraph();
@@ -60,7 +374,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderInspector(state.selectedEntity ? state.selectedEntity.id : null, state.selectedEntity ? state.selectedEntity.data : null);
   }
 
-  // 1. KPI Stats
   function renderStats() {
     const s = state.activeStudy;
     document.getElementById("stat-realizations").textContent = s.realizations.length;
@@ -70,9 +383,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const supportedClaims = s.claims.filter(c => c.status === "supported").length;
     document.getElementById("stat-claims").textContent = `${supportedClaims}/${s.claims.length}`;
+
+    const executedItvs = s.interventions.filter(i => i.status === "performed").length;
+    const plannedItvs = s.interventions.length - executedItvs;
+    document.getElementById("stat-interventions-caption").textContent = `${executedItvs} executadas • ${plannedItvs} planejadas`;
   }
 
-  // 2. Phenomenon, Context & Profile
   function renderPhenomenon() {
     const s = state.activeStudy;
     document.getElementById("phenom-title").textContent = s.phenomenon.name || s.investigation.title;
@@ -99,12 +415,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // 3. Graph
   function renderGraph() {
     state.graph.setData(state.activeStudy.realizations, state.activeStudy.interventions);
   }
 
-  // 4. Frontier Dock
   function renderFrontierDock() {
     const dock = document.getElementById("frontier-chips-container");
     dock.innerHTML = "";
@@ -127,7 +441,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // 5. Runs & Evidence
   function renderRuns() {
     const list = document.getElementById("runs-list-container");
     list.innerHTML = "";
@@ -163,7 +476,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // 6. Claims Ladder
   function renderClaims() {
     const tbody = document.getElementById("claims-table-body");
     tbody.innerHTML = "";
@@ -193,20 +505,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // 7. Frontier Analysis
   function renderFrontierAnalysis() {
     const container = document.getElementById("frontier-analysis-container");
     const s = state.activeStudy;
-
-    const openClaims = s.claims.filter(c => c.status === "open");
     const plannedInterventions = s.interventions.filter(i => i.status !== "performed");
 
     container.innerHTML = `
       <div class="callout-box warning">
         <strong>Fronteira Epistêmica Aberta</strong>
-        <p>As candidatas são minimais apenas no espaço conhecido e sob o perfil &Gamma;.</p>
+        <p>As candidatas são minimais apenas no espaço conhecido e sob a ordem &Gamma; declarada.</p>
         <p style="margin-top: 0.4rem; color: #f3bf4f; font-weight: 600;">
-          ${plannedInterventions.length} intervenções planejadas impedem promoção a L4–L8.
+          ${plannedInterventions.length > 0 ? `${plannedInterventions.length} intervenções planejadas impedem promoção a L4–L8.` : "Espaço aberto para novas intervenções empíricas."}
         </p>
       </div>
       <div class="callout-box">
@@ -216,13 +525,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     `;
   }
 
-  // 8. Inspector Details
   function renderInspector(id, entity) {
     const container = document.getElementById("inspector-details-container");
     const s = state.activeStudy;
 
     if (!id || !entity) {
-      // Default: inspect first run evidence
       const run = s.runs.find(r => r.id === state.activeRunId) || s.runs[0];
       const adj = s.adjudications.find(a => a.run_id === (run ? run.id : ""));
       const evs = s.evidence.filter(e => e.run_id === (run ? run.id : ""));
@@ -245,10 +552,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // Custom entity view
     let detailsHtml = "";
     if (entity.level) {
-      // Claim
       detailsHtml = `
         <div class="inspector-card">
           <h4>Claim: ${entity.id}</h4>
@@ -261,7 +566,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       `;
     } else if (entity.kind) {
-      // Intervention
       detailsHtml = `
         <div class="inspector-card">
           <h4>Intervenção: ${entity.id}</h4>
@@ -275,7 +579,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       `;
     } else if (entity.components) {
-      // Realization
       detailsHtml = `
         <div class="inspector-card">
           <h4>Realização: ${entity.id}</h4>
@@ -289,7 +592,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       `;
     } else {
-      // Generic JSON view
       detailsHtml = `
         <div class="inspector-card">
           <h4>Entidade: ${id}</h4>
@@ -301,38 +603,99 @@ document.addEventListener("DOMContentLoaded", async () => {
     container.innerHTML = detailsHtml;
   }
 
-  // Event Listeners
-  expSelector.addEventListener("change", (e) => {
-    loadExperiment(e.target.value);
+  function handleEntitySelection(id, entity) {
+    state.selectedEntity = { id, data: entity };
+    renderInspector(id, entity);
+  }
+
+  // ========================================================
+  // MODAL: ADICIONAR INTERVENÇÃO DINÂMICA
+  // ========================================================
+  btnWorkbenchNewIntervention.addEventListener("click", () => {
+    if (!state.activeStudy) return;
+    const s = state.activeStudy;
+
+    modalItvSource.innerHTML = "";
+    s.realizations.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.id;
+      opt.textContent = `${r.id} (${r.label}) [|Σ|=${r.components.length}]`;
+      modalItvSource.appendChild(opt);
+    });
+
+    modalItvTarget.value = "";
+    modalItvReplacement.value = "";
+    modalAddIntervention.classList.add("active");
   });
 
-  btnRun.addEventListener("click", async () => {
-    btnRun.disabled = true;
-    btnRun.textContent = "Executando...";
-    await new Promise(r => setTimeout(r, 250)); // Visual feel
-    await loadExperiment(state.experimentKey);
-    btnRun.disabled = false;
-    btnRun.textContent = "Executar Investigação";
+  modalItvKind.addEventListener("change", (e) => {
+    const kind = e.target.value;
+    if (kind === "replace" || kind === "merge") {
+      groupModalItvReplacement.style.display = "flex";
+    } else {
+      groupModalItvReplacement.style.display = "none";
+    }
   });
 
-  btnExport.addEventListener("click", () => {
+  formAddIntervention.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const sourceId = modalItvSource.value;
+    const kind = modalItvKind.value;
+    const targetComp = modalItvTarget.value.trim();
+    const replComp = modalItvReplacement.value.trim();
+
+    if (!targetComp) return;
+
+    await window.tkEngine.applyIntervention(state.activeStudy, {
+      source: sourceId,
+      kind: kind,
+      target_component: targetComp,
+      replacement_component: replComp
+    });
+
+    window.tkEngine.saveStudy(state.activeStudy);
+    modalAddIntervention.classList.remove("active");
+    renderWorkbench();
+  });
+
+  btnCloseModalIntervention.addEventListener("click", () => modalAddIntervention.classList.remove("active"));
+  btnCancelModalIntervention.addEventListener("click", () => modalAddIntervention.classList.remove("active"));
+
+  // ========================================================
+  // GLOBAL LISTENERS
+  // ========================================================
+  btnBrandHome.addEventListener("click", () => switchView("lab-home"));
+  btnWorkbenchBackToLab.addEventListener("click", () => switchView("lab-home"));
+  btnNavNewInvestigation.addEventListener("click", () => switchView("wizard"));
+  btnHeroNewInvestigation.addEventListener("click", () => switchView("wizard"));
+  btnHeroOpenCanonical.addEventListener("click", () => openStudyWorkbench("TK-0001"));
+
+  btnWorkbenchRun.addEventListener("click", async () => {
+    btnWorkbenchRun.disabled = true;
+    btnWorkbenchRun.textContent = "Reexecutando...";
+    await new Promise(r => setTimeout(r, 200));
+    renderWorkbench();
+    btnWorkbenchRun.disabled = false;
+    btnWorkbenchRun.textContent = "▶ Reexecutar Estudo";
+  });
+
+  btnWorkbenchExport.addEventListener("click", () => {
     const jsonStr = JSON.stringify(state.activeStudy, null, 2);
     modalTitle.textContent = `Exportação Determinística — ${state.activeStudy.investigation.id}`;
     modalContent.innerHTML = `
-      <p style="color: #94a3b8; font-size: 0.82rem;">Este JSON reflete o estado determinístico exportado conforme as regras do TK-O v0.2.0.</p>
+      <p style="color: #94a3b8; font-size: 0.82rem;">JSON de exportação determinística conforme TK-O v0.2.0.</p>
       <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
         <button class="btn btn-primary btn-sm" id="btn-copy-json">Copiar JSON</button>
         <button class="btn btn-teal btn-sm" id="btn-download-json">Baixar Arquivo .json</button>
       </div>
-      <pre class="json-view" id="export-json-view">${jsonStr}</pre>
+      <pre class="json-view">${jsonStr}</pre>
     `;
     modalOverlay.classList.add("active");
 
     document.getElementById("btn-copy-json").addEventListener("click", () => {
       navigator.clipboard.writeText(jsonStr);
-      alert("JSON copiado para a área de transferência!");
+      alert("JSON copiado!");
     });
-
     document.getElementById("btn-download-json").addEventListener("click", () => {
       const blob = new Blob([jsonStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -344,41 +707,73 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  btnImport.addEventListener("click", () => {
-    fileInput.click();
+  btnGlobalExport.addEventListener("click", async () => {
+    const allStudies = await window.tkEngine.getAllStudies();
+    const jsonStr = JSON.stringify({
+      workspace: "TinyKernel-MultiInvestigation-Workspace",
+      schema_version: 1,
+      ontology_version: "0.2.0",
+      studies: allStudies
+    }, null, 2);
+
+    modalTitle.textContent = `Exportação do Workspace Completo (${allStudies.length} Investigações)`;
+    modalContent.innerHTML = `
+      <p style="color: #94a3b8; font-size: 0.82rem;">Bundle completo com todas as investigações do laboratório.</p>
+      <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+        <button class="btn btn-primary btn-sm" id="btn-copy-bundle">Copiar Bundle</button>
+        <button class="btn btn-teal btn-sm" id="btn-download-bundle">Baixar tinykernel-workspace.json</button>
+      </div>
+      <pre class="json-view">${jsonStr}</pre>
+    `;
+    modalOverlay.classList.add("active");
+
+    document.getElementById("btn-copy-bundle").addEventListener("click", () => {
+      navigator.clipboard.writeText(jsonStr);
+      alert("Bundle copiado!");
+    });
+    document.getElementById("btn-download-bundle").addEventListener("click", () => {
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tinykernel-workspace.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
   });
 
-  fileInput.addEventListener("change", (e) => {
+  btnGlobalImport.addEventListener("click", () => fileImportInput.click());
+
+  fileImportInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const importedStudy = JSON.parse(event.target.result);
-        if (!importedStudy.investigation || !importedStudy.investigation.id) {
-          throw new Error("Arquivo JSON inválido para o formato TK-O.");
+        const parsed = JSON.parse(event.target.result);
+        if (parsed.studies && Array.isArray(parsed.studies)) {
+          parsed.studies.forEach(s => window.tkEngine.saveStudy(s));
+          alert(`Workspace com ${parsed.studies.length} investigações importado com sucesso!`);
+          renderLabHome();
+        } else if (parsed.investigation && parsed.investigation.id) {
+          window.tkEngine.saveStudy(parsed);
+          alert(`Investigação ${parsed.investigation.id} importada com sucesso!`);
+          openStudyWorkbench(parsed.investigation.id);
+        } else {
+          throw new Error("Formato JSON incompatível com TK-O.");
         }
-        state.activeStudy = importedStudy;
-        state.experimentKey = importedStudy.investigation.id;
-        renderAll();
-        alert(`Workspace importado com sucesso: ${importedStudy.investigation.id}`);
       } catch (err) {
-        alert(`Erro ao importar arquivo: ${err.message}`);
+        alert(`Erro ao importar: ${err.message}`);
       }
     };
     reader.readAsText(file);
   });
 
-  btnModalClose.addEventListener("click", () => {
-    modalOverlay.classList.remove("active");
-  });
-
+  btnModalClose.addEventListener("click", () => modalOverlay.classList.remove("active"));
   modalOverlay.addEventListener("click", (e) => {
-    if (e.target === modalOverlay) {
-      modalOverlay.classList.remove("active");
-    }
+    if (e.target === modalOverlay) modalOverlay.classList.remove("active");
   });
 
-  // Initial Boot
-  await loadExperiment("TK-0001");
+  // Initial Route -> Lab Home
+  switchView("lab-home");
 });

@@ -92,6 +92,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  cursor: pointer;
 }
 
 .brand-title {
@@ -132,40 +133,32 @@ body {
   gap: 0.85rem;
 }
 
-/* Experiment Selector (SisTer style) */
-.selector-pill {
+/* Breadcrumbs (for Workbench) */
+.breadcrumb-nav {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid var(--panel-border);
-  border-radius: 999px;
-  padding: 0.3rem 0.85rem;
+  gap: 0.6rem;
   font-size: 0.85rem;
-  color: var(--fg);
-}
-
-.selector-pill label {
   color: var(--muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.selector-pill select {
-  background: transparent;
-  border: none;
+.breadcrumb-nav a {
   color: var(--accent);
+  text-decoration: none;
   font-weight: 600;
-  font-family: inherit;
-  font-size: 0.85rem;
-  outline: none;
-  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color 0.2s;
 }
 
-.selector-pill select option {
-  background: #0f172a;
-  color: #f8fafc;
+.breadcrumb-nav a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+.breadcrumb-separator {
+  color: var(--muted-dark);
 }
 
 /* Status Badge with Pulsing Dot */
@@ -262,19 +255,453 @@ body {
   border-radius: 0.45rem;
 }
 
-/* Main Dashboard Layout */
-.main-dashboard {
+.btn-lg {
+  padding: 0.65rem 1.4rem;
+  font-size: 0.95rem;
+  border-radius: 0.75rem;
+}
+
+/* ========================================================
+   VIEW 1: LAB HOME (CATALOG OF INVESTIGATIONS)
+   ======================================================== */
+.view-container {
+  display: none;
   flex: 1;
-  padding: 1.25rem 1.75rem 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+  padding: 1.5rem 2rem 2.5rem;
   max-width: 1920px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* Stats / KPI Bar (SisTer style) */
+.view-container.active {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Lab Hero */
+.lab-hero {
+  border: 1px solid var(--panel-border);
+  border-radius: 1.25rem;
+  padding: 2rem 2.5rem;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(8, 20, 38, 0.88) 100%);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--panel-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.lab-hero::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.lab-hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-width: 750px;
+}
+
+.lab-hero-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--fg);
+}
+
+.lab-hero-motto {
+  font-size: 0.95rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.lab-hero-motto strong {
+  color: var(--teal-tko);
+}
+
+.lab-hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 220px;
+}
+
+/* Catalog Section */
+.catalog-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.catalog-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.investigations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.25rem;
+}
+
+.investigation-card {
+  border: 1px solid var(--card-border);
+  border-radius: 1.1rem;
+  padding: 1.4rem;
+  background: var(--card-bg);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  transition: all 0.25s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.investigation-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 18px 45px rgba(56, 189, 248, 0.15);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-id {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+.card-category-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--muted);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.card-category-badge.canonical {
+  background: rgba(114, 215, 207, 0.15);
+  color: var(--teal-tko);
+  border-color: rgba(114, 215, 207, 0.4);
+}
+
+.card-category-badge.sanity {
+  background: rgba(243, 191, 79, 0.15);
+  color: var(--status-ready);
+  border-color: rgba(243, 191, 79, 0.4);
+}
+
+.card-category-badge.user {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1.35;
+}
+
+.card-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.75rem;
+  background: rgba(8, 13, 26, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.metric-item .label {
+  font-size: 0.65rem;
+  color: var(--muted-dark);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.metric-item .value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--fg-secondary);
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  padding-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* Add New Card Button (in grid) */
+.add-investigation-card {
+  border: 2px dashed rgba(56, 189, 248, 0.35);
+  border-radius: 1.1rem;
+  padding: 2rem;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-height: 240px;
+}
+
+.add-investigation-card:hover {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.08);
+  color: var(--accent);
+  transform: translateY(-3px);
+}
+
+.add-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+
+/* ========================================================
+   VIEW 2: WIZARD DE NOVA INVESTIGAÇÃO (6 STEPS)
+   ======================================================== */
+.wizard-container {
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.wizard-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.wizard-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--panel-border);
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted-dark);
+}
+
+.step-indicator.active {
+  color: var(--accent);
+}
+
+.step-indicator.done {
+  color: var(--status-preserved);
+}
+
+.step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(148, 163, 184, 0.15);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.step-indicator.active .step-number {
+  background: var(--accent);
+  color: #0f172a;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.step-indicator.done .step-number {
+  background: var(--status-preserved);
+  color: #0f172a;
+  border-color: var(--status-preserved);
+}
+
+.wizard-body {
+  border: 1px solid var(--panel-border);
+  border-radius: 1.25rem;
+  padding: 2rem;
+  background: var(--panel-bg);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--panel-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.wizard-step-pane {
+  display: none;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.wizard-step-pane.active {
+  display: flex;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.form-group label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--teal-tko);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  background: rgba(8, 13, 26, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 0.65rem;
+  padding: 0.75rem 1rem;
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.tag-list-builder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(8, 13, 26, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.65rem;
+  min-height: 48px;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tag-pill button {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.tag-pill button:hover {
+  color: var(--status-ruptured);
+}
+
+.wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  padding-top: 1.25rem;
+}
+
+/* ========================================================
+   VIEW 3: WORKBENCH (SPECIFIC INVESTIGATION DETAIL)
+   ======================================================== */
 .stats-banner {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -296,26 +723,10 @@ body {
   overflow: hidden;
 }
 
-.stat-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.4), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
 .stat-card:hover {
   border-color: rgba(56, 189, 248, 0.4);
   transform: translateY(-2px);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-}
-
-.stat-card:hover::before {
-  opacity: 1;
 }
 
 .stat-card--emphasis {
@@ -349,7 +760,6 @@ body {
   color: var(--muted-dark);
 }
 
-/* Main Grid Layout */
 .dashboard-grid {
   display: grid;
   grid-template-columns: 320px minmax(500px, 1fr) 380px;
@@ -357,7 +767,6 @@ body {
   min-height: 480px;
 }
 
-/* Glass Panels */
 .glass-panel {
   border: 1px solid var(--panel-border);
   border-radius: 1rem;
@@ -367,7 +776,6 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: border-color 0.2s ease;
 }
 
 .panel-header {
@@ -405,7 +813,7 @@ body {
   gap: 1rem;
 }
 
-/* Left Panel: Phenomenon, Context & Profile */
+/* Left Panel */
 .info-section {
   display: flex;
   flex-direction: column;
@@ -428,10 +836,6 @@ body {
   font-size: 0.82rem;
   color: var(--fg-secondary);
   line-height: 1.45;
-}
-
-.info-box strong {
-  color: var(--fg);
 }
 
 .profile-table {
@@ -464,7 +868,7 @@ body {
   font-weight: 600;
 }
 
-/* Center Panel: Causal Graph */
+/* Center Graph Panel */
 .causal-space-panel {
   position: relative;
   display: flex;
@@ -493,7 +897,6 @@ body {
   cursor: grabbing;
 }
 
-/* Frontier Toolbar at bottom of Causal Space */
 .frontier-dock {
   background: rgba(11, 19, 32, 0.88);
   border-top: 1px solid var(--panel-border);
@@ -557,7 +960,7 @@ body {
   color: var(--status-ready);
 }
 
-/* Right Panel: Runs & Evidence Inspector */
+/* Right Panel: Runs */
 .run-list {
   display: flex;
   flex-direction: column;
@@ -630,7 +1033,6 @@ body {
   gap: 0.6rem;
 }
 
-/* Inspection Details */
 .inspector-card {
   border: 1px solid var(--card-border);
   border-radius: 0.65rem;
@@ -660,14 +1062,13 @@ body {
   word-break: break-all;
 }
 
-/* Bottom Grid: Claims & Epistemic Frontier */
+/* Bottom Grid */
 .bottom-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr);
   gap: 1.25rem;
 }
 
-/* Claims Ladder */
 .claims-table-container {
   overflow-x: auto;
 }
@@ -737,7 +1138,6 @@ body {
   border: 1px solid var(--status-ready-border);
 }
 
-/* Frontier Analysis Box */
 .frontier-analysis {
   display: flex;
   flex-direction: column;
@@ -764,7 +1164,7 @@ body {
   margin-bottom: 0.25rem;
 }
 
-/* Modal / Evidence Drawer */
+/* Modals */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -878,7 +1278,7 @@ body {
   background: rgba(56, 189, 248, 0.5);
 }
 
-/* Responsive adjustments */
+/* Responsive */
 @media (max-width: 1360px) {
   .dashboard-grid {
     grid-template-columns: 280px minmax(400px, 1fr) 340px;
@@ -891,5 +1291,9 @@ body {
   }
   .bottom-grid {
     grid-template-columns: 1fr;
+  }
+  .lab-hero {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
