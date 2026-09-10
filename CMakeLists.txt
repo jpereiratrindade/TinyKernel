@@ -75,5 +75,10 @@ if(BUILD_TESTING)
     add_test(NAME gui.startup COMMAND tinykernel-gui --smoke)
     set_tests_properties(gui.startup PROPERTIES
       ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QSG_RHI_BACKEND=software")
+    add_test(NAME gui.workflow
+      COMMAND ${CMAKE_COMMAND}
+        -DGUI=$<TARGET_FILE:tinykernel-gui>
+        -DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/gui-test-workspace
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/gui_workflow.cmake)
   endif()
 endif()

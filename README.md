@@ -180,6 +180,10 @@ A tela mostra:
 - frontier e limites;
 - proveniência da realização ou intervenção selecionada.
 
+Também é possível executar TK-0001 e salvar o export JSON diretamente pela barra de
+ações. Runs e claims são selecionáveis e exibem adjudicação, limites e digests das
+evidências associadas.
+
 QML contém somente apresentação. Classificação causal, adjudicação, claims e frontier
 são produzidos pelas APIs C++ compartilhadas com a CLI.
 

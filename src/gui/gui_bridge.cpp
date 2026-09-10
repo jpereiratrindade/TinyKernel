@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <sstream>
 
 namespace {
@@ -20,7 +21,8 @@ QString joined(const std::vector<std::string> &values) {
 
 } // namespace
 
-GuiBridge::GuiBridge(const QString &workspace, QObject *parent) : QObject(parent) {
+GuiBridge::GuiBridge(const QString &workspace, QObject *parent)
+    : QObject(parent), workspace_(workspace) {
   const auto database = std::filesystem::path(workspace.toStdString()) / "tinykernel.sqlite3";
   if (std::filesystem::exists(database)) {
     tinykernel::persistence::Repository repository(database);
@@ -31,7 +33,10 @@ GuiBridge::GuiBridge(const QString &workspace, QObject *parent) : QObject(parent
     }
   }
   if (study_.investigation.identity.id.empty()) study_ = tinykernel::experiment::execute_tk0001();
-  selected_details_ = "Selecione uma realização ou intervenção para inspecionar sua proveniência.";
+  status_message_ = study_.runs.empty()
+      ? "TK-0001 preregistrado — execute a investigação para produzir evidência."
+      : "TK-0001 carregado — evidência e claims disponíveis para inspeção.";
+  selected_details_ = "Selecione uma realização, intervenção, run ou claim para inspecionar evidência e proveniência.";
 }
 
 QString GuiBridge::phenomenon() const { return QString::fromStdString(study_.phenomenon.name + "\n" + study_.phenomenon.definition); }
@@ -45,17 +50,19 @@ QString GuiBridge::profile() const {
 QVariantList GuiBridge::realizations() const {
   const auto frontier = tinykernel::knowledge::analyze_frontier(study_);
   QVariantList values;
-  for (std::size_t index = 0; index < study_.realizations.size(); ++index) {
-    const auto &item = study_.realizations[index];
+  for (const auto &item : study_.realizations) {
     std::string outcome = "undetermined";
     if (std::find(frontier.preserving_realizations.begin(), frontier.preserving_realizations.end(), item.identity.id) != frontier.preserving_realizations.end()) outcome = "preserving";
     if (std::find(frontier.ruptured_realizations.begin(), frontier.ruptured_realizations.end(), item.identity.id) != frontier.ruptured_realizations.end()) outcome = "ruptured";
     QVariantMap value;
     value["id"] = QString::fromStdString(item.identity.id);
-    value["label"] = QString::fromStdString(item.label);
+    const bool baseline = item.identity.id == "TK-0001:R:BASE";
+    const bool alternative = item.identity.id == "TK-0001:R:ALT_FEEDBACK";
+    value["label"] = baseline ? "baseline adaptativo"
+        : alternative ? "feedback equivalente" : "sem atualização";
     value["outcome"] = QString::fromStdString(outcome);
-    value["x"] = index == 0 ? 24 : 260;
-    value["y"] = index == 0 ? 105 : (index == 1 ? 30 : 180);
+    value["x"] = baseline ? 30 : 390;
+    value["y"] = baseline ? 142 : (alternative ? 55 : 235);
     values.push_back(value);
   }
   return values;
@@ -70,6 +77,9 @@ QVariantList GuiBridge::interventions() const {
     value["source"] = QString::fromStdString(item.source_realization_id);
     value["target"] = QString::fromStdString(item.target_realization_id.value_or("frontier"));
     value["status"] = QString::fromStdString(item.status);
+    value["prediction"] = QString::fromStdString(item.prediction);
+    value["x"] = 244;
+    value["y"] = item.kind == "replace" ? 92 : 272;
     values.push_back(value);
   }
   return values;
@@ -109,6 +119,7 @@ QString GuiBridge::frontier() const {
       .arg(value.unexplored_interventions.size()).arg(QString::fromStdString(value.limitation));
 }
 
+QString GuiBridge::statusMessage() const { return status_message_; }
 QString GuiBridge::selectedDetails() const { return selected_details_; }
 
 void GuiBridge::selectEntity(const QString &id) {
@@ -127,5 +138,64 @@ void GuiBridge::selectEntity(const QString &id) {
         "\nStatus: " + QString::fromStdString(intervention->status) +
         "\nProveniência: preregistration / TK-O v0.2.0";
     emit selectedDetailsChanged();
+    return;
   }
+  const auto run = std::find_if(study_.runs.begin(), study_.runs.end(), [&](const auto &item) { return item.identity.id == target; });
+  if (run != study_.runs.end()) {
+    const auto adjudication = std::find_if(study_.adjudications.begin(), study_.adjudications.end(),
+        [&](const auto &item) { return item.run_id == target; });
+    QStringList evidence;
+    for (const auto &item : study_.evidence) if (item.run_id == target) {
+      evidence.push_back(QString::fromStdString(item.witness_id + "\n  sha256: " + item.sha256));
+    }
+    selected_details_ = id + "\nResultado: " + QString::fromStdString(run->result_realization_id) +
+        "\nAdjudicação: " + (adjudication == study_.adjudications.end()
+            ? QString("pendente") : QString::fromStdString(adjudication->classification)) +
+        "\n\nEVIDÊNCIA\n" + evidence.join("\n");
+    emit selectedDetailsChanged();
+    return;
+  }
+  const auto claim = std::find_if(study_.claims.begin(), study_.claims.end(), [&](const auto &item) { return item.identity.id == target; });
+  if (claim != study_.claims.end()) {
+    selected_details_ = id + "  [" + QString::fromStdString(tinykernel::ontology::to_string(claim->level)) + "]\n" +
+        QString::fromStdString(claim->assertion) + "\nStatus: " +
+        QString::fromStdString(tinykernel::ontology::to_string(claim->status)) + "\n\nLimite\n" +
+        QString::fromStdString(claim->limitations) + "\n\nEvidências: " + QString::number(claim->evidence_references.size());
+    emit selectedDetailsChanged();
+  }
+}
+
+void GuiBridge::runInvestigation() {
+  try {
+    study_ = tinykernel::experiment::execute_tk0001();
+    tinykernel::persistence::Repository repository(
+        std::filesystem::path(workspace_.toStdString()) / "tinykernel.sqlite3");
+    repository.initialize();
+    repository.save(study_);
+    selected_details_ = "Execução concluída. Selecione um run para inspecionar adjudicação e digests.";
+    emit dataChanged();
+    emit selectedDetailsChanged();
+    setStatus("TK-0001 executado — 3 runs e 15 evidências imutáveis persistidos.");
+  } catch (const std::exception &error) {
+    setStatus("Falha ao executar: " + QString::fromUtf8(error.what()));
+  }
+}
+
+void GuiBridge::exportInvestigation() {
+  try {
+    const auto directory = std::filesystem::path(workspace_.toStdString());
+    std::filesystem::create_directories(directory);
+    const auto destination = directory / "TK-0001.json";
+    std::ofstream output(destination, std::ios::binary | std::ios::trunc);
+    output << tinykernel::persistence::deterministic_export(study_) << '\n';
+    if (!output) throw std::runtime_error("não foi possível gravar o export");
+    setStatus("Export JSON salvo em " + QString::fromStdString(destination.string()));
+  } catch (const std::exception &error) {
+    setStatus("Falha ao exportar: " + QString::fromUtf8(error.what()));
+  }
+}
+
+void GuiBridge::setStatus(QString message) {
+  status_message_ = std::move(message);
+  emit statusMessageChanged();
 }
