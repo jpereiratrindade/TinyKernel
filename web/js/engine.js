@@ -1181,12 +1181,31 @@ class TkEngine {
   // Workspace Storage Management (Local Repository)
   async getAllStudies() {
     let custom = [];
+    const legacyKeys = [
+      this.storageKey,
+      "tinykernel_studies_v1",
+      "tinykernel_studies",
+      "tinykernel_workspace",
+      "tk_studies"
+    ];
+
     if (typeof localStorage !== "undefined") {
-      try {
-        const raw = localStorage.getItem(this.storageKey);
-        if (raw) custom = JSON.parse(raw);
-      } catch (e) {
-        console.warn("Falha ao ler localStorage", e);
+      for (const key of legacyKeys) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              custom.push(...parsed);
+            } else if (parsed && Array.isArray(parsed.studies)) {
+              custom.push(...parsed.studies);
+            } else if (parsed && typeof parsed === "object") {
+              custom.push(parsed);
+            }
+          }
+        } catch (e) {
+          console.warn("Falha ao ler chave localStorage:", key, e);
+        }
       }
     }
 
@@ -1199,14 +1218,12 @@ class TkEngine {
     map.set("TK-0001", defaultTk0001);
     map.set("TK-SAIT-001", defaultTkSait001);
 
-    if (Array.isArray(custom)) {
-      for (const rawSt of custom) {
-        const st = this.normalizeStudy(rawSt);
-        if (st && st.investigation && st.investigation.id) {
-          // If the user created a custom investigation, include it in the map
-          if (st.investigation.id !== "TK-0000" && st.investigation.id !== "TK-0001" && st.investigation.id !== "TK-SAIT-001") {
-            map.set(st.investigation.id, st);
-          }
+    for (const rawSt of custom) {
+      const st = this.normalizeStudy(rawSt);
+      if (st && st.investigation && st.investigation.id) {
+        // If the user created a custom investigation, include it in the map
+        if (st.investigation.id !== "TK-0000" && st.investigation.id !== "TK-0001" && st.investigation.id !== "TK-SAIT-001") {
+          map.set(st.investigation.id, st);
         }
       }
     }

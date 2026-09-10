@@ -168,6 +168,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const empiricalEvCount = (study.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
         const structuralEvCount = (study.evidence || []).length - empiricalEvCount;
 
+        const evColor = empiricalEvCount > 0 ? "var(--status-preserved)" : "var(--muted)";
+
         const card = document.createElement("div");
         card.className = "investigation-card";
         card.innerHTML = `
@@ -191,7 +193,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             </div>
             <div class="metric-item">
               <span class="label">Evidências Emp.</span>
-              <span class="value" style="color: ${empiricalEvCount > 0 ? "var(--status-preserved)" : "var(--muted)};">${empiricalEvCount}</span>
+              <span class="value" style="color: ${evColor};">${empiricalEvCount}</span>
             </div>
           </div>
           <div class="card-footer">
