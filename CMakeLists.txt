@@ -20,6 +20,7 @@ add_library(libtinykernel
   src/persistence/repository.cpp
   src/persistence/export.cpp
 )
+set_target_properties(libtinykernel PROPERTIES OUTPUT_NAME tinykernel)
 add_library(TinyKernel::core ALIAS libtinykernel)
 target_include_directories(libtinykernel PUBLIC include)
 target_link_libraries(libtinykernel PUBLIC SQLite3::SQLite3)
