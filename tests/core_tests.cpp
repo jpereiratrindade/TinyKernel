@@ -133,6 +133,38 @@ void tk0001_e2e() {
   }
 }
 
+void sait_benchmark() {
+  const auto study = tinykernel::experiment::make_tk_sait_001();
+  require(study.investigation.identity.id == "TK-SAIT-001", "canonical ID");
+  require(study.investigation.status == "formulated", "status formulated at start");
+  require(study.realizations.size() == 1, "only 1 baseline realization");
+  require(study.realizations.front().components.size() == 6, "6 territorial components");
+  require(study.interventions.size() == 6, "6 planned interventions");
+  for (const auto &itv : study.interventions) {
+    require(itv.status == "planned", "interventions planned before execution");
+    require(!itv.target_realization_id.has_value(), "target realization unset");
+  }
+  require(study.evidence.size() == 1, "exactly 1 evidence record");
+  require(study.evidence.front().evidence_type == "STRUCTURAL_RECORD", "evidence is structural record");
+  require(study.runs.empty(), "0 runs executed");
+  require(study.observations.empty(), "0 observations collected");
+  require(study.adjudications.empty(), "0 adjudications");
+  require(study.claims.size() == 3, "3 claims");
+  for (const auto &c : study.claims) {
+    require(c.status == tinykernel::ontology::ClaimStatus::open, "all claims open at formulation");
+  }
+}
+
+void epistemic_non_implication() {
+  // Principle of Non-Implication: (P, C, Phi, R_0, I) \not\Rightarrow E_empirical
+  const auto study = tinykernel::experiment::make_tk_sait_001();
+  tinykernel::knowledge::ClaimAdjudicator adjudicator;
+  for (const auto &claim : study.claims) {
+    const auto decision = adjudicator.may_support(claim, study);
+    require(!decision.allowed, "claim cannot be supported without empirical evidence");
+  }
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -140,7 +172,8 @@ int main(int argc, char **argv) {
       {"identity", identity}, {"graph", graph}, {"interventions", interventions},
       {"persistence", persistence}, {"evidence_immutable", evidence_immutable},
       {"adjudication", adjudication}, {"claim_limits", claim_limits}, {"frontier", frontier},
-      {"deterministic_export", deterministic_export}, {"tk0001_e2e", tk0001_e2e}};
+      {"deterministic_export", deterministic_export}, {"tk0001_e2e", tk0001_e2e},
+      {"sait_benchmark", sait_benchmark}, {"epistemic_non_implication", epistemic_non_implication}};
   try {
     if (argc != 2 || !cases.contains(argv[1])) throw std::invalid_argument("unknown test case");
     cases.at(argv[1])();

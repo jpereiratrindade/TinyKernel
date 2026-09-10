@@ -165,8 +165,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         const desc = (study.phenomenon && (study.phenomenon.description || study.phenomenon.definition)) || "Sem descrição";
 
         const supportedClaims = (study.claims || []).filter(c => c.status === "supported").length;
-        const empiricalEvCount = (study.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
-        const structuralEvCount = (study.evidence || []).length - empiricalEvCount;
+        const empiricalEvCount = (study.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION").length;
+        const structuralEvCount = (study.evidence || []).filter(e => e.evidence_type === "STRUCTURAL_RECORD" || !e.evidence_type).length;
 
         const evColor = empiricalEvCount > 0 ? "var(--status-preserved)" : "var(--muted)";
 
@@ -431,8 +431,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("stat-interventions").textContent = s.interventions.length;
     
     // Separate structural integrity records from empirical field observations
-    const empiricalEvCount = (s.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
-    const structuralEvCount = (s.evidence || []).length - empiricalEvCount;
+    const empiricalEvCount = (s.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION").length;
+    const structuralEvCount = (s.evidence || []).filter(e => e.evidence_type === "STRUCTURAL_RECORD" || !e.evidence_type).length;
 
     document.getElementById("stat-structural-records").textContent = structuralEvCount;
     document.getElementById("stat-empirical-evidence").textContent = empiricalEvCount;
@@ -479,117 +479,119 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function renderFrontierDock() {
-    const dock = document.getElementById("frontier-chips-container");
-    dock.innerHTML = "";
     const s = state.activeStudy;
+    const executedItvs = s.interventions.filter(i => i.status === "performed").length;
+    const plannedItvs = s.interventions.length - executedItvs;
+    const untestedRuns = s.runs.filter(r => r.status === "untested" || r.status === "formulated").length;
 
-    s.interventions.forEach(itv => {
-      const isPerformed = itv.status === "performed";
-      const chip = document.createElement("div");
-      chip.className = `frontier-chip ${isPerformed ? "performed" : "open-tag"}`;
-      chip.innerHTML = `
-        <span>${isPerformed ? "✓" : "○"}</span>
-        <strong>${itv.kind}</strong>
-        <span>${itv.target_component ? `· ${itv.target_component}` : ""}</span>
-      `;
-      chip.title = `ID: ${itv.id}\nPredição: ${itv.prediction}\nStatus: ${itv.status}`;
-      chip.addEventListener("click", () => {
-        handleEntitySelection(itv.id, itv);
-      });
-      dock.appendChild(chip);
-    });
+    document.getElementById("frontier-known-realizations").textContent = s.realizations.length;
+    document.getElementById("frontier-unexplored-interventions").textContent = plannedItvs;
+    document.getElementById("frontier-open-questions").textContent = (s.claims || []).filter(c => c.status === "open").length;
+    document.getElementById("frontier-status-text").textContent = plannedItvs > 0 || untestedRuns > 0
+      ? "Espaço Incompleto (Incompleteness by Design)"
+      : "Espaço Causalmente Adjudicado";
   }
 
   function renderRuns() {
-    const list = document.getElementById("runs-list-container");
-    list.innerHTML = "";
     const s = state.activeStudy;
+    const list = document.getElementById("runs-list");
+    list.innerHTML = "";
+
+    if (!s.runs.length) {
+      list.innerHTML = `<div style="color: var(--muted); font-size: 0.8rem; padding: 0.5rem 0;">Nenhuma execução materializada ainda.</div>`;
+      return;
+    }
 
     s.runs.forEach(run => {
-      const adj = s.adjudications.find(a => a.run_id === run.id);
-      const isPreserved = adj && adj.outcome === "preserving";
-      const isUntested = run.status === "untested" || !adj || adj.classification === "UNTESTED";
+      const item = document.createElement("div");
+      item.className = `run-item ${state.activeRunId === run.id ? 'active' : ''}`;
       
-      let pillClass = "untested";
-      let outcomeText = "UNTESTED";
-      if (!isUntested) {
-        pillClass = isPreserved ? "preserved" : "broken";
-        outcomeText = adj ? adj.classification : "PENDING";
-      }
+      const adj = s.adjudications.find(a => a.run_id === run.id);
+      const outcome = adj ? adj.outcome : "untested";
+      const statusClass = outcome === "preserving" ? "preserved" : (outcome === "ruptured" ? "ruptured" : "untested");
+      const statusText = outcome ? outcome.toUpperCase() : "UNTESTED";
 
-      const evidenceForRun = s.evidence.filter(e => e.run_id === run.id);
-      const empiricalForRun = evidenceForRun.filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
+      const evs = s.evidence.filter(e => e.run_id === run.id);
 
-      const card = document.createElement("div");
-      card.className = `run-card ${state.activeRunId === run.id ? "active" : ""}`;
-      card.innerHTML = `
-        <div class="run-card-header">
-          <span class="run-id">${run.id.split(":").slice(2).join(":")}</span>
-          <span class="run-status-pill ${pillClass}">${outcomeText}</span>
+      item.innerHTML = `
+        <div style="font-weight: 700; color: var(--fg); font-size: 0.82rem;">${run.id.split(":").slice(2).join(":") || run.id}</div>
+        <div style="font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem;">
+          Alvo: <code>${run.target_realization_id ? run.target_realization_id.split(":").slice(2).join(":") : '—'}</code>
         </div>
-        <div class="run-card-meta">
-          <span>${empiricalForRun} obs. empíricas • ${evidenceForRun.length} registros</span>
-          <span>•</span>
-          <span>${adj ? adj.outcome : "untested"}</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.35rem;">
+          <span class="run-status-pill ${statusClass}">${statusText}</span>
+          <span style="font-size: 0.72rem; color: var(--accent);">${evs.length} evidências</span>
         </div>
       `;
 
-      card.addEventListener("click", () => {
+      item.addEventListener("click", () => {
         state.activeRunId = run.id;
         renderRuns();
-        handleEntitySelection(run.id, { run, adjudication: adj, evidence: evidenceForRun });
+        renderInspector(null, null);
       });
 
-      list.appendChild(card);
+      list.appendChild(item);
     });
   }
 
   function renderClaims() {
-    const tbody = document.getElementById("claims-table-body");
-    tbody.innerHTML = "";
     const s = state.activeStudy;
+    const list = document.getElementById("claims-list");
+    list.innerHTML = "";
+
+    if (!s.claims || !s.claims.length) {
+      list.innerHTML = `<div style="color: var(--muted); font-size: 0.8rem; padding: 0.5rem 0;">Nenhum claim formulado.</div>`;
+      return;
+    }
 
     s.claims.forEach(claim => {
-      const tr = document.createElement("tr");
-      tr.style.cursor = "pointer";
-      const isSupported = claim.status === "supported";
+      const item = document.createElement("div");
+      item.className = "claim-card";
 
-      tr.innerHTML = `
-        <td><span class="claim-level-pill">${claim.level}</span></td>
-        <td><strong>${claim.subject}</strong></td>
-        <td>${claim.assertion}</td>
-        <td>
-          <span class="claim-status ${isSupported ? "supported" : "open"}">
-            ${isSupported ? "✓ SUPPORTED" : "○ OPEN"}
-          </span>
-        </td>
+      const isSupported = claim.status === "supported";
+      const statusText = isSupported ? "SUPPORTED" : "OPEN";
+
+      item.innerHTML = `
+        <div class="claim-header">
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span class="claim-level-pill">${claim.level}</span>
+            <strong style="color: var(--fg); font-size: 0.82rem;">${claim.id.split(":").slice(2).join(":") || claim.id}</strong>
+          </div>
+          <span class="claim-status ${isSupported ? 'supported' : 'open'}">${statusText}</span>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--fg); margin: 0.3rem 0; line-height: 1.35;">
+          ${claim.assertion}
+        </div>
+        <div class="claim-footer">
+          <span>Sujeito: <code>${claim.subject}</code></span>
+          <span>Evidências: <strong>${(claim.evidence_references || []).length}</strong></span>
+        </div>
       `;
 
-      tr.addEventListener("click", () => {
+      item.addEventListener("click", () => {
         handleEntitySelection(claim.id, claim);
       });
 
-      tbody.appendChild(tr);
+      list.appendChild(item);
     });
   }
 
   function renderFrontierAnalysis() {
-    const container = document.getElementById("frontier-analysis-container");
     const s = state.activeStudy;
-    const plannedInterventions = s.interventions.filter(i => i.status !== "performed");
-    const empiricalEvCount = (s.evidence || []).filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity"))).length;
+    const preserving = s.realizations.filter(r => r.outcome === "preserving");
+    const ruptured = s.realizations.filter(r => r.outcome === "ruptured");
+    const untested = s.realizations.filter(r => !r.outcome || r.outcome === "untested" || r.outcome === "partially_observed");
 
-    container.innerHTML = `
-      <div class="callout-box warning">
-        <strong>Fronteira Epistêmica Aberta</strong>
-        <p>As candidatas são minimais apenas no espaço conhecido e sob a ordem &Gamma; declarada.</p>
-        <p style="margin-top: 0.4rem; color: #f3bf4f; font-weight: 600;">
-          ${plannedInterventions.length > 0 ? `${plannedInterventions.length} intervenções planejadas aguardam materialização empírica.` : "Espaço atual totalmente materializado."}
-        </p>
-      </div>
-      <div class="callout-box">
-        <strong>Princípio da Não-Implicação: Especificação &#8802; Evidência</strong>
-        <p>A ontologia TK-O v0.2.0 veta que declarações formais atuem como prova de suas próprias hipóteses causais. Total de observações empíricas colhidas: <strong>${empiricalEvCount}</strong>.</p>
+    const minimalCand = preserving.length ? preserving.reduce((min, r) => r.components.length < min.components.length ? r : min, preserving[0]) : null;
+
+    document.getElementById("frontier-analysis-text").innerHTML = `
+      <div style="line-height: 1.5;">
+        <div>• Realizações Conhecidas: <strong>${s.realizations.length}</strong> (${preserving.length} preservadoras, ${ruptured.length} rompidas, ${untested.length} não totalmente observadas)</div>
+        <div>• Realização Minimal Atual: <strong style="color: var(--status-preserved);">${minimalCand ? `${minimalCand.id} (|Σ|=${minimalCand.components.length})` : 'Nenhuma comprovada'}</strong></div>
+        <div>• Intervenções Abertas: <strong>${s.interventions.filter(i => i.status !== 'performed').length}</strong> planejadas</div>
+        <div style="margin-top: 0.35rem; color: #94a3b8; font-style: italic;">
+          Nota Epistêmica: O espaço causal é incompleto por design. Conclusões causais aplicam-se estritamente às intervenções preregistradas e evidências empíricas coletadas.
+        </div>
       </div>
     `;
   }
@@ -606,14 +608,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       container.innerHTML = `
         <div class="inspector-card">
           <h4>Inspeção de Execução: ${run ? run.id : "Nenhuma"}</h4>
-          <div><strong>Status da Run:</strong> <span class="run-status-pill ${run && (run.status === 'untested' || run.status === 'formulated') ? 'untested' : 'preserved'}">${run ? (run.status || 'completed').toUpperCase() : '—'}</span></div>
+          <div><strong>Status da Run:</strong> <span class="run-status-pill ${run && (run.status === 'untested' || run.status === 'formulated' || run.status === 'in_progress') ? 'untested' : 'preserved'}">${run ? (run.status || 'completed').toUpperCase() : '—'}</span></div>
           <div><strong>Classificação Causal:</strong> ${adj ? adj.classification : "UNTESTED (Aguardando observação)"}</div>
           <div><strong>Regra Adjudicada:</strong> <code>${adj ? adj.rule : "—"}</code></div>
           <div><strong>Justificativa:</strong> ${adj ? adj.rationale : "Nenhuma adjudicação realizada."}</div>
-          <div style="margin-top: 0.5rem;"><strong>Registros & Evidências (${evs.length}):</strong></div>
-          ${evs.length === 0 ? '<div style="color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem;">Nenhuma evidência injetada ainda. Use o botão <em>+ Registrar Observação Empírica</em> acima.</div>' : ''}
+          <div style="margin-top: 0.5rem;"><strong>Registros & Evidências Vinculadas (${evs.length}):</strong></div>
+          ${evs.length === 0 ? `<div style="color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem;">Nenhuma evidência empírica vinculada a esta execução específica. (Registros estruturais no workspace: ${s.evidence.filter(e => e.evidence_type === 'STRUCTURAL_RECORD').length}). Use <em>+ Registrar Observação Empírica</em> para coletar evidências.</div>` : ''}
           ${evs.map(ev => {
-            const isEmpirical = ev.evidence_type === "EMPIRICAL_OBSERVATION" || (ev.artifact && !ev.artifact.includes("specification_integrity"));
+            const isEmpirical = ev.evidence_type === "EMPIRICAL_OBSERVATION";
             const badgeType = isEmpirical ? "empirical" : "structural";
             const badgeLabel = isEmpirical ? "Evidência Empírica" : "Registro Estrutural";
             return `

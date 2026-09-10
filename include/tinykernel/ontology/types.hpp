@@ -85,6 +85,7 @@ struct Evidence {
   std::vector<std::string> observation_ids;
   std::string artifact;
   std::string sha256;
+  std::string evidence_type{"EMPIRICAL_OBSERVATION"};
 };
 
 enum class Outcome { preserving, ruptured, undetermined };

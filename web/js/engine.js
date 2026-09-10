@@ -585,18 +585,21 @@ class TkEngine {
   // Rigorously Formulated, 0 Empirical Evidence, Claims OPEN
   async buildTkSait001() {
     const studyId = "TK-SAIT-001";
-    const comps = ["E (Ecológico)", "P (Produtivo)", "S (Social)", "R_EP (Acoplamento E-P)", "R_ES (Acoplamento E-S)", "R_PS (Acoplamento P-S)"];
+    const comps = [
+      "solo_vivo", "agrobiodiversidade", "reflorestamento_ciliar",
+      "armazenamento_hidrico", "sementes_locais", "circuitos_curtos_feiras"
+    ];
     
     const study = {
       investigation: {
         id: studyId,
         schema_version: 1,
         ontology_version: "0.2.0",
-        title: "Resiliência Causal em Sistemas Agroalimentares Territoriais",
+        title: "Resiliência do Sistema Agroalimentar Territorial (SAIT)",
         phenomenon_id: `${studyId}:P`,
         context_id: `${studyId}:C`,
         profile_id: `${studyId}:PHI`,
-        order_declaration: "Gamma=agroecological_territorial_invariants",
+        order_declaration: "Gamma=complexidade_constitutiva_decrescente",
         status: "formulated",
         category: "foundational_benchmark",
         created_at: "2026-09-10T11:00:00-03:00"
@@ -605,22 +608,22 @@ class TkEngine {
         id: `${studyId}:P`,
         schema_version: 1,
         ontology_version: "0.2.0",
-        name: "resiliência territorial adaptativa de SAIT",
-        description: "Um Sistema Agroalimentar de Interesse Territorial mantém funções produtivas, ecológicas e sociais sob perturbações climáticas e econômicas."
+        name: "resiliência de sistema agroalimentar territorial",
+        description: "Capacidade de manter estabilidade produtiva, nutricional e hídrica sob perturbações climáticas e econômicas."
       },
       context: {
         id: `${studyId}:C`,
         schema_version: 1,
         ontology_version: "0.2.0",
-        description: "Territórios agroecológicos do Bioma Pampa/Mata Atlântica sob variabilidade climática extrema."
+        description: "Território semiárido/agreste, agricultura familiar, chuvas irregulares."
       },
       constitutive_profile: {
         id: `${studyId}:PHI`,
         schema_version: 1,
         ontology_version: "0.2.0",
-        dimensions: ["manutenção da biodiversidade funcional", "estabilidade de produção soberana", "coesão comunitária e autonomia"],
-        essential_relations: ["acoplamento ecológico->produtivo", "acoplamento social->governança ecológica"],
-        temporal_bounds: ["persistência de ciclos produtivos plurianuais sem insumos externos colapsantes"]
+        dimensions: ["estabilidade nutricional", "segurança hídrica", "autonomia sementes"],
+        essential_relations: ["solo_vivo->resiliencia_hidrica", "biodiversidade->segurança_nutricional", "feiras_locais->autonomia_economica"],
+        temporal_bounds: ["ciclo_anual_safra", "periodo_estiagem_plurianual"]
       },
       witnesses: this.witnesses(studyId),
       realizations: [
@@ -629,7 +632,7 @@ class TkEngine {
           schema_version: 1,
           ontology_version: "0.2.0",
           investigation_id: studyId,
-          label: "SAIT baseline (E+P+S integrados)",
+          label: "sistema agroflorestal completo (SAIT baseline)",
           components: comps,
           complexity: comps.length,
           outcome: "untested",
@@ -639,12 +642,12 @@ class TkEngine {
         }
       ],
       interventions: [
-        { id: `${studyId}:I:REMOVE_E`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "E (Ecológico)", prediction: "untested", status: "planned" },
-        { id: `${studyId}:I:REMOVE_P`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "P (Produtivo)", prediction: "untested", status: "planned" },
-        { id: `${studyId}:I:REMOVE_S`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "S (Social)", prediction: "untested", status: "planned" },
-        { id: `${studyId}:I:REMOVE_REP`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "R_EP (Acoplamento E-P)", prediction: "untested", status: "planned" },
-        { id: `${studyId}:I:REMOVE_RES`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "R_ES (Acoplamento E-S)", prediction: "untested", status: "planned" },
-        { id: `${studyId}:I:REMOVE_RPS`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "R_PS (Acoplamento P-S)", prediction: "untested", status: "planned" }
+        { id: `${studyId}:I:REMOVE_circuitos_curtos_feiras`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "circuitos_curtos_feiras", prediction: "BROKEN_CAUSAL", status: "planned" },
+        { id: `${studyId}:I:REMOVE_sementes_locais`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "sementes_locais", prediction: "BROKEN_CAUSAL", status: "planned" },
+        { id: `${studyId}:I:REMOVE_armazenamento_hidrico`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "armazenamento_hidrico", prediction: "BROKEN_CAUSAL", status: "planned" },
+        { id: `${studyId}:I:REMOVE_agrobiodiversidade`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "agrobiodiversidade", prediction: "BROKEN_CAUSAL", status: "planned" },
+        { id: `${studyId}:I:REMOVE_reflorestamento_ciliar`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "reflorestamento_ciliar", prediction: "BROKEN_CAUSAL", status: "planned" },
+        { id: `${studyId}:I:REMOVE_solo_vivo`, kind: "remove", source: `${studyId}:R:BASE`, target_component: "solo_vivo", prediction: "BROKEN_CAUSAL", status: "planned" }
       ],
       runs: [],
       observations: [],
@@ -656,42 +659,42 @@ class TkEngine {
           schema_version: 1,
           ontology_version: "0.2.0",
           subject: `${studyId}:R:BASE`,
-          assertion: "A configuração integrada baseline é causalmente suficiente para assegurar resiliência territorial.",
+          assertion: "O arranjo territorial baseline é causalmente suficiente para sustentar o perfil de resiliência.",
           phenomenon_id: `${studyId}:P`,
           context_id: `${studyId}:C`,
           level: "L2",
           status: "open",
-          limitations: "Aguardando observações empíricas de campo (sem dados territoriais).",
+          limitations: "Aguardando campanhas empíricas de campo (0/5 witnesses observados).",
           provenance_id: `${studyId}:PROV`,
           intervention_scope: [],
           witness_scope: [`${studyId}:W:OPERATIONAL`, `${studyId}:W:CAUSAL`, `${studyId}:W:DISCRIMINATIVE`, `${studyId}:W:OBSERVATIONAL`, `${studyId}:W:TEMPORAL`]
-        },
-        {
-          id: `${studyId}:Q:REP_NECESSITY`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
-          subject: "R_EP (Acoplamento E-P)",
-          assertion: "O acoplamento ecológico-produtivo possui necessidade causal para a sustentação do SAIT.",
-          phenomenon_id: `${studyId}:P`,
-          context_id: `${studyId}:C`,
-          level: "L3",
-          status: "open",
-          limitations: "Intervenção planejada aguardando coleta de dados em campo.",
-          provenance_id: `${studyId}:PROV`,
-          intervention_scope: [`${studyId}:I:REMOVE_REP`],
-          witness_scope: [`${studyId}:W:CAUSAL`, `${studyId}:W:TEMPORAL`]
         },
         {
           id: `${studyId}:Q:RELATIVE_MINIMALITY`,
           schema_version: 1,
           ontology_version: "0.2.0",
           subject: `${studyId}:R:BASE`,
-          assertion: "A realização é minimal na ordem Gamma declarada.",
+          assertion: "O arranjo é minimal no espaço de reduções agroecológicas sob a ordem Gamma.",
           phenomenon_id: `${studyId}:P`,
           context_id: `${studyId}:C`,
           level: "L5",
           status: "open",
-          limitations: "Espaço aberto: intervenções territoriais permanecem não executadas.",
+          limitations: "Aguardando testes empíricos das 6 intervenções planejadas.",
+          provenance_id: `${studyId}:PROV`,
+          intervention_scope: [],
+          witness_scope: []
+        },
+        {
+          id: `${studyId}:Q:ROBUSTNESS`,
+          schema_version: 1,
+          ontology_version: "0.2.0",
+          subject: `${studyId}:R:BASE`,
+          assertion: "A estabilidade produtiva e hídrica é robusta a variações pluviométricas sazonais.",
+          phenomenon_id: `${studyId}:P`,
+          context_id: `${studyId}:C`,
+          level: "L7",
+          status: "open",
+          limitations: "Requer observações de campo em safras consecutivas.",
           provenance_id: `${studyId}:PROV`,
           intervention_scope: [],
           witness_scope: []
@@ -703,22 +706,22 @@ class TkEngine {
           schema_version: 1,
           ontology_version: "0.2.0",
           source: "territorial_preregistration",
-          method: "formal specification (TK-O v0.2.0)",
-          timestamp: "2026-09-10T11:00:00-03:00",
-          detail: "Contraexemplo metodológico: formulação formal sem salto tautológico de claims."
+          method: "agroecology_protocol_v1",
+          timestamp: "2026-09-10T00:00:00-03:00",
+          detail: "Benchmark de sistema agroalimentar territorial formulado com rigor epistemológico."
         }
       ]
     };
 
     // Add 1 STRUCTURAL_RECORD evidence (fingerprint of formulation protocol)
-    const structArtifact = `investigation=${studyId}\nstatus=FORMULATED\nbaseline=${studyId}:R:BASE\nplanned_interventions=6\nempirical_observations=0\n`;
+    const structArtifact = `investigation=${studyId}\nstatus=formulated\nbaseline=untested\nplanned_interventions=6\nempirical_observations=0\n`;
     const structSha256 = await this.sha256(structArtifact);
     study.evidence.push({
-      id: `${studyId}:E:PREREGISTRATION_PROTOCOL`,
+      id: `${studyId}:E:STRUCTURAL_INTEGRITY`,
       schema_version: 1,
       ontology_version: "0.2.0",
-      run_id: null,
-      witness_id: null,
+      run_id: `${studyId}:RUN:SPECIFICATION`,
+      witness_id: `${studyId}:W:OBSERVATIONAL`,
       observation_ids: [],
       artifact: structArtifact,
       sha256: structSha256,
@@ -875,7 +878,7 @@ class TkEngine {
   // Materialize or apply a structural intervention in the workspace
   async applyIntervention(study, itvCfg) {
     const studyId = study.investigation.id;
-    const itvIndex = study.interventions.length + 1;
+    const itvIndex = study.realizations.length;
     const kind = itvCfg.kind || "remove";
     const targetComp = itvCfg.target_component || "";
     const replComp = itvCfg.replacement_component || "";
@@ -905,7 +908,6 @@ class TkEngine {
     }
 
     const targetRealizationId = `${studyId}:R:INT_${itvIndex}`;
-    const itvId = `${studyId}:I:${kind.toUpperCase()}_${targetComp || itvIndex}`;
     const yOffset = 30 + (study.realizations.length * 65);
 
     const derivedRealization = {
@@ -916,7 +918,7 @@ class TkEngine {
       label: targetLabel,
       components: newComponents,
       complexity: newComponents.length,
-      outcome: "structurally_altered",
+      outcome: "untested",
       isBaseline: false,
       interventionKind: kind,
       targetComponent: targetComp,
@@ -924,34 +926,44 @@ class TkEngine {
       y: yOffset
     };
 
-    const intervention = {
-      id: itvId,
-      schema_version: 1,
-      ontology_version: "0.2.0",
-      investigation_id: studyId,
-      kind: kind,
-      source: source.id,
-      target: targetRealizationId,
-      target_component: targetComp,
-      replacement_component: replComp,
-      prediction: "untested_awaiting_observation",
-      status: "materialized",
-      x: 210,
-      y: yOffset + 15
-    };
+    // Check if there is an existing planned intervention for this target
+    let plannedItv = study.interventions.find(i => i.kind === kind && i.target_component === targetComp);
+    let itvId;
+    if (plannedItv) {
+      plannedItv.target = targetRealizationId;
+      plannedItv.status = "performed";
+      itvId = plannedItv.id;
+    } else {
+      itvId = `${studyId}:I:${kind.toUpperCase()}_${targetComp || itvIndex}`;
+      plannedItv = {
+        id: itvId,
+        schema_version: 1,
+        ontology_version: "0.2.0",
+        investigation_id: studyId,
+        kind: kind,
+        source: source.id,
+        target: targetRealizationId,
+        target_component: targetComp,
+        replacement_component: replComp,
+        prediction: "BROKEN_CAUSAL",
+        status: "performed",
+        x: 210,
+        y: yOffset + 15
+      };
+      study.interventions.push(plannedItv);
+    }
 
     study.realizations.push(derivedRealization);
-    study.interventions.push(intervention);
 
-    // Record structural evidence of intervention assembly
+    // Record structural assembly record (not empirical evidence)
     const structArtifact = `run=${studyId}:MATERIALIZED\nsource=${source.id}\nintervention=${itvId}\nrealization=${targetRealizationId}\ncomponents=[${newComponents.join(",")}]\n`;
     const structSha256 = await this.sha256(structArtifact);
     study.evidence.push({
       id: `${itvId}:E:STRUCTURAL_ASSEMBLY`,
       schema_version: 1,
       ontology_version: "0.2.0",
-      run_id: null,
-      witness_id: null,
+      run_id: `${studyId}:RUN:SPECIFICATION`,
+      witness_id: `${studyId}:W:OBSERVATIONAL`,
       observation_ids: [],
       artifact: structArtifact,
       sha256: structSha256,
@@ -961,15 +973,21 @@ class TkEngine {
     return study;
   }
 
-  // Inject real empirical observation trace into a realization
-  async injectEmpiricalObservation(study, param2, param3) {
-    let realizationId, observationTrace;
-    if (typeof param2 === "string") {
+  // Inject real empirical observation trace for a single witness dimension
+  async injectEmpiricalObservation(study, param2, param3, param4, param5) {
+    let realizationId, dimension, passed, rawTrace;
+    
+    if (typeof param2 === "string" && typeof param3 === "string") {
       realizationId = param2;
-      observationTrace = param3 || {};
+      dimension = param3;
+      passed = param4 !== undefined ? param4 : true;
+      rawTrace = param5 || `dimension=${dimension};passed=${passed}`;
     } else {
-      realizationId = param2 ? (param2.realization_id || param2.realizationId) : null;
-      observationTrace = param2 || {};
+      const opts = (typeof param2 === "object" ? param2 : param3) || {};
+      realizationId = opts.realization_id || opts.realizationId || (typeof param2 === "string" ? param2 : null);
+      dimension = opts.dimension || "causal";
+      passed = opts.passed !== undefined ? opts.passed : (opts.satisfied !== undefined ? opts.satisfied : true);
+      rawTrace = opts.trace || `dimension=${dimension};passed=${passed}`;
     }
 
     const studyId = study.investigation.id;
@@ -977,103 +995,71 @@ class TkEngine {
     const isBaseline = realization.isBaseline || realization.id.includes(":BASE");
     const runId = `${studyId}:RUN:${isBaseline ? "BASELINE_EMPIRICAL" : realization.id.split(":").slice(2).join("_")}`;
 
-    study.runs = study.runs.filter(r => r.target_realization_id !== realization.id);
-    study.runs.push({
-      id: runId,
-      schema_version: 1,
-      ontology_version: "0.2.0",
-      investigation_id: studyId,
-      intervention_id: realization.interventionKind ? `${studyId}:I:${realization.interventionKind.toUpperCase()}_${realization.targetComponent || ""}` : null,
-      source_realization_id: isBaseline ? realization.id : `${studyId}:R:BASE`,
-      target_realization_id: realization.id,
-      status: "completed",
-      run_type: "EMPIRICAL_EXECUTION"
-    });
-
-    // Parse empirical observation trace
-    const passed = observationTrace.passed !== undefined ? observationTrace.passed : (observationTrace.satisfied !== undefined ? observationTrace.satisfied : true);
-    const rawTrace = observationTrace.trace || `empirical_test=true;response_measured=true;passed=${passed}`;
-    const evidenceIds = [];
-
-    for (const witness of study.witnesses) {
-      let satisfied = passed;
-      const obsId = `${runId}:O:${witness.kind}`;
-      study.observations.push({
-        id: obsId,
+    // Add or retrieve run
+    let run = study.runs.find(r => r.id === runId);
+    if (!run) {
+      run = {
+        id: runId,
         schema_version: 1,
         ontology_version: "0.2.0",
-        run_id: runId,
-        realization_id: realization.id,
-        witness_id: witness.id,
-        witness_kind: witness.kind,
-        outcome: satisfied ? "satisfied" : "not_satisfied",
-        satisfied: satisfied
-      });
-
-      const artifact = `run=${runId}\nrealization=${realization.id}\ndimension=${witness.kind}\nsatisfied=${satisfied ? "true" : "false"}\nempirical_trace=${rawTrace}\n`;
-      const sha256 = await this.sha256(artifact);
-      const evidenceId = `${runId}:E:${witness.kind}`;
-
-      study.evidence.push({
-        id: evidenceId,
-        schema_version: 1,
-        ontology_version: "0.2.0",
-        run_id: runId,
-        witness_id: witness.id,
-        observation_ids: [obsId],
-        artifact: artifact,
-        sha256: sha256,
-        evidence_type: "EMPIRICAL_OBSERVATION"
-      });
-      evidenceIds.push(evidenceId);
+        investigation_id: studyId,
+        intervention_id: realization.interventionKind ? `${studyId}:I:${realization.interventionKind.toUpperCase()}_${realization.targetComponent || ""}` : null,
+        source_realization_id: isBaseline ? realization.id : `${studyId}:R:BASE`,
+        target_realization_id: realization.id,
+        status: "in_progress",
+        run_type: "EMPIRICAL_EXECUTION"
+      };
+      study.runs.push(run);
     }
 
-    const outcome = passed ? "preserving" : "ruptured";
-    realization.outcome = outcome;
+    // Find the specific witness for this dimension
+    const witness = study.witnesses.find(w => w.kind === dimension) || { id: `${studyId}:W:${dimension}`, kind: dimension };
+    const obsId = `${runId}:O:${dimension}`;
 
-    study.adjudications.push({
-      id: `${runId}:A`,
+    // Update or insert single observation
+    study.observations = (study.observations || []).filter(o => o.id !== obsId);
+    study.observations.push({
+      id: obsId,
       schema_version: 1,
       ontology_version: "0.2.0",
       run_id: runId,
-      outcome: outcome,
-      classification: passed ? "PRESERVED" : "BROKEN_CAUSAL",
-      rule: "TK-O-0.2.0:empirical-witness-verification-v1",
-      rationale: passed ? "Todas as medições empíricas satisfizeram os witnesses constitutivos." : "Falha empírica observada no aparato de teste.",
-      evidence_references: evidenceIds
+      realization_id: realization.id,
+      witness_id: witness.id,
+      witness_kind: dimension,
+      outcome: passed ? "satisfied" : "not_satisfied",
+      satisfied: passed
     });
 
-    // Adjudicate claims strictly based on empirical evidence
-    if (isBaseline && passed) {
-      const suffClaim = study.claims.find(c => c.id === `${studyId}:Q:SUFFICIENCY`);
-      if (suffClaim) suffClaim.status = "supported";
+    const artifact = `run=${runId}\nrealization=${realization.id}\ndimension=${dimension}\nsatisfied=${passed ? "true" : "false"}\nempirical_trace=${rawTrace}\n`;
+    const sha256 = await this.sha256(artifact);
+    const evidenceId = `${runId}:E:${dimension}`;
+
+    // Update or insert single empirical evidence
+    study.evidence = (study.evidence || []).filter(e => e.id !== evidenceId);
+    study.evidence.push({
+      id: evidenceId,
+      schema_version: 1,
+      ontology_version: "0.2.0",
+      run_id: runId,
+      witness_id: witness.id,
+      observation_ids: [obsId],
+      artifact: artifact,
+      sha256: sha256,
+      evidence_type: "EMPIRICAL_OBSERVATION"
+    });
+
+    // Update realization outcome based on recorded empirical observations for this realization
+    const realObs = study.observations.filter(o => o.realization_id === realization.id);
+    const hasBroken = realObs.some(o => !o.satisfied);
+    if (hasBroken) {
+      realization.outcome = "ruptured";
+    } else if (realObs.length >= study.witnesses.length && study.witnesses.length > 0) {
+      realization.outcome = "preserving";
+    } else {
+      realization.outcome = "partially_observed";
     }
 
-    if (!isBaseline && !passed && realization.targetComponent) {
-      const claimId = `${studyId}:Q:${realization.targetComponent.toUpperCase()}_NECESSITY`;
-      let claim = study.claims.find(c => c.id === claimId);
-      if (!claim) {
-        study.claims.splice(1, 0, {
-          id: claimId,
-          schema_version: 1,
-          ontology_version: "0.2.0",
-          subject: realization.targetComponent,
-          assertion: `A relação associada a '${realization.targetComponent}' possui necessidade causal empírica neste contexto.`,
-          phenomenon_id: study.investigation.phenomenon_id,
-          context_id: study.investigation.context_id,
-          level: "L3",
-          status: "supported",
-          limitations: "Validado empiricamente sob o contexto e aparato observados.",
-          provenance_id: `${studyId}:PROV`,
-          intervention_scope: [`${studyId}:I:${realization.interventionKind.toUpperCase()}_${realization.targetComponent}`],
-          witness_scope: [`${studyId}:W:CAUSAL`, `${studyId}:W:TEMPORAL`]
-        });
-      } else {
-        claim.status = "supported";
-      }
-    }
-
-    study.investigation.status = "executed";
+    study.investigation.status = "observed";
     return study;
   }
 
@@ -1081,25 +1067,62 @@ class TkEngine {
   async adjudicateWitnesses(study) {
     const studyId = study.investigation.id;
     
-    // Check baseline empirical evidence
-    const baselineRun = study.runs.find(r => r.id.includes(":BASELINE") || r.id === `${studyId}:RUN:R_BASE`);
-    const baselineEv = study.evidence.filter(e => baselineRun && e.run_id === baselineRun.id && (e.evidence_type === "EMPIRICAL_OBSERVATION" || !e.artifact.includes("specification_integrity")));
-    
-    if (baselineEv.length >= 5) {
-      const suffClaim = study.claims.find(c => c.id === `${studyId}:Q:SUFFICIENCY`);
-      if (suffClaim) suffClaim.status = "supported";
-      const baseRealization = study.realizations.find(r => r.id.includes(":BASE"));
+    // 1. Check baseline empirical evidence
+    const baseRealization = study.realizations.find(r => r.isBaseline || r.id.includes(":BASE"));
+    const baseObs = baseRealization ? study.observations.filter(o => o.realization_id === baseRealization.id) : [];
+    const baseEmpiricalEv = study.evidence.filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" && e.run_id && e.run_id.includes("BASELINE"));
+
+    const allWitnessesSatisfied = study.witnesses.length > 0 &&
+      study.witnesses.every(w => baseObs.some(o => o.witness_kind === w.kind && o.satisfied));
+
+    if (allWitnessesSatisfied) {
+      const suffClaim = study.claims.find(c => c.id.includes(":Q:SUFFICIENCY"));
+      if (suffClaim) {
+        suffClaim.status = "supported";
+        suffClaim.evidence_references = baseEmpiricalEv.map(e => e.id);
+        suffClaim.limitations = "Sustentado sob validação empírica de todos os witnesses preregistrados.";
+      }
       if (baseRealization) baseRealization.outcome = "preserving";
+
+      // Record baseline adjudication
+      const baseRunId = `${studyId}:RUN:BASELINE_EMPIRICAL`;
+      study.adjudications = (study.adjudications || []).filter(a => a.run_id !== baseRunId);
+      study.adjudications.push({
+        id: `${baseRunId}:A`,
+        schema_version: 1,
+        ontology_version: "0.2.0",
+        run_id: baseRunId,
+        outcome: "preserving",
+        classification: "PRESERVED",
+        rule: "TK-O-0.2.0:all-constitutive-dimensions-v1",
+        rationale: "Todos os witnesses constitutivos foram empiricamente satisfeitos.",
+        evidence_references: baseEmpiricalEv.map(e => e.id)
+      });
     }
 
-    // Check interventions empirical evidence
+    // 2. Check performed interventions
     for (const itv of study.interventions) {
-      if (itv.status === "performed" && itv.target_realization_id) {
-        const run = study.runs.find(r => r.intervention_id === itv.id || r.target_realization_id === itv.target_realization_id);
-        const evs = study.evidence.filter(e => run && e.run_id === run.id);
-        const brokenWitnesses = study.observations.filter(o => run && o.run_id === run.id && !o.satisfied);
-        
-        if (brokenWitnesses.length > 0 && itv.target_component) {
+      if (itv.status === "performed" && itv.target) {
+        const targetId = itv.target;
+        const targetObs = study.observations.filter(o => o.realization_id === targetId);
+        const targetEv = study.evidence.filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" && e.artifact.includes(targetId));
+        const hasBroken = targetObs.some(o => !o.satisfied);
+
+        if (allWitnessesSatisfied && hasBroken && itv.target_component) {
+          const runId = `${studyId}:RUN:${itv.kind.toUpperCase()}_${itv.target_component}`;
+          study.adjudications = (study.adjudications || []).filter(a => a.run_id !== runId);
+          study.adjudications.push({
+            id: `${runId}:A`,
+            schema_version: 1,
+            ontology_version: "0.2.0",
+            run_id: runId,
+            outcome: "ruptured",
+            classification: "BROKEN_CAUSAL",
+            rule: "TK-O-0.2.0:causal-necessity-adjudication-v1",
+            rationale: "Ruptura causal observada após intervenção/remoção.",
+            evidence_references: targetEv.map(e => e.id)
+          });
+
           const claimId = `${studyId}:Q:${itv.target_component.toUpperCase()}_NECESSITY`;
           let claim = study.claims.find(c => c.id === claimId);
           if (!claim) {
@@ -1116,21 +1139,18 @@ class TkEngine {
               limitations: "Validado empiricamente sob o contexto e aparato observados.",
               provenance_id: `${studyId}:PROV`,
               intervention_scope: [itv.id],
-              witness_scope: [`${studyId}:W:CAUSAL`, `${studyId}:W:TEMPORAL`]
+              witness_scope: [`${studyId}:W:CAUSAL`, `${studyId}:W:TEMPORAL`],
+              evidence_references: targetEv.map(e => e.id)
             });
           } else {
             claim.status = "supported";
+            claim.evidence_references = targetEv.map(e => e.id);
           }
         }
       }
     }
 
-    // Check if any empirical evidence exists to set executed
-    const hasEmpirical = study.evidence.some(e => e.evidence_type === "EMPIRICAL_OBSERVATION" || (e.artifact && !e.artifact.includes("specification_integrity")));
-    if (hasEmpirical) {
-      study.investigation.status = "executed";
-    }
-
+    study.investigation.status = "adjudicated";
     return study;
   }
 

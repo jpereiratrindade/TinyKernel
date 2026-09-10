@@ -233,6 +233,73 @@ Study make_tk0001() {
   return study;
 }
 
+Study make_tk_sait_001() {
+  const std::string id_str = "TK-SAIT-001";
+  Study s;
+  s.investigation = {id(id_str), "Resiliência do Sistema Agroalimentar Territorial (SAIT)",
+                     id_str + ":P", id_str + ":C", id_str + ":PHI",
+                     "Gamma=complexidade_constitutiva_decrescente", "formulated"};
+  s.phenomenon = {id(id_str + ":P"), "resiliência de sistema agroalimentar territorial",
+                  "Capacidade de manter estabilidade produtiva, nutricional e hídrica sob perturbações climáticas e econômicas."};
+  s.context = {id(id_str + ":C"), "Território semiárido/agreste, agricultura familiar, chuvas irregulares."};
+  s.constitutive_profile = {id(id_str + ":PHI"),
+                            {"estabilidade nutricional", "segurança hídrica", "autonomia sementes"},
+                            {"solo_vivo->resiliencia_hidrica", "biodiversidade->segurança_nutricional", "feiras_locais->autonomia_economica"},
+                            {"ciclo_anual_safra", "periodo_estiagem_plurianual"}};
+  s.witnesses = witnesses(id_str);
+
+  const std::vector<std::string> baseComps = {
+      "solo_vivo", "agrobiodiversidade", "reflorestamento_ciliar",
+      "armazenamento_hidrico", "sementes_locais", "circuitos_curtos_feiras"
+  };
+  s.realizations.push_back({id(id_str + ":R:BASE"), id_str, "sistema agroflorestal completo (SAIT baseline)",
+                            baseComps, static_cast<std::uint32_t>(baseComps.size())});
+  s.structures.push_back({id(id_str + ":R:BASE:SIGMA"), id_str + ":R:BASE", baseComps, baseComps});
+  s.provenance.push_back({id(id_str + ":PROV"), "territorial_preregistration", "agroecology_protocol_v1",
+                          "2026-09-10T00:00:00-03:00",
+                          "Benchmark de sistema agroalimentar territorial formulado com rigor epistemológico."});
+
+  const std::vector<std::string> targets = {
+      "circuitos_curtos_feiras", "sementes_locais", "armazenamento_hidrico",
+      "agrobiodiversidade", "reflorestamento_ciliar", "solo_vivo"
+  };
+  for (const auto &target : targets) {
+    s.interventions.push_back({
+        id(id_str + ":I:REMOVE_" + target), id_str, "remove", id_str + ":R:BASE", std::nullopt,
+        target, "", "BROKEN_CAUSAL", "planned"
+    });
+  }
+
+  const std::string artifact = "investigation=" + id_str + "\nstatus=formulated\nbaseline=untested\nplanned_interventions=6\nempirical_observations=0\n";
+  s.evidence.push_back({id(id_str + ":E:STRUCTURAL_INTEGRITY"), id_str + ":RUN:SPECIFICATION",
+                        id_str + ":W:OBSERVATIONAL", {}, artifact, evidence::sha256(artifact),
+                        "STRUCTURAL_RECORD"});
+
+  s.claims.push_back({id(id_str + ":Q:SUFFICIENCY"), id_str + ":R:BASE",
+                      "O arranjo territorial baseline é causalmente suficiente para sustentar o perfil de resiliência.",
+                      id_str + ":P", id_str + ":C", {},
+                      {id_str + ":W:OPERATIONAL", id_str + ":W:CAUSAL", id_str + ":W:DISCRIMINATIVE", id_str + ":W:OBSERVATIONAL", id_str + ":W:TEMPORAL"},
+                      {}, ClaimLevel::l2_relative_sufficiency,
+                      ClaimStatus::open,
+                      "Aguardando campanhas empíricas de campo (0/5 witnesses observados).", id_str + ":PROV"});
+
+  s.claims.push_back({id(id_str + ":Q:RELATIVE_MINIMALITY"), id_str + ":R:BASE",
+                      "O arranjo é minimal no espaço de reduções agroecológicas sob a ordem Gamma.",
+                      id_str + ":P", id_str + ":C", {}, {}, {},
+                      ClaimLevel::l5_relative_minimality,
+                      ClaimStatus::open,
+                      "Aguardando testes empíricos das 6 intervenções planejadas.", id_str + ":PROV"});
+
+  s.claims.push_back({id(id_str + ":Q:ROBUSTNESS"), id_str + ":R:BASE",
+                      "A estabilidade produtiva e hídrica é robusta a variações pluviométricas sazonais.",
+                      id_str + ":P", id_str + ":C", {}, {}, {},
+                      ClaimLevel::l7_contextual_robustness,
+                      ClaimStatus::open,
+                      "Requer observações de campo em safras consecutivas.", id_str + ":PROV"});
+
+  return s;
+}
+
 Study execute_tk0000() { return Laboratory{}.execute(make_tk0000(), Tk0000Adapter{}); }
 Study execute_tk0001() { return Laboratory{}.execute(make_tk0001(), Tk0001Adapter{}); }
 
