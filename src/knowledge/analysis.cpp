@@ -65,8 +65,7 @@ ClaimDecision ClaimAdjudicator::may_support(const Claim &claim, const Study &stu
     const auto found = std::find_if(study.evidence.begin(), study.evidence.end(),
         [&](const auto &item) { return item.identity.id == reference; });
     if (found == study.evidence.end()) return {false, "referenced evidence does not exist"};
-    if (found->evidence_type == ontology::EvidenceType::empirical_observation ||
-        found->evidence_type == ontology::EvidenceType::witness_adjudication) {
+    if (found->evidence_type == ontology::EvidenceType::empirical_observation) {
       has_empirical_evidence = true;
     }
     if (evidence::sha256(found->artifact) != found->sha256) return {false, "evidence digest mismatch"};
@@ -82,32 +81,59 @@ ClaimDecision ClaimAdjudicator::may_support(const Claim &claim, const Study &stu
     return {false, "L2-L8 require recorded empirical evidence in the referenced scope"};
   }
 
-  bool preserving = false;
-  bool causal_ruptured = false;
+  bool baseline_preserving = false;
   for (const auto &adjudication : study.adjudications) {
     if (!referenced_runs.contains(adjudication.run_id)) continue;
-    if (adjudication.outcome == Outcome::preserving) preserving = true;
-    if (adjudication.outcome == Outcome::ruptured && adjudication.classification == "BROKEN_CAUSAL") {
-      causal_ruptured = true;
+    if (adjudication.outcome == Outcome::preserving && adjudication.classification == "PRESERVED") {
+      baseline_preserving = true;
     }
   }
+
   if (claim.level == ClaimLevel::l2_relative_sufficiency) {
-    return {preserving, "L2 requires preserving adjudication in the declared scope"};
+    return {baseline_preserving, "L2 requires preserving adjudication in the declared scope"};
   }
+
   if (claim.level == ClaimLevel::l3_relative_necessity) {
-    const bool scoped_intervention = !claim.intervention_scope.empty() &&
-        std::all_of(claim.intervention_scope.begin(), claim.intervention_scope.end(), [&](const auto &id) {
-          return std::any_of(study.interventions.begin(), study.interventions.end(),
-                             [&](const auto &item) { return item.identity.id == id && item.status == "performed"; });
-        });
-    return {preserving && causal_ruptured && scoped_intervention,
-            "L3 requires preserving baseline, controlled causal rupture (BROKEN_CAUSAL), and performed intervention scope"};
+    if (claim.intervention_scope.empty() || claim.witness_scope.empty()) {
+      return {false, "L3 requires explicitly preregistered intervention_scope and witness_scope"};
+    }
+    if (!baseline_preserving) {
+      return {false, "L3 requires a preserving baseline empirical adjudication"};
+    }
+
+    // Verify chain: claim.intervention_scope -> Run.intervention_id -> Adjudication.run_id -> Evidence.witness_id
+    for (const auto &itv_id : claim.intervention_scope) {
+      const auto itv = std::find_if(study.interventions.begin(), study.interventions.end(),
+                                    [&](const auto &item) { return item.identity.id == itv_id && item.status == "performed"; });
+      if (itv == study.interventions.end()) {
+        return {false, "L3 intervention not performed: " + itv_id};
+      }
+
+      // Find run associated with this intervention
+      const auto run = std::find_if(study.runs.begin(), study.runs.end(), [&](const auto &r) {
+        return (r.intervention_id && *r.intervention_id == itv_id) ||
+               (itv->target_realization_id && r.result_realization_id == *itv->target_realization_id);
+      });
+      if (run == study.runs.end() || !referenced_runs.contains(run->identity.id)) {
+        return {false, "L3 requires executed run with referenced empirical evidence for intervention " + itv_id};
+      }
+
+      // Adjudication must be BROKEN_CAUSAL
+      const auto adj = std::find_if(study.adjudications.begin(), study.adjudications.end(), [&](const auto &a) {
+        return a.run_id == run->identity.id && a.outcome == Outcome::ruptured && a.classification == "BROKEN_CAUSAL";
+      });
+      if (adj == study.adjudications.end()) {
+        return {false, "L3 requires BROKEN_CAUSAL adjudication for run " + run->identity.id};
+      }
+    }
+
+    return {true, "L3 satisfied: preserving baseline and controlled causal rupture for all scoped interventions"};
   }
 
   const bool search_open = std::any_of(study.interventions.begin(), study.interventions.end(),
       [](const auto &item) { return item.status != "performed"; });
   if (claim.level == ClaimLevel::l4_irreducibility || claim.level == ClaimLevel::l5_relative_minimality) {
-    return {!search_open && preserving,
+    return {!search_open && baseline_preserving,
             "L4/L5 require all declared immediate reductions to be adjudicated"};
   }
   if (claim.level == ClaimLevel::l6_experimental_causal_equivalence) {
@@ -132,7 +158,7 @@ void infer_claims(Study &study) {
     }
   }
   if (any_supported || study.investigation.status == "adjudicated") {
-    study.investigation.status = "inferred";
+    advance_phase(study.investigation, InvestigationPhase::inferred);
   }
 }
 

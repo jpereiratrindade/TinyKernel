@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnWorkbenchAdjudicate = document.getElementById("btn-workbench-adjudicate");
   const btnWorkbenchInfer = document.getElementById("btn-workbench-infer");
   const btnWorkbenchExport = document.getElementById("btn-workbench-export");
+  const btnWorkbenchDelete = document.getElementById("btn-workbench-delete");
   const workbenchStatusBadge = document.getElementById("workbench-status-badge");
 
   // Modals
@@ -415,6 +416,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const invStatus = s.investigation.status || "executed";
     workbenchStatusBadge.className = `card-status-badge ${invStatus}`;
     workbenchStatusBadge.textContent = invStatus.toUpperCase();
+
+    // Delete Button (only for custom investigations, not canonical TK-0000 / TK-0001)
+    if (btnWorkbenchDelete) {
+      if (s.investigation.id !== "TK-0000" && s.investigation.id !== "TK-0001") {
+        btnWorkbenchDelete.style.display = "inline-flex";
+      } else {
+        btnWorkbenchDelete.style.display = "none";
+      }
+    }
 
     renderStats();
     renderPhenomenon();
@@ -834,14 +844,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnHeroNewInvestigation.addEventListener("click", () => switchView("wizard"));
   btnHeroOpenCanonical.addEventListener("click", () => openStudyWorkbench("TK-0001"));
 
+  if (btnWorkbenchDelete) {
+    btnWorkbenchDelete.addEventListener("click", () => {
+      if (!state.activeStudyId) return;
+      if (confirm(`Tem certeza que deseja excluir a investigação ${state.activeStudyId}?`)) {
+        try {
+          window.tkEngine.deleteStudy(state.activeStudyId);
+          alert(`Investigação ${state.activeStudyId} excluída.`);
+          switchView("lab-home");
+        } catch (err) {
+          alert(`Falha ao excluir: ${err.message}`);
+        }
+      }
+    });
+  }
+
   btnWorkbenchExport.addEventListener("click", () => {
+    if (!state.activeStudy) return;
     const jsonStr = JSON.stringify(state.activeStudy, null, 2);
-    modalTitle.textContent = `Exportação Determinística — ${state.activeStudy.investigation.id}`;
+    modalTitle.textContent = `Exportação Determinística: ${state.activeStudy.investigation.id}`;
     modalContent.innerHTML = `
-      <p style="color: #94a3b8; font-size: 0.82rem;">JSON de exportação determinística conforme TK-O v0.2.0.</p>
+      <p style="color: #94a3b8; font-size: 0.82rem;">JSON de exportação determinística conforme TK-O v0.2.1.</p>
       <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
         <button class="btn btn-primary btn-sm" id="btn-copy-json">Copiar JSON</button>
-        <button class="btn btn-teal btn-sm" id="btn-download-json">Baixar Arquivo .json</button>
+        <button class="btn btn-teal btn-sm" id="btn-download-json">Baixar Arquivo</button>
       </div>
       <pre class="json-view">${jsonStr}</pre>
     `;
@@ -849,14 +875,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     document.getElementById("btn-copy-json").addEventListener("click", () => {
       navigator.clipboard.writeText(jsonStr);
-      alert("JSON copiado!");
+      alert("JSON copiado para a área de transferência!");
     });
     document.getElementById("btn-download-json").addEventListener("click", () => {
       const blob = new Blob([jsonStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${state.activeStudy.investigation.id.toLowerCase()}-export.json`;
+      a.download = `${state.activeStudy.investigation.id}.json`;
       a.click();
       URL.revokeObjectURL(url);
     });
@@ -865,9 +891,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnGlobalExport.addEventListener("click", async () => {
     const allStudies = await window.tkEngine.getAllStudies();
     const jsonStr = JSON.stringify({
-      workspace: "TinyKernel-MultiInvestigation-Workspace",
-      schema_version: 1,
-      ontology_version: "0.2.0",
+      format: "tinykernel-workspace-bundle",
+      format_version: 1,
+      ontology: "TK-O",
+      ontology_version: "0.2.1",
       studies: allStudies
     }, null, 2);
 

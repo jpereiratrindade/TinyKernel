@@ -63,7 +63,7 @@ std::string deterministic_export(const Study &study) {
   std::ostringstream out;
   out << '{';
   out << "\"format\":\"tinykernel-investigation-json\",\"format_version\":1,";
-  out << "\"ontology\":{\"id\":\"TK-O\",\"version\":\"0.2.0\"},";
+  out << "\"ontology\":{\"id\":\"TK-O\",\"version\":\"0.2.1\"},";
   out << "\"investigation\":{"; identity(out, study.investigation.identity);
   out << ",\"title\":" << quote(study.investigation.title)
       << ",\"phenomenon_id\":" << quote(study.investigation.phenomenon_id)

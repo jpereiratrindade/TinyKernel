@@ -12,7 +12,7 @@ namespace {
 
 using namespace ontology;
 
-Identity id(std::string value) { return Identity{std::move(value), 1, "0.2.0"}; }
+Identity id(std::string value) { return Identity{std::move(value), 2, "0.2.1"}; }
 
 bool has_component(const Realization &realization, const std::string &component) {
   return std::find(realization.components.begin(), realization.components.end(), component) != realization.components.end();
@@ -68,7 +68,7 @@ std::string classification_for(const AdapterObservation &result) {
 
 Outcome outcome_for(const std::string &classification) {
   if (classification == "PRESERVED") return Outcome::preserving;
-  if (classification == "WITNESS_COMPROMISED" || classification == "INCONCLUSIVE") {
+  if (classification == "WITNESS_COMPROMISED" || classification == "INCONCLUSIVE" || classification == "PARTIALLY_OBSERVED") {
     return Outcome::undetermined;
   }
   return Outcome::ruptured;
@@ -106,12 +106,12 @@ void record_run(Study &study, const Realization &realization,
     const std::string evidence_id = run_id + ":E:" + witness.kind;
     study.evidence.push_back({id(evidence_id), run_id, witness.identity.id,
                               {observation_id}, artifact, evidence::sha256(artifact),
-                              ontology::EvidenceType::witness_adjudication});
+                              ontology::EvidenceType::empirical_observation});
     evidence_ids.push_back(evidence_id);
   }
   const auto classification = classification_for(result);
   study.adjudications.push_back({id(run_id + ":A"), run_id, outcome_for(classification),
-      classification, "TK-O-0.2.0:all-constitutive-dimensions-v1",
+      classification, "TK-O-0.2.1:all-constitutive-dimensions-v1",
       classification == "PRESERVED"
           ? "Todos os witnesses constitutivos preregistrados foram satisfeitos."
           : "Ao menos uma dimensão constitutiva preregistrada não foi satisfeita.",
@@ -121,12 +121,12 @@ void record_run(Study &study, const Realization &realization,
 Study make_base(const std::string &name, const std::string &title) {
   Study study;
   study.investigation = {id(name), title, name + ":P", name + ":C", name + ":PHI",
-                         "Gamma=active_causal_relations", "preregistered"};
+                         "Gamma=active_causal_relations", "formulated"};
   study.context = {id(name + ":C"), "Execução local determinística, processo único, inteiros binários."};
   study.witnesses = witnesses(name);
   study.provenance.push_back({id(name + ":PROV"), "preregistration",
       "deterministic built-in adapter", "2026-09-09T00:00:00-03:00",
-      "Materialização TK-SYS-00 derivada de TK-FND-00 v0.2.0."});
+      "Materialização TK-SYS-00 derivada de TK-FND-00 v0.2.1."});
   return study;
 }
 
@@ -155,12 +155,8 @@ Study Laboratory::execute(Study study, const RealizationAdapter &adapter) const 
     record_run(study, result, intervention, adapter, intervention.identity.id.substr(intervention.identity.id.rfind(':') + 1));
   }
 
-  knowledge::ClaimAdjudicator adjudicator;
-  for (auto &claim : study.claims) {
-    const auto decision = adjudicator.may_support(claim, study);
-    claim.status = decision.allowed ? ClaimStatus::supported : ClaimStatus::open;
-  }
-  study.investigation.status = "executed";
+  advance_phase(study.investigation, InvestigationPhase::adjudicated);
+  knowledge::infer_claims(study);
   return study;
 }
 

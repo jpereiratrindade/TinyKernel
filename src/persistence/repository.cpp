@@ -208,10 +208,75 @@ void Repository::initialize() {
       BEGIN SELECT RAISE(ABORT, 'evidence is immutable'); END;
     CREATE TRIGGER IF NOT EXISTS evidence_observations_no_delete BEFORE DELETE ON evidence_observations
       BEGIN SELECT RAISE(ABORT, 'evidence is immutable'); END;
-    INSERT OR REPLACE INTO metadata(key,value) VALUES('ontology_id','TK-O');
-    INSERT OR REPLACE INTO metadata(key,value) VALUES('ontology_version','0.2.0');
-    INSERT OR REPLACE INTO metadata(key,value) VALUES('schema_version','1');
   )SQL");
+
+  // Migration 1 -> 2 check
+  bool has_evidence_type = false;
+  {
+    Statement table_info(impl_->database, "PRAGMA table_info(evidence_records)");
+    while (table_info.step_row()) {
+      if (table_info.text(1) == "evidence_type") {
+        has_evidence_type = true;
+        break;
+      }
+    }
+  }
+  if (!has_evidence_type) {
+    execute(impl_->database, "ALTER TABLE evidence_records ADD COLUMN evidence_type TEXT NOT NULL DEFAULT 'EMPIRICAL_OBSERVATION'");
+  }
+
+  execute(impl_->database, R"SQL(
+    UPDATE evidence_records SET evidence_type='EMPIRICAL_OBSERVATION' WHERE evidence_type IS NULL OR evidence_type='';
+    INSERT OR REPLACE INTO metadata(key,value) VALUES('ontology_id','TK-O');
+    INSERT OR REPLACE INTO metadata(key,value) VALUES('ontology_version','0.2.1');
+    INSERT OR REPLACE INTO metadata(key,value) VALUES('schema_version','2');
+  )SQL");
+}
+
+bool Repository::delete_investigation(const std::string &investigation_id) {
+  execute(impl_->database, "BEGIN IMMEDIATE");
+  try {
+    // Check if any evidence records exist for this investigation
+    Statement check_evidence(impl_->database, "SELECT COUNT(*) FROM evidence_records WHERE investigation_id=?");
+    check_evidence.bind(1, investigation_id);
+    if (check_evidence.step_row() && check_evidence.integer(0) > 0) {
+      throw std::runtime_error("cannot delete investigation with sealed evidence: " + investigation_id);
+    }
+
+    Statement del_relations(impl_->database, "DELETE FROM relations WHERE investigation_id=?");
+    del_relations.bind(1, investigation_id);
+    del_relations.step_done();
+
+    Statement del_scopes(impl_->database, "DELETE FROM claim_scopes WHERE claim_id IN (SELECT id FROM claims WHERE investigation_id=?)");
+    del_scopes.bind(1, investigation_id);
+    del_scopes.step_done();
+
+    Statement del_claims(impl_->database, "DELETE FROM claims WHERE investigation_id=?");
+    del_claims.bind(1, investigation_id);
+    del_claims.step_done();
+
+    Statement del_runs(impl_->database, "DELETE FROM runs WHERE investigation_id=?");
+    del_runs.bind(1, investigation_id);
+    del_runs.step_done();
+
+    Statement del_attrs(impl_->database, "DELETE FROM attributes WHERE entity_id IN (SELECT id FROM entities WHERE investigation_id=?)");
+    del_attrs.bind(1, investigation_id);
+    del_attrs.step_done();
+
+    Statement del_inv(impl_->database, "DELETE FROM investigations WHERE id=?");
+    del_inv.bind(1, investigation_id);
+    del_inv.step_done();
+
+    Statement del_entities(impl_->database, "DELETE FROM entities WHERE investigation_id=?");
+    del_entities.bind(1, investigation_id);
+    del_entities.step_done();
+
+    execute(impl_->database, "COMMIT");
+    return true;
+  } catch (...) {
+    execute(impl_->database, "ROLLBACK");
+    throw;
+  }
 }
 
 void Repository::save(const Study &study) {
@@ -273,10 +338,21 @@ void Repository::save(const Study &study) {
     }
 
     for (const auto &item : study.evidence) {
-      Statement existing(impl_->database, "SELECT artifact,sha256,evidence_type FROM evidence_records WHERE id=?");
+      Statement existing(impl_->database, "SELECT run_id,witness_id,artifact,sha256,evidence_type FROM evidence_records WHERE id=?");
       existing.bind(1, item.identity.id);
       if (existing.step_row()) {
-        if (existing.text(0) != item.artifact || existing.text(1) != item.sha256 || existing.text(2) != to_string(item.evidence_type)) {
+        if (existing.text(0) != item.run_id ||
+            existing.text(1) != item.witness_id ||
+            existing.text(2) != item.artifact ||
+            existing.text(3) != item.sha256 ||
+            existing.text(4) != to_string(item.evidence_type)) {
+          throw std::runtime_error("evidence is immutable: " + item.identity.id);
+        }
+        Statement existing_obs(impl_->database, "SELECT observation_id FROM evidence_observations WHERE evidence_id=? ORDER BY ordinal");
+        existing_obs.bind(1, item.identity.id);
+        std::vector<std::string> obs_ids;
+        while (existing_obs.step_row()) obs_ids.push_back(existing_obs.text(0));
+        if (obs_ids != item.observation_ids) {
           throw std::runtime_error("evidence is immutable: " + item.identity.id);
         }
         continue;
@@ -459,7 +535,7 @@ bool Repository::verify_integrity(std::string &detail) const {
   Statement integrity(impl_->database, "PRAGMA integrity_check");
   if (!integrity.step_row() || integrity.text(0) != "ok") { detail = "SQLite integrity_check failed"; return false; }
   Statement ontology(impl_->database, "SELECT value FROM metadata WHERE key='ontology_version'");
-  if (!ontology.step_row() || ontology.text(0) != "0.2.0") { detail = "ontology version mismatch"; return false; }
+  if (!ontology.step_row() || (ontology.text(0) != "0.2.1" && ontology.text(0) != "0.2.0")) { detail = "ontology version mismatch"; return false; }
   Statement evidence(impl_->database, "SELECT id,artifact,sha256 FROM evidence_records ORDER BY id");
   while (evidence.step_row()) {
     if (tinykernel::evidence::sha256(evidence.text(1)) != evidence.text(2)) {

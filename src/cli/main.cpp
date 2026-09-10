@@ -65,7 +65,7 @@ int verify() {
     ready = ready && passed;
   };
 
-  report("versioning", ontology_version == "0.2.0", "TK-O v0.2.0 / schema 1");
+  report("versioning", ontology_version == "0.2.1" && schema_version == 2, "TK-O v0.2.1 / schema 2");
   causal::InterventionEngine engine;
   report("interventions", engine.supported_kinds() == std::vector<std::string>({"disable","merge","perturb","remove","replace"}),
          "remove, replace, disable, merge, perturb registered");

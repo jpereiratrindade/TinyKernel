@@ -9,10 +9,18 @@ namespace tinykernel::ontology {
 
 struct Identity {
   std::string id;
-  std::uint32_t schema_version{1};
-  std::string ontology_version{"0.2.0"};
+  std::uint32_t schema_version{2};
+  std::string ontology_version{"0.2.1"};
 
   auto operator<=>(const Identity &) const = default;
+};
+
+enum class InvestigationPhase : std::uint8_t {
+  formulated = 0,
+  materialized = 1,
+  observed = 2,
+  adjudicated = 3,
+  inferred = 4
 };
 
 struct Investigation {
@@ -22,7 +30,7 @@ struct Investigation {
   std::string context_id;
   std::string constitutive_profile_id;
   std::string reduction_order;
-  std::string status;
+  std::string status{"formulated"};
 };
 
 struct Phenomenon { Identity identity; std::string name; std::string definition; };
@@ -59,7 +67,7 @@ struct Intervention {
   std::string target;
   std::string replacement;
   std::string prediction;
-  std::string status;
+  std::string status{"planned"};
 };
 
 struct Observation {
@@ -79,9 +87,9 @@ struct Witness {
 };
 
 enum class EvidenceType {
-  structural_record,
-  empirical_observation,
-  witness_adjudication
+  unspecified = 0,
+  structural_record = 1,
+  empirical_observation = 2
 };
 
 struct Evidence {
@@ -91,7 +99,7 @@ struct Evidence {
   std::vector<std::string> observation_ids;
   std::string artifact;
   std::string sha256;
-  EvidenceType evidence_type{EvidenceType::empirical_observation};
+  EvidenceType evidence_type{EvidenceType::unspecified};
 };
 
 enum class Outcome { preserving, ruptured, undetermined };
@@ -173,9 +181,16 @@ std::string to_string(Outcome value);
 std::string to_string(ClaimLevel value);
 std::string to_string(ClaimStatus value);
 std::string to_string(EvidenceType value);
+std::string to_string(InvestigationPhase value);
+
 ClaimLevel claim_level_from_string(const std::string &value);
 ClaimStatus claim_status_from_string(const std::string &value);
 Outcome outcome_from_string(const std::string &value);
 EvidenceType evidence_type_from_string(const std::string &value);
+InvestigationPhase investigation_phase_from_string(const std::string &value);
+
+InvestigationPhase advance_phase(InvestigationPhase current, InvestigationPhase candidate);
+void advance_phase(Investigation &inv, InvestigationPhase candidate);
+std::string advance_phase_string(const std::string &current, const std::string &candidate);
 
 } // namespace tinykernel::ontology

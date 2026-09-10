@@ -1,0 +1,68 @@
+ontology:
+  id: TK-O
+  version: 0.2.1
+  status: OPERATIONAL_WORKING_ONTOLOGY
+  source: TK-FND-00 v0.2.1
+  statement: >-
+    Ontologia de trabalho versionada 0.2.1; formaliza a discriminação rigorosa
+    entre registros estruturais de especificação e evidências empíricas de campo/aparato,
+    e a máquina de fases monotônica em 5 estágios epistemológicos.
+
+entity_types:
+  - { id: TKO:Investigation, label: Investigation, schema_version: 2 }
+  - { id: TKO:Phenomenon, label: Phenomenon, schema_version: 2 }
+  - { id: TKO:Context, label: Context, schema_version: 2 }
+  - { id: TKO:ConstitutiveProfile, label: ConstitutiveProfile, schema_version: 2 }
+  - { id: TKO:Realization, label: Realization, schema_version: 2 }
+  - { id: TKO:Structure, label: Structure, schema_version: 2 }
+  - { id: TKO:Intervention, label: Intervention, schema_version: 2 }
+  - { id: TKO:Observation, label: Observation, schema_version: 2 }
+  - { id: TKO:Witness, label: Witness, schema_version: 2 }
+  - { id: TKO:Evidence, label: Evidence, schema_version: 2, immutable: true }
+  - { id: TKO:Adjudication, label: Adjudication, schema_version: 2 }
+  - { id: TKO:Claim, label: Claim, schema_version: 2 }
+  - { id: TKO:Run, label: Run, schema_version: 2 }
+  - { id: TKO:Provenance, label: Provenance, schema_version: 2 }
+
+relations:
+  - { id: TKO:specified_by, domain: TKO:Phenomenon, range: TKO:ConstitutiveProfile }
+  - { id: TKO:situated_in, domain: TKO:Phenomenon, range: TKO:Context }
+  - { id: TKO:candidate, domain: TKO:Realization, range: TKO:Phenomenon }
+  - { id: TKO:has_structure, domain: TKO:Realization, range: TKO:Structure }
+  - { id: TKO:transforms_from, domain: TKO:Intervention, range: TKO:Realization }
+  - { id: TKO:transforms_to, domain: TKO:Intervention, range: TKO:Realization }
+  - { id: TKO:observed_by, domain: TKO:Observation, range: TKO:Witness }
+  - { id: TKO:produced_by, domain: TKO:Evidence, range: TKO:Witness }
+  - { id: TKO:supports, domain: TKO:Evidence, range: TKO:Claim }
+  - { id: TKO:adjudicates, domain: TKO:Adjudication, range: TKO:Evidence }
+  - { id: TKO:has_provenance, domain: TKO:Claim, range: TKO:Provenance }
+  - { id: TKO:reduces, domain: TKO:Realization, range: TKO:Realization }
+
+claim_levels:
+  - { id: L0, label: ontology_specification }
+  - { id: L1, label: observation }
+  - { id: L2, label: relative_sufficiency }
+  - { id: L3, label: relative_necessity }
+  - { id: L4, label: irreducibility }
+  - { id: L5, label: relative_minimality }
+  - { id: L6, label: experimental_causal_equivalence }
+  - { id: L7, label: contextual_robustness }
+  - { id: L8, label: candidate_kernel }
+
+intervention_kinds:
+  - remove
+  - replace
+  - disable
+  - merge
+  - perturb
+
+evidence_categories:
+  - { id: STRUCTURAL_RECORD, label: "Registro de Especificação Estrutural e Integridade" }
+  - { id: EMPIRICAL_OBSERVATION, label: "Observação Empírica de Campo ou Aparato" }
+
+investigation_phases:
+  - { id: formulated, label: "DECLARED / FORMULATED (Protocolo Preregistrado)" }
+  - { id: materialized, label: "MATERIALIZED (Realizações Estruturais Montadas)" }
+  - { id: observed, label: "OBSERVED (Medições e Observações Empíricas Coletadas)" }
+  - { id: adjudicated, label: "ADJUDICATED (Avaliação Multidimensional de Witnesses)" }
+  - { id: inferred, label: "INFERRED (Sustentação Epistêmica de Claims L0-L8)" }

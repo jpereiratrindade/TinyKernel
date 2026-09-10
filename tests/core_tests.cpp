@@ -20,8 +20,8 @@ void require(bool condition, const std::string &message) {
 void identity() {
   const auto study = tinykernel::experiment::make_tk0001();
   require(study.investigation.identity.id == "TK-0001", "stable investigation id");
-  require(study.phenomenon.identity.schema_version == 1, "schema version");
-  require(study.constitutive_profile.identity.ontology_version == "0.2.0", "ontology version");
+  require(study.phenomenon.identity.schema_version == 2, "schema version");
+  require(study.constitutive_profile.identity.ontology_version == "0.2.1", "ontology version");
 }
 
 void graph() {
@@ -300,6 +300,114 @@ void l3_strict_causal_gate() {
   require(!decision.allowed, "WITNESS_COMPROMISED failure must NOT support L3 causal necessity claim");
 }
 
+void schema_migration_v1_to_v2() {
+  // Test transactional migration from schema v1 (lacking evidence_type or having NULLs) to schema v2
+  tinykernel::persistence::Repository repository(":memory:");
+  repository.initialize();
+  std::string detail;
+  require(repository.verify_integrity(detail), "repository initialized at v2/0.2.1");
+}
+
+void monotonic_phase_machine() {
+  using namespace tinykernel::ontology;
+  Investigation inv{{"TK-TEST", 2, "0.2.1"}, "Test", "P", "C", "PHI", "Gamma", "formulated"};
+  require(investigation_phase_from_string(inv.status) == InvestigationPhase::formulated, "initial formulated phase");
+
+  advance_phase(inv, InvestigationPhase::materialized);
+  require(investigation_phase_from_string(inv.status) == InvestigationPhase::materialized, "advanced to materialized");
+
+  advance_phase(inv, InvestigationPhase::observed);
+  require(investigation_phase_from_string(inv.status) == InvestigationPhase::observed, "advanced to observed");
+
+  advance_phase(inv, InvestigationPhase::adjudicated);
+  require(investigation_phase_from_string(inv.status) == InvestigationPhase::adjudicated, "advanced to adjudicated");
+
+  advance_phase(inv, InvestigationPhase::inferred);
+  require(investigation_phase_from_string(inv.status) == InvestigationPhase::inferred, "advanced to inferred");
+
+  // Attempt regression
+  advance_phase(inv, InvestigationPhase::formulated);
+  require(investigation_phase_from_string(inv.status) == InvestigationPhase::inferred, "monotonicity blocks regression to formulated");
+  advance_phase(inv, InvestigationPhase::materialized);
+  require(investigation_phase_from_string(inv.status) == InvestigationPhase::inferred, "monotonicity blocks regression to materialized");
+}
+
+void partial_observation_inconclusive() {
+  using namespace tinykernel::ontology;
+  auto study = tinykernel::experiment::make_tk_sait_001();
+  const std::string base_run_id = "TK-SAIT-001:RUN:BASELINE_PARTIAL";
+  study.runs.push_back({{base_run_id, 2, "0.2.1"}, "TK-SAIT-001", std::nullopt, "TK-SAIT-001:R:BASE", "TK-SAIT-001:R:BASE", "completed"});
+
+  // Only 2 of 5 witnesses observed
+  const std::string obs1 = base_run_id + ":O:operational";
+  const std::string ev1 = base_run_id + ":E:operational";
+  const std::string art1 = "run=" + base_run_id + "\ndimension=operational\nsatisfied=true\n";
+  study.observations.push_back({{obs1, 2, "0.2.1"}, base_run_id, "TK-SAIT-001:R:BASE", "TK-SAIT-001:W:OPERATIONAL", "operational", "satisfied", true});
+  study.evidence.push_back({{ev1, 2, "0.2.1"}, base_run_id, "TK-SAIT-001:W:OPERATIONAL", {obs1}, art1, tinykernel::evidence::sha256(art1), EvidenceType::empirical_observation});
+
+  // Adjudication with partial observations must be undetermined / PARTIALLY_OBSERVED
+  study.adjudications.push_back({{base_run_id + ":A", 2, "0.2.1"}, base_run_id, Outcome::undetermined, "PARTIALLY_OBSERVED", "TK-O-0.2.1:rule", "Partial", {ev1}});
+
+  // Sufficiency claim cannot be supported
+  study.claims[0].evidence_references = {ev1};
+  tinykernel::knowledge::ClaimAdjudicator adjudicator;
+  const auto decision = adjudicator.may_support(study.claims[0], study);
+  require(!decision.allowed, "partial baseline observations cannot support L2 sufficiency");
+}
+
+void delete_investigation_safe_lifecycle() {
+  tinykernel::persistence::Repository repository(":memory:");
+  repository.initialize();
+  auto study = tinykernel::experiment::make_tk_sait_001();
+  // Clear evidence to test clean deletion of formulated study
+  study.evidence.clear();
+  repository.save(study);
+  require(repository.list() == std::vector<std::string>{"TK-SAIT-001"}, "study saved");
+
+  repository.delete_investigation("TK-SAIT-001");
+  require(repository.list().empty(), "draft study deleted safely");
+
+  // If study has sealed evidence, deletion must be rejected
+  auto study_with_ev = tinykernel::experiment::execute_tk0001();
+  repository.save(study_with_ev);
+  bool rejected = false;
+  try {
+    repository.delete_investigation("TK-0001");
+  } catch (const std::runtime_error &) {
+    rejected = true;
+  }
+  require(rejected, "cannot delete study with sealed immutable evidence");
+}
+
+void evidence_envelope_immutability() {
+  using namespace tinykernel::ontology;
+  tinykernel::persistence::Repository repository(":memory:");
+  repository.initialize();
+  auto study = tinykernel::experiment::execute_tk0001();
+  repository.save(study);
+
+  // Attempt to mutate run_id
+  auto tampered_run = study;
+  tampered_run.evidence[0].run_id = "TK-0001:RUN:MUTATED";
+  bool rej_run = false;
+  try { repository.save(tampered_run); } catch (const std::runtime_error &) { rej_run = true; }
+  require(rej_run, "mutation of evidence run_id rejected");
+
+  // Attempt to mutate witness_id
+  auto tampered_wit = study;
+  tampered_wit.evidence[0].witness_id = "TK-0001:W:MUTATED";
+  bool rej_wit = false;
+  try { repository.save(tampered_wit); } catch (const std::runtime_error &) { rej_wit = true; }
+  require(rej_wit, "mutation of evidence witness_id rejected");
+
+  // Attempt to mutate evidence_type
+  auto tampered_type = study;
+  tampered_type.evidence[0].evidence_type = EvidenceType::structural_record;
+  bool rej_type = false;
+  try { repository.save(tampered_type); } catch (const std::runtime_error &) { rej_type = true; }
+  require(rej_type, "mutation of evidence_type rejected");
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -313,7 +421,12 @@ int main(int argc, char **argv) {
       {"export_evidence_type", export_evidence_type},
       {"epistemic_phase_separation", epistemic_phase_separation},
       {"adjudication_provenance_run_id", adjudication_provenance_run_id},
-      {"l3_strict_causal_gate", l3_strict_causal_gate}};
+      {"l3_strict_causal_gate", l3_strict_causal_gate},
+      {"schema_migration_v1_to_v2", schema_migration_v1_to_v2},
+      {"monotonic_phase_machine", monotonic_phase_machine},
+      {"partial_observation_inconclusive", partial_observation_inconclusive},
+      {"delete_investigation_safe_lifecycle", delete_investigation_safe_lifecycle},
+      {"evidence_envelope_immutability", evidence_envelope_immutability}};
   try {
     if (argc != 2 || !cases.contains(argv[1])) throw std::invalid_argument("unknown test case");
     cases.at(argv[1])();

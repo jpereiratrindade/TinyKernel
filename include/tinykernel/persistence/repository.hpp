@@ -21,6 +21,7 @@ public:
   void save(const ontology::Study &study);
   [[nodiscard]] ontology::Study load(const std::string &investigation_id) const;
   [[nodiscard]] std::vector<std::string> list() const;
+  bool delete_investigation(const std::string &investigation_id);
   [[nodiscard]] bool verify_integrity(std::string &detail) const;
   [[nodiscard]] const std::filesystem::path &path() const noexcept;
 

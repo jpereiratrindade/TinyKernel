@@ -1,14 +1,14 @@
 /**
- * TinyKernel Web Causal Engine — TK-O v0.2.0
+ * TinyKernel Web Causal Engine — TK-O v0.2.1
  * Epistemic Separation Architecture:
  * Formulation (DECLARED) -> Structure (MATERIALIZED) -> Observation (OBSERVED) -> Adjudication (ADJUDICATED) -> Inference (INFERRED)
  */
 
 class TkEngine {
   constructor() {
-    this.ontologyVersion = "0.2.0";
-    this.schemaVersion = 1;
-    this.storageKey = "tinykernel_workspace_studies_v1";
+    this.ontologyVersion = "0.2.1";
+    this.schemaVersion = 2;
+    this.storageKey = "tinykernel_workspace_studies_v2";
   }
 
   // Calculate SHA-256 hash using Web Crypto API or pure fallback
@@ -107,8 +107,8 @@ class TkEngine {
     const study = {
       investigation: {
         id: "TK-0001",
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         title: "Persistência adaptativa",
         phenomenon_id: "TK-0001:P",
         context_id: "TK-0001:C",
@@ -120,21 +120,21 @@ class TkEngine {
       },
       phenomenon: {
         id: "TK-0001:P",
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         name: "persistência adaptativa",
         description: "Uma experiência altera estado persistido e comportamento posterior sem reapresentação da experiência."
       },
       context: {
         id: "TK-0001:C",
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         description: "Execução local determinística, processo único, inteiros binários."
       },
       constitutive_profile: {
         id: "TK-0001:PHI",
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         dimensions: ["estado antes/depois", "experiência presente/ausente", "comportamento baseline/posterior"],
         essential_relations: ["experiência->alteração persistida", "alteração persistida->comportamento posterior"],
         temporal_bounds: ["alteração após experiência", "persistência até interação posterior sem experiência"]
@@ -143,8 +143,8 @@ class TkEngine {
       realizations: [
         {
           id: "TK-0001:R:BASE",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0001",
           label: "baseline adaptativo",
           components: ["state", "input", "action", "feedback", "difference", "update", "persistence", "later_interaction"],
@@ -155,8 +155,8 @@ class TkEngine {
         },
         {
           id: "TK-0001:R:ALT_FEEDBACK",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0001",
           label: "feedback equivalente",
           components: ["state", "input", "action", "feedback_equivalent", "difference", "update", "persistence", "later_interaction"],
@@ -167,8 +167,8 @@ class TkEngine {
         },
         {
           id: "TK-0001:R:NO_UPDATE",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0001",
           label: "sem atualização",
           components: ["state", "input", "action", "feedback", "difference", "persistence", "later_interaction"],
@@ -181,8 +181,8 @@ class TkEngine {
       interventions: [
         {
           id: "TK-0001:I:REPLACE_FEEDBACK",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0001",
           kind: "replace",
           source: "TK-0001:R:BASE",
@@ -196,8 +196,8 @@ class TkEngine {
         },
         {
           id: "TK-0001:I:REMOVE_UPDATE",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0001",
           kind: "remove",
           source: "TK-0001:R:BASE",
@@ -211,8 +211,8 @@ class TkEngine {
         },
         {
           id: "TK-0001:I:DISABLE_PERSISTENCE",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0001",
           kind: "disable",
           source: "TK-0001:R:BASE",
@@ -224,8 +224,8 @@ class TkEngine {
         },
         {
           id: "TK-0001:I:MERGE_STATE_ACTION",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0001",
           kind: "merge",
           source: "TK-0001:R:BASE",
@@ -237,8 +237,8 @@ class TkEngine {
         },
         {
           id: "TK-0001:I:PERTURB_FEEDBACK",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0001",
           kind: "perturb",
           source: "TK-0001:R:BASE",
@@ -256,8 +256,8 @@ class TkEngine {
       claims: [
         {
           id: "TK-0001:Q:SUFFICIENCY",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           subject: "TK-0001:R:BASE",
           assertion: "A realização baseline é suficiente sob o protocolo preregistrado.",
           phenomenon_id: "TK-0001:P",
@@ -271,8 +271,8 @@ class TkEngine {
         },
         {
           id: "TK-0001:Q:UPDATE_NECESSITY",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           subject: "update",
           assertion: "A relação de atualização possui necessidade relativa nesta realização.",
           phenomenon_id: "TK-0001:P",
@@ -286,8 +286,8 @@ class TkEngine {
         },
         {
           id: "TK-0001:Q:RELATIVE_MINIMALITY",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           subject: "TK-0001:R:BASE",
           assertion: "A realização é minimal na ordem Gamma declarada.",
           phenomenon_id: "TK-0001:P",
@@ -303,12 +303,12 @@ class TkEngine {
       provenance: [
         {
           id: "TK-0001:PROV",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           source: "preregistration",
           method: "deterministic built-in adapter",
           timestamp: "2026-09-09T00:00:00-03:00",
-          detail: "Materialização TK-SYS-00 derivada de TK-FND-00 v0.2.0."
+          detail: "Materialização TK-SYS-00 derivada de TK-FND-00 v0.2.1."
         }
       ]
     };
@@ -323,8 +323,8 @@ class TkEngine {
       const runId = `TK-0001:RUN:${cfg.suffix}`;
       study.runs.push({
         id: runId,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         investigation_id: "TK-0001",
         intervention_id: cfg.intervention ? cfg.intervention.id : null,
         source_realization_id: cfg.intervention ? cfg.intervention.source : cfg.realization.id,
@@ -342,8 +342,8 @@ class TkEngine {
         const obsId = `${runId}:O:${witness.kind}`;
         study.observations.push({
           id: obsId,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           run_id: runId,
           realization_id: cfg.realization.id,
           witness_id: witness.id,
@@ -358,8 +358,8 @@ class TkEngine {
 
         study.evidence.push({
           id: evidenceId,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           run_id: runId,
           witness_id: witness.id,
           observation_ids: [obsId],
@@ -373,12 +373,12 @@ class TkEngine {
       const isPreserved = cfg.adaptive;
       study.adjudications.push({
         id: `${runId}:A`,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         run_id: runId,
         outcome: isPreserved ? "preserving" : "ruptured",
         classification: isPreserved ? "PRESERVED" : "BROKEN_CAUSAL",
-        rule: "TK-O-0.2.0:all-constitutive-dimensions-v1",
+        rule: "TK-O-0.2.1:all-constitutive-dimensions-v1",
         rationale: isPreserved
           ? "Todos os witnesses constitutivos preregistrados foram satisfeitos."
           : "Ao menos uma dimensão constitutiva preregistrada não foi satisfeita.",
@@ -394,8 +394,8 @@ class TkEngine {
     const study = {
       investigation: {
         id: "TK-0000",
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         title: "Bootstrap do aparato experimental",
         phenomenon_id: "TK-0000:P",
         context_id: "TK-0000:C",
@@ -407,21 +407,21 @@ class TkEngine {
       },
       phenomenon: {
         id: "TK-0000:P",
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         name: "sentinela operacional",
         description: "Presença observável de um marcador sentinela para verificar o aparato."
       },
       context: {
         id: "TK-0000:C",
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         description: "Execução local determinística, processo único, inteiros binários."
       },
       constitutive_profile: {
         id: "TK-0000:PHI",
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         dimensions: ["sentinela presente/ausente"],
         essential_relations: ["sentinela determina witness"],
         temporal_bounds: ["observação após intervenção"]
@@ -430,8 +430,8 @@ class TkEngine {
       realizations: [
         {
           id: "TK-0000:R:BASE",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0000",
           label: "baseline sentinela",
           components: ["sentinel"],
@@ -442,8 +442,8 @@ class TkEngine {
         },
         {
           id: "TK-0000:R:NO_SENTINEL",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0000",
           label: "sem sentinela",
           components: [],
@@ -456,8 +456,8 @@ class TkEngine {
       interventions: [
         {
           id: "TK-0000:I:REMOVE_SENTINEL",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: "TK-0000",
           kind: "remove",
           source: "TK-0000:R:BASE",
@@ -477,8 +477,8 @@ class TkEngine {
       claims: [
         {
           id: "TK-0000:Q:APPARATUS",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           subject: "apparatus",
           assertion: "O aparato observa e discrimina a presença do sentinela com fidelidade determinística.",
           phenomenon_id: "TK-0000:P",
@@ -494,8 +494,8 @@ class TkEngine {
       provenance: [
         {
           id: "TK-0000:PROV",
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           source: "preregistration",
           method: "deterministic built-in adapter",
           timestamp: "2026-09-09T00:00:00-03:00",
@@ -513,8 +513,8 @@ class TkEngine {
       const runId = `TK-0000:RUN:${cfg.suffix}`;
       study.runs.push({
         id: runId,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         investigation_id: "TK-0000",
         intervention_id: cfg.intervention ? cfg.intervention.id : null,
         source_realization_id: cfg.intervention ? cfg.intervention.source : cfg.realization.id,
@@ -534,8 +534,8 @@ class TkEngine {
         const obsId = `${runId}:O:${witness.kind}`;
         study.observations.push({
           id: obsId,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           run_id: runId,
           realization_id: cfg.realization.id,
           witness_id: witness.id,
@@ -550,8 +550,8 @@ class TkEngine {
 
         study.evidence.push({
           id: evidenceId,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           run_id: runId,
           witness_id: witness.id,
           observation_ids: [obsId],
@@ -565,12 +565,12 @@ class TkEngine {
       const isPreserved = cfg.marker;
       study.adjudications.push({
         id: `${runId}:A`,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         run_id: runId,
         outcome: isPreserved ? "preserving" : "ruptured",
         classification: isPreserved ? "PRESERVED" : "BROKEN_CAUSAL",
-        rule: "TK-O-0.2.0:all-constitutive-dimensions-v1",
+        rule: "TK-O-0.2.1:all-constitutive-dimensions-v1",
         rationale: isPreserved
           ? "Todos os witnesses constitutivos preregistrados foram satisfeitos."
           : "Ao menos uma dimensão constitutiva preregistrada não foi satisfeita.",
@@ -593,8 +593,8 @@ class TkEngine {
     const study = {
       investigation: {
         id: studyId,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         title: "Resiliência do Sistema Agroalimentar Territorial (SAIT)",
         phenomenon_id: `${studyId}:P`,
         context_id: `${studyId}:C`,
@@ -606,21 +606,21 @@ class TkEngine {
       },
       phenomenon: {
         id: `${studyId}:P`,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         name: "resiliência de sistema agroalimentar territorial",
         description: "Capacidade de manter estabilidade produtiva, nutricional e hídrica sob perturbações climáticas e econômicas."
       },
       context: {
         id: `${studyId}:C`,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         description: "Território semiárido/agreste, agricultura familiar, chuvas irregulares."
       },
       constitutive_profile: {
         id: `${studyId}:PHI`,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         dimensions: ["estabilidade nutricional", "segurança hídrica", "autonomia sementes"],
         essential_relations: ["solo_vivo->resiliencia_hidrica", "biodiversidade->segurança_nutricional", "feiras_locais->autonomia_economica"],
         temporal_bounds: ["ciclo_anual_safra", "periodo_estiagem_plurianual"]
@@ -629,8 +629,8 @@ class TkEngine {
       realizations: [
         {
           id: `${studyId}:R:BASE`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: studyId,
           label: "sistema agroflorestal completo (SAIT baseline)",
           components: comps,
@@ -656,8 +656,8 @@ class TkEngine {
       claims: [
         {
           id: `${studyId}:Q:SUFFICIENCY`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           subject: `${studyId}:R:BASE`,
           assertion: "O arranjo territorial baseline é causalmente suficiente para sustentar o perfil de resiliência.",
           phenomenon_id: `${studyId}:P`,
@@ -671,8 +671,8 @@ class TkEngine {
         },
         {
           id: `${studyId}:Q:RELATIVE_MINIMALITY`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           subject: `${studyId}:R:BASE`,
           assertion: "O arranjo é minimal no espaço de reduções agroecológicas sob a ordem Gamma.",
           phenomenon_id: `${studyId}:P`,
@@ -686,8 +686,8 @@ class TkEngine {
         },
         {
           id: `${studyId}:Q:ROBUSTNESS`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           subject: `${studyId}:R:BASE`,
           assertion: "A estabilidade produtiva e hídrica é robusta a variações pluviométricas sazonais.",
           phenomenon_id: `${studyId}:P`,
@@ -703,8 +703,8 @@ class TkEngine {
       provenance: [
         {
           id: `${studyId}:PROV`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           source: "territorial_preregistration",
           method: "agroecology_protocol_v1",
           timestamp: "2026-09-10T00:00:00-03:00",
@@ -718,8 +718,8 @@ class TkEngine {
     const structSha256 = await this.sha256(structArtifact);
     study.evidence.push({
       id: `${studyId}:E:STRUCTURAL_INTEGRITY`,
-      schema_version: 1,
-      ontology_version: "0.2.0",
+      schema_version: 2,
+      ontology_version: "0.2.1",
       run_id: `${studyId}:RUN:SPECIFICATION`,
       witness_id: `${studyId}:W:OBSERVATIONAL`,
       observation_ids: [],
@@ -740,8 +740,8 @@ class TkEngine {
     const study = {
       investigation: {
         id: studyId,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         title: title,
         phenomenon_id: `${studyId}:P`,
         context_id: `${studyId}:C`,
@@ -753,21 +753,21 @@ class TkEngine {
       },
       phenomenon: {
         id: `${studyId}:P`,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         name: config.phenomenonName || title,
         description: config.phenomenonDesc || "Fenômeno experimental formulado pelo pesquisador."
       },
       context: {
         id: `${studyId}:C`,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         description: config.contextDesc || "Ambiente determinístico com observação rigorosa."
       },
       constitutive_profile: {
         id: `${studyId}:PHI`,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         dimensions: config.dimensions && config.dimensions.length ? config.dimensions : ["estado observável"],
         essential_relations: config.essentialRelations && config.essentialRelations.length ? config.essentialRelations : ["componente->resultado"],
         temporal_bounds: config.temporalBounds && config.temporalBounds.length ? config.temporalBounds : ["estabilidade pós-intervenção"]
@@ -776,8 +776,8 @@ class TkEngine {
       realizations: [
         {
           id: `${studyId}:R:BASE`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: studyId,
           label: config.baselineLabel || "baseline inicial",
           components: baselineComponents,
@@ -796,8 +796,8 @@ class TkEngine {
       claims: [
         {
           id: `${studyId}:Q:SUFFICIENCY`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           subject: `${studyId}:R:BASE`,
           assertion: "A realização baseline é suficiente sob o protocolo preregistrado.",
           phenomenon_id: `${studyId}:P`,
@@ -811,8 +811,8 @@ class TkEngine {
         },
         {
           id: `${studyId}:Q:RELATIVE_MINIMALITY`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           subject: `${studyId}:R:BASE`,
           assertion: "A realização é minimal na ordem Gamma declarada.",
           phenomenon_id: `${studyId}:P`,
@@ -828,10 +828,10 @@ class TkEngine {
       provenance: [
         {
           id: `${studyId}:PROV`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           source: "interactive_wizard",
-          method: "epistemic specification protocol (TK-O v0.2.0)",
+          method: "epistemic specification protocol (TK-O v0.2.1)",
           timestamp: new Date().toISOString(),
           detail: "Investigação formulada interativamente no laboratório TinyKernel."
         }
@@ -843,8 +843,8 @@ class TkEngine {
       config.initialInterventions.forEach((itvCfg, i) => {
         study.interventions.push({
           id: `${studyId}:I:${(itvCfg.kind || "remove").toUpperCase()}_${itvCfg.target_component || i+1}`,
-          schema_version: 1,
-          ontology_version: "0.2.0",
+          schema_version: 2,
+          ontology_version: "0.2.1",
           investigation_id: studyId,
           kind: itvCfg.kind || "remove",
           source: `${studyId}:R:BASE`,
@@ -862,8 +862,8 @@ class TkEngine {
     const structSha256 = await this.sha256(structArtifact);
     study.evidence.push({
       id: `${studyId}:E:FORMULATION_PROTOCOL`,
-      schema_version: 1,
-      ontology_version: "0.2.0",
+      schema_version: 2,
+      ontology_version: "0.2.1",
       run_id: null,
       witness_id: null,
       observation_ids: [],
@@ -912,8 +912,8 @@ class TkEngine {
 
     const derivedRealization = {
       id: targetRealizationId,
-      schema_version: 1,
-      ontology_version: "0.2.0",
+      schema_version: 2,
+      ontology_version: "0.2.1",
       investigation_id: studyId,
       label: targetLabel,
       components: newComponents,
@@ -937,8 +937,8 @@ class TkEngine {
       itvId = `${studyId}:I:${kind.toUpperCase()}_${targetComp || itvIndex}`;
       plannedItv = {
         id: itvId,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         investigation_id: studyId,
         kind: kind,
         source: source.id,
@@ -960,8 +960,8 @@ class TkEngine {
     const structSha256 = await this.sha256(structArtifact);
     study.evidence.push({
       id: `${itvId}:E:STRUCTURAL_ASSEMBLY`,
-      schema_version: 1,
-      ontology_version: "0.2.0",
+      schema_version: 2,
+      ontology_version: "0.2.1",
       run_id: `${studyId}:RUN:SPECIFICATION`,
       witness_id: `${studyId}:W:OBSERVATIONAL`,
       observation_ids: [],
@@ -971,10 +971,33 @@ class TkEngine {
     });
 
     if (study.investigation.status === "formulated" || !study.investigation.status) {
-      study.investigation.status = "materialized";
+      this.advancePhase(study.investigation, "materialized");
     }
 
     return study;
+  }
+
+  // Monotonic Phase Machine
+  advancePhase(investigation, targetPhase) {
+    if (!investigation) return;
+    const order = {
+      unspecified: 0,
+      draft: 1,
+      formulated: 2,
+      preregistered: 2,
+      materialized: 3,
+      observed: 4,
+      adjudicated: 5,
+      inferred: 6,
+      completed: 6,
+      executed: 6
+    };
+    const currentStatus = (investigation.status || "unspecified").toLowerCase();
+    const currentRank = order[currentStatus] || 0;
+    const targetRank = order[targetPhase.toLowerCase()] || 0;
+    if (targetRank >= currentRank) {
+      investigation.status = targetPhase;
+    }
   }
 
   // Inject real empirical observation trace for a single witness dimension
@@ -1004,8 +1027,8 @@ class TkEngine {
     if (!run) {
       run = {
         id: runId,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         investigation_id: studyId,
         intervention_id: realization.interventionKind ? `${studyId}:I:${realization.interventionKind.toUpperCase()}_${realization.targetComponent || ""}` : null,
         source_realization_id: isBaseline ? realization.id : `${studyId}:R:BASE`,
@@ -1024,8 +1047,8 @@ class TkEngine {
     study.observations = (study.observations || []).filter(o => o.id !== obsId);
     study.observations.push({
       id: obsId,
-      schema_version: 1,
-      ontology_version: "0.2.0",
+      schema_version: 2,
+      ontology_version: "0.2.1",
       run_id: runId,
       realization_id: realization.id,
       witness_id: witness.id,
@@ -1042,8 +1065,8 @@ class TkEngine {
     study.evidence = (study.evidence || []).filter(e => e.id !== evidenceId);
     study.evidence.push({
       id: evidenceId,
-      schema_version: 1,
-      ontology_version: "0.2.0",
+      schema_version: 2,
+      ontology_version: "0.2.1",
       run_id: runId,
       witness_id: witness.id,
       observation_ids: [obsId],
@@ -1063,7 +1086,7 @@ class TkEngine {
       realization.outcome = "partially_observed";
     }
 
-    study.investigation.status = "observed";
+    this.advancePhase(study.investigation, "observed");
     return study;
   }
 
@@ -1087,13 +1110,29 @@ class TkEngine {
       study.adjudications = (study.adjudications || []).filter(a => a.run_id !== baseRunId);
       study.adjudications.push({
         id: `${baseRunId}:A`,
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         run_id: baseRunId,
         outcome: "preserving",
         classification: "PRESERVED",
-        rule: "TK-O-0.2.0:all-constitutive-dimensions-v1",
+        rule: "TK-O-0.2.1:all-constitutive-dimensions-v1",
         rationale: "Todos os witnesses constitutivos foram empiricamente satisfeitos.",
+        evidence_references: baseEmpiricalEv.map(e => e.id)
+      });
+    } else if (baseObs.length > 0) {
+      if (baseRealization) baseRealization.outcome = "partially_observed";
+
+      const baseRunId = `${studyId}:RUN:BASELINE_EMPIRICAL`;
+      study.adjudications = (study.adjudications || []).filter(a => a.run_id !== baseRunId);
+      study.adjudications.push({
+        id: `${baseRunId}:A`,
+        schema_version: 2,
+        ontology_version: "0.2.1",
+        run_id: baseRunId,
+        outcome: "undetermined",
+        classification: "PARTIALLY_OBSERVED",
+        rule: "TK-O-0.2.1:all-constitutive-dimensions-v1",
+        rationale: `Observação parcial da baseline (${baseObs.filter(o => o.satisfied).length}/${study.witnesses.length} witnesses satisfeitos); não é possível adjudicar PRESERVED.`,
         evidence_references: baseEmpiricalEv.map(e => e.id)
       });
     }
@@ -1146,12 +1185,12 @@ class TkEngine {
           study.adjudications = (study.adjudications || []).filter(a => a.run_id !== actualRunId);
           study.adjudications.push({
             id: `${actualRunId}:A`,
-            schema_version: 1,
-            ontology_version: "0.2.0",
+            schema_version: 2,
+            ontology_version: "0.2.1",
             run_id: actualRunId,
             outcome: outcome,
             classification: classification,
-            rule: "TK-O-0.2.0:dimensional-adjudication-v1",
+            rule: "TK-O-0.2.1:dimensional-adjudication-v1",
             rationale: rationale,
             evidence_references: targetEv.map(e => e.id)
           });
@@ -1159,7 +1198,7 @@ class TkEngine {
       }
     }
 
-    study.investigation.status = "adjudicated";
+    this.advancePhase(study.investigation, "adjudicated");
     return study;
   }
 
@@ -1199,8 +1238,8 @@ class TkEngine {
           if (!claim) {
             claim = {
               id: claimId,
-              schema_version: 1,
-              ontology_version: "0.2.0",
+              schema_version: 2,
+              ontology_version: "0.2.1",
               subject: itv.target_component,
               assertion: `A relação associada a '${itv.target_component}' possui necessidade causal empírica neste contexto.`,
               phenomenon_id: study.investigation.phenomenon_id,
@@ -1225,7 +1264,7 @@ class TkEngine {
       }
     }
 
-    study.investigation.status = "inferred";
+    this.advancePhase(study.investigation, "inferred");
     return study;
   }
 
@@ -1235,8 +1274,8 @@ class TkEngine {
     if (!st.investigation) {
       st.investigation = {
         id: st.id || "TK-CUSTOM",
-        schema_version: 1,
-        ontology_version: "0.2.0",
+        schema_version: 2,
+        ontology_version: "0.2.1",
         title: st.title || st.name || "Investigação Customizada",
         status: "executed"
       };

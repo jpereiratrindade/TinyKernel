@@ -22,7 +22,7 @@ QString joined(const std::vector<std::string> &values) {
 }
 
 tinykernel::ontology::Identity make_id(std::string value) {
-  return tinykernel::ontology::Identity{std::move(value), 1, "0.2.0"};
+  return tinykernel::ontology::Identity{std::move(value), 2, "0.2.1"};
 }
 
 tinykernel::ontology::Study build_tk_sait_001() {
@@ -94,8 +94,7 @@ QVariantList GuiBridge::investigations() const {
     int empiricalCount = 0;
     int structuralCount = 0;
     for (const auto &e : s.evidence) {
-      if (e.evidence_type == tinykernel::ontology::EvidenceType::empirical_observation ||
-          e.evidence_type == tinykernel::ontology::EvidenceType::witness_adjudication) empiricalCount++;
+      if (e.evidence_type == tinykernel::ontology::EvidenceType::empirical_observation) empiricalCount++;
       else structuralCount++;
     }
     item["evidenceCount"] = static_cast<int>(s.evidence.size());
@@ -127,8 +126,7 @@ QVariantMap GuiBridge::globalStats() const {
   for (const auto &s : all_studies_) {
     totalEvidence += static_cast<int>(s.evidence.size());
     for (const auto &e : s.evidence) {
-      if (e.evidence_type == tinykernel::ontology::EvidenceType::empirical_observation ||
-          e.evidence_type == tinykernel::ontology::EvidenceType::witness_adjudication) totalEmpiricalEvidence++;
+      if (e.evidence_type == tinykernel::ontology::EvidenceType::empirical_observation) totalEmpiricalEvidence++;
       else totalStructuralEvidence++;
     }
     for (const auto &c : s.claims) {
@@ -466,7 +464,7 @@ void GuiBridge::injectObservation(const QString &realizationId, const QString &d
                                  tinykernel::ontology::EvidenceType::empirical_observation});
     }
 
-    study_.investigation.status = "observed";
+    tinykernel::ontology::advance_phase(study_.investigation, tinykernel::ontology::InvestigationPhase::observed);
     saveStudyToRepository(study_);
     emit dataChanged();
     setStatus(QString("Observação empírica para dimensão '%1' registrada com sucesso.").arg(QString::fromStdString(dim)));
@@ -508,9 +506,26 @@ void GuiBridge::adjudicateWitnesses() {
       } else {
         study_.adjudications.push_back({make_id(baseRunId + ":A"), baseRunId,
                                         tinykernel::ontology::Outcome::preserving, "PRESERVED",
-                                        "TK-O-0.2.0:all-constitutive-dimensions-v1",
+                                        "TK-O-0.2.1:all-constitutive-dimensions-v1",
                                         "Todos os witnesses constitutivos foram empiricamente satisfeitos.",
                                         satisfiedEvIds});
+      }
+      adjudicationsProduced++;
+    } else if (satisfiedCount > 0 || !satisfiedEvIds.empty()) {
+      const std::string baseRunId = studyId + ":RUN:BASELINE_EMPIRICAL";
+      auto adjIt = std::find_if(study_.adjudications.begin(), study_.adjudications.end(), [&](const auto &a) { return a.run_id == baseRunId; });
+      const std::string rationale = "Observação parcial da baseline (" + std::to_string(satisfiedCount) + "/" +
+          std::to_string(study_.witnesses.size()) + " witnesses observados); não é possível adjudicar PRESERVED.";
+      if (adjIt != study_.adjudications.end()) {
+        adjIt->outcome = tinykernel::ontology::Outcome::undetermined;
+        adjIt->classification = "PARTIALLY_OBSERVED";
+        adjIt->rationale = rationale;
+        adjIt->evidence_references = satisfiedEvIds;
+      } else {
+        study_.adjudications.push_back({make_id(baseRunId + ":A"), baseRunId,
+                                        tinykernel::ontology::Outcome::undetermined, "PARTIALLY_OBSERVED",
+                                        "TK-O-0.2.1:all-constitutive-dimensions-v1",
+                                        rationale, satisfiedEvIds});
       }
       adjudicationsProduced++;
     }
@@ -585,7 +600,7 @@ void GuiBridge::adjudicateWitnesses() {
           } else {
             study_.adjudications.push_back({make_id(actualRunId + ":A"), actualRunId,
                                             outcome, classification,
-                                            "TK-O-0.2.0:dimensional-adjudication-v1",
+                                            "TK-O-0.2.1:dimensional-adjudication-v1",
                                             rationale, itvEvIds});
           }
           adjudicationsProduced++;
@@ -593,7 +608,7 @@ void GuiBridge::adjudicateWitnesses() {
       }
     }
 
-    study_.investigation.status = "adjudicated";
+    tinykernel::ontology::advance_phase(study_.investigation, tinykernel::ontology::InvestigationPhase::adjudicated);
     saveStudyToRepository(study_);
     emit dataChanged();
     setStatus(QString("Adjudicação concluída: %1 adjudicações registradas. (Claims permanecem OPEN até INFER).").arg(adjudicationsProduced));
@@ -722,15 +737,38 @@ void GuiBridge::addIntervention(const QString &sourceId, const QString &kind,
                                tinykernel::evidence::sha256(structArtifact),
                                tinykernel::ontology::EvidenceType::structural_record});
 
-    if (study_.investigation.status == "formulated" || study_.investigation.status.empty()) {
-      study_.investigation.status = "materialized";
-    }
+    tinykernel::ontology::advance_phase(study_.investigation, tinykernel::ontology::InvestigationPhase::materialized);
 
     saveStudyToRepository(study_);
     emit dataChanged();
     setStatus(QString("Intervenção %1 materializada. Aguardando observações empíricas.").arg(QString::fromStdString(itvId)));
   } catch (const std::exception &error) {
     setStatus("Falha ao adicionar intervenção: " + QString::fromUtf8(error.what()));
+  }
+}
+
+void GuiBridge::deleteInvestigation(const QString &id) {
+  const std::string studyId = id.toStdString();
+  if (studyId == "TK-0000" || studyId == "TK-0001") {
+    setStatus("Investigações canônicas de referência são somente leitura e não podem ser excluídas.");
+    return;
+  }
+  const auto database = std::filesystem::path(workspace_.toStdString()) / "tinykernel.sqlite3";
+  if (!std::filesystem::exists(database)) {
+    setStatus("Repositório de dados não encontrado.");
+    return;
+  }
+  try {
+    tinykernel::persistence::Repository repository(database);
+    repository.initialize();
+    repository.delete_investigation(studyId);
+    refreshStudies();
+    if (active_id_ == studyId) {
+      loadStudy("TK-0001");
+    }
+    setStatus("Investigação " + id + " excluída com sucesso.");
+  } catch (const std::exception &error) {
+    setStatus("Falha ao excluir investigação: " + QString::fromUtf8(error.what()));
   }
 }
 

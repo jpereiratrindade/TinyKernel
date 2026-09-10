@@ -41,9 +41,20 @@ std::string to_string(const EvidenceType value) {
   switch (value) {
   case EvidenceType::structural_record: return "STRUCTURAL_RECORD";
   case EvidenceType::empirical_observation: return "EMPIRICAL_OBSERVATION";
-  case EvidenceType::witness_adjudication: return "WITNESS_ADJUDICATION";
+  case EvidenceType::unspecified: return "UNSPECIFIED";
   }
   throw std::logic_error("unknown evidence type");
+}
+
+std::string to_string(const InvestigationPhase value) {
+  switch (value) {
+  case InvestigationPhase::formulated: return "formulated";
+  case InvestigationPhase::materialized: return "materialized";
+  case InvestigationPhase::observed: return "observed";
+  case InvestigationPhase::adjudicated: return "adjudicated";
+  case InvestigationPhase::inferred: return "inferred";
+  }
+  throw std::logic_error("unknown investigation phase");
 }
 
 ClaimLevel claim_level_from_string(const std::string &value) {
@@ -70,8 +81,33 @@ Outcome outcome_from_string(const std::string &value) {
 EvidenceType evidence_type_from_string(const std::string &value) {
   if (value == "STRUCTURAL_RECORD") return EvidenceType::structural_record;
   if (value == "EMPIRICAL_OBSERVATION") return EvidenceType::empirical_observation;
-  if (value == "WITNESS_ADJUDICATION") return EvidenceType::witness_adjudication;
+  if (value == "UNSPECIFIED" || value.empty()) return EvidenceType::unspecified;
   throw std::invalid_argument("invalid evidence type: " + value);
+}
+
+InvestigationPhase investigation_phase_from_string(const std::string &value) {
+  if (value == "formulated" || value == "declared" || value == "preregistered") return InvestigationPhase::formulated;
+  if (value == "materialized") return InvestigationPhase::materialized;
+  if (value == "observed") return InvestigationPhase::observed;
+  if (value == "adjudicated") return InvestigationPhase::adjudicated;
+  if (value == "inferred" || value == "executed") return InvestigationPhase::inferred;
+  return InvestigationPhase::formulated;
+}
+
+InvestigationPhase advance_phase(const InvestigationPhase current, const InvestigationPhase candidate) {
+  return static_cast<InvestigationPhase>(std::max(static_cast<std::uint8_t>(current),
+                                                  static_cast<std::uint8_t>(candidate)));
+}
+
+void advance_phase(Investigation &inv, const InvestigationPhase candidate) {
+  const auto curr_phase = investigation_phase_from_string(inv.status);
+  inv.status = to_string(advance_phase(curr_phase, candidate));
+}
+
+std::string advance_phase_string(const std::string &current, const std::string &candidate) {
+  const auto curr_phase = investigation_phase_from_string(current);
+  const auto cand_phase = investigation_phase_from_string(candidate);
+  return to_string(advance_phase(curr_phase, cand_phase));
 }
 
 } // namespace tinykernel::ontology

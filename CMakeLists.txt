@@ -65,9 +65,17 @@ if(BUILD_TESTING)
       sait_benchmark epistemic_non_implication
       persistence_evidence_type_roundtrip export_evidence_type
       epistemic_phase_separation adjudication_provenance_run_id
-      l3_strict_causal_gate)
+      l3_strict_causal_gate schema_migration_v1_to_v2
+      monotonic_phase_machine partial_observation_inconclusive
+      delete_investigation_safe_lifecycle evidence_envelope_immutability)
     add_test(NAME "core.${case_name}" COMMAND tinykernel-tests "${case_name}")
   endforeach()
+
+  find_program(NODE_EXECUTABLE node)
+  if(NODE_EXECUTABLE)
+    add_test(NAME web.epistemic_engine
+      COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/web_engine_tests.js)
+  endif()
 
   add_test(NAME cli.commands
     COMMAND ${CMAKE_COMMAND}

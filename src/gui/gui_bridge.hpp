@@ -58,6 +58,7 @@ public:
                                     bool satisfied, const QString &trace);
   Q_INVOKABLE void adjudicateWitnesses();
   Q_INVOKABLE void inferClaims();
+  Q_INVOKABLE void deleteInvestigation(const QString &id);
 
 signals:
   void dataChanged();

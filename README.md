@@ -9,7 +9,7 @@ fenômenos, realizações e intervenções; executa investigações; registra ob
 evidências; limita claims à força da evidência; e mostra a fronteira experimental
 conhecida.
 
-A implementação atual materializa a ontologia operacional **TK-O v0.2.0**, os
+A implementação atual materializa a ontologia operacional **TK-O v0.2.1**, os
 experimentos de referência `TK-0000` (Sanity) e `TK-0001` (Persistência Adaptativa),
 e o benchmark territorial `TK-SAIT-001` (Resiliência de Sistema Agroalimentar Territorial)
 sem declarar uma ontologia final ou um Kernel universal.
@@ -29,14 +29,15 @@ realizações, intervenções, witnesses e revisões ontológicas continuam aber
 
 - `libtinykernel`: núcleo C++ independente da apresentação;
 - `tinykernel`: CLI para workspace, experimentos, claims, frontier e export;
-- `tinykernel-gui`: interface Qt Quick do mesmo núcleo;
-- `tinykernel-web`: interface web interativa no grafismo do ecossistema SisTer;
-- SQLite: memória experimental local, com evidence imutável e preservação rigorosa de `evidence_type`;
-- export JSON determinístico com discriminação canônica de tipos de evidência;
-- ontologia TK-O versionada com discriminação entre registros estruturais (`STRUCTURAL_RECORD`), evidências empíricas (`EMPIRICAL_OBSERVATION`) e evidências de adjudicação (`WITNESS_ADJUDICATION`);
-- ciclo ontológico estrito em 5 fases: $\text{DECLARED} \to \text{MATERIALIZED} \to \text{OBSERVED} \to \text{ADJUDICATED} \to \text{INFERRED}$;
-- escada de claims L0–L8 com gates estritos de suficiência (L2) e necessidade relativa (L3 restrito a `BROKEN_CAUSAL`);
-- CTest como autoridade única de testes (20 suites automatizadas cobrindo núcleo, persistência round-trip, proveniência de Run IDs, CLI e GUI).
+- `tinykernel-gui`: interface Qt Quick do mesmo núcleo com ciclo CRUD seguro;
+- `tinykernel-web`: interface web interativa no grafismo do ecossistema SisTer com ciclo CRUD seguro;
+- SQLite: memória experimental local (schema 2), com evidência imutável, migração transacional `1 -> 2` e verificação de integridade do envelope completo (`artifact`, `sha256`, `evidence_type`, `run_id`, `witness_id`, `observation_ids`);
+- export JSON determinístico com discriminação canônica de tipos de evidência e versão ontológica TK-O v0.2.1;
+- ontologia TK-O v0.2.1 versionada com isolamento estrito entre registros estruturais (`STRUCTURAL_RECORD`) e evidências empíricas (`EMPIRICAL_OBSERVATION`);
+- máquina de estados de fases monotônica: $\text{FORMULATED} \to \text{MATERIALIZED} \to \text{OBSERVED} \to \text{ADJUDICATED} \to \text{INFERRED}$;
+- escada de claims L0–L8 com gates estritos de suficiência (L2) e necessidade relativa (L3 restrito à cadeia $\text{claim.intervention\_scope} \to \text{Run} \to \text{Adjudication(BROKEN\_CAUSAL)} \to \text{Evidence}$);
+- adjudicação de observações parciais classificada explicitamente como `PARTIALLY_OBSERVED` / `undetermined` (nunca `PRESERVED`);
+- CTest como autoridade única de testes (26 suites automatizadas cobrindo núcleo, motor web via Node.js, migração SQLite, imutabilidade, CLI e GUI).
 
 A cadeia ponta a ponta é:
 

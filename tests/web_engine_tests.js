@@ -105,9 +105,41 @@ async function runTests() {
   flawedStudy = await engine.inferClaims(flawedStudy);
   const soloNecClaim = flawedStudy.claims.find(c => c.id.includes('SOLO_VIVO_NECESSITY'));
   assert(!soloNecClaim || soloNecClaim.status === 'open', 'WITNESS_COMPROMISED did not support L3 claim');
-  console.log('PASS: l3_strict_causal_gate_web');
+  // Test 4: Partial Observations produce PARTIALLY_OBSERVED and cannot support L2/L3
+  let partialStudy = JSON.parse(JSON.stringify(sait));
+  // Observe only 2 of 5 witnesses on baseline
+  await engine.injectEmpiricalObservation(partialStudy, partialStudy.realizations[0].id, 'operational', true);
+  await engine.injectEmpiricalObservation(partialStudy, partialStudy.realizations[0].id, 'causal', true);
+  await engine.adjudicateWitnesses(partialStudy);
+  assert(partialStudy.adjudications.length === 1, '1 baseline adjudication produced');
+  assert(partialStudy.adjudications[0].classification === 'PARTIALLY_OBSERVED', 'classified as PARTIALLY_OBSERVED');
+  assert(partialStudy.adjudications[0].outcome === 'undetermined', 'outcome is undetermined');
+  await engine.inferClaims(partialStudy);
+  const partialSuff = partialStudy.claims.find(c => c.id.includes(':Q:SUFFICIENCY'));
+  assert(partialSuff.status === 'open', 'L2 remains open under partial observations');
+  console.log('PASS: partial_observations_inconclusive');
 
-  console.log('\nALL 6 WEB ENGINE EPISTEMIC TESTS PASSED!');
+  // Test 5: Monotonic Phase Progression Machine
+  let phaseStudy = JSON.parse(JSON.stringify(sait));
+  assert(phaseStudy.investigation.status === 'formulated', 'starts formulated');
+  engine.advancePhase(phaseStudy.investigation, 'materialized');
+  assert(phaseStudy.investigation.status === 'materialized', 'advanced to materialized');
+  engine.advancePhase(phaseStudy.investigation, 'observed');
+  assert(phaseStudy.investigation.status === 'observed', 'advanced to observed');
+  // Attempt to regress back to formulated
+  engine.advancePhase(phaseStudy.investigation, 'formulated');
+  assert(phaseStudy.investigation.status === 'observed', 'cannot regress phase backwards');
+  console.log('PASS: monotonic_phase_progression');
+
+  // Test 6: TK-O v0.2.1 Schema Version 2 Compliance
+  assert(sait.investigation.schema_version === 2, 'schema version is 2');
+  assert(sait.investigation.ontology_version === '0.2.1', 'ontology version is 0.2.1');
+  const tk0001 = await engine.buildTk0001();
+  assert(tk0001.investigation.schema_version === 2, 'TK-0001 schema version is 2');
+  assert(tk0001.investigation.ontology_version === '0.2.1', 'TK-0001 ontology version is 0.2.1');
+  console.log('PASS: tko_021_schema_version_2');
+
+  console.log('\nALL 9 WEB ENGINE EPISTEMIC TESTS PASSED!');
 }
 
 runTests().catch(err => {
