@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TinyKernel — Causal Space & Epistemic Frontier (SisTer Ecosystem)</title>
+  <meta name="description" content="Laboratório experimental de estruturas causais minimais — Interface Web no grafismo do ecossistema SisTer.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2338bdf8'/><circle cx='50' cy='50' r='20' fill='%230f172a'/></svg>">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Header (SisTer Style) -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-logo-group">
+          <div class="brand-title">TinyKernel</div>
+          <span class="sister-tag">TK-O v0.2.0</span>
+        </div>
+        <div class="brand-subtitle">
+          <span>Laboratório Experimental de Estruturas Causais Minimais</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Experiment Selector -->
+        <div class="selector-pill">
+          <label for="exp-selector">Experimento:</label>
+          <select id="exp-selector">
+            <option value="TK-0001" selected>TK-0001 (Persistência Adaptativa)</option>
+            <option value="TK-0000">TK-0000 (Sanity Aparato)</option>
+          </select>
+        </div>
+
+        <!-- Action Buttons -->
+        <button class="btn btn-primary" id="btn-run-investigation">
+          <span>▶</span> Executar Investigação
+        </button>
+        <button class="btn" id="btn-export-json">
+          <span>↓</span> Exportar JSON
+        </button>
+        <button class="btn" id="btn-import-json">
+          <span>↑</span> Importar Workspace
+        </button>
+        <input type="file" id="file-import-input" accept=".json" style="display: none;">
+
+        <!-- Status Badge -->
+        <div class="sync-badge">
+          <span class="sync-dot"></span>
+          <span>READY ≠ COMPLETE</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Container -->
+    <main class="main-dashboard">
+      <!-- Top KPI Stats Banner -->
+      <section class="stats-banner" aria-label="Estatísticas do Espaço Causal">
+        <div class="stat-card stat-card--emphasis">
+          <div class="stat-label">
+            <span>Realizações |R|</span>
+            <span style="color: var(--accent);">Gₚ</span>
+          </div>
+          <div class="stat-value" id="stat-realizations">3</div>
+          <div class="stat-caption">Espaço de materializações sob &Gamma;</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Intervenções |I|</span>
+            <span style="color: var(--teal-tko);">TKO</span>
+          </div>
+          <div class="stat-value" id="stat-interventions">5</div>
+          <div class="stat-caption">2 executadas • 3 planejadas (abertas)</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Witnesses Preregistrados</span>
+            <span style="color: var(--status-ready);">W</span>
+          </div>
+          <div class="stat-value" id="stat-witnesses">5</div>
+          <div class="stat-caption">Dimensões constitutivas do perfil &Phi;</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Evidências Imutáveis</span>
+            <span style="color: var(--status-preserved);">SHA-256</span>
+          </div>
+          <div class="stat-value" id="stat-evidence">15</div>
+          <div class="stat-caption">Digests criptográficos auditáveis</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">
+            <span>Claims Sustentados</span>
+            <span style="color: var(--status-ready);">L0–L8</span>
+          </div>
+          <div class="stat-value" id="stat-claims">2/3</div>
+          <div class="stat-caption">L2 (Suficiência) • L3 (Necessidade)</div>
+        </div>
+      </section>
+
+      <!-- Main Analytical 3-Column Grid -->
+      <div class="dashboard-grid">
+        <!-- Left: Phenomenon, Context & Constitutive Profile -->
+        <aside class="glass-panel" aria-label="Definição Ontológica">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span>◈</span> Fenômeno & Perfil
+            </span>
+            <span class="panel-badge">TK-O</span>
+          </div>
+          <div class="panel-body">
+            <div class="info-section">
+              <span class="info-title">Fenômeno Investigado</span>
+              <div class="info-box">
+                <strong id="phenom-title">persistência adaptativa</strong>
+                <p id="phenom-desc" style="margin-top: 0.35rem;">Uma experiência altera estado persistido e comportamento posterior sem reapresentação.</p>
+              </div>
+            </div>
+
+            <div class="info-section">
+              <span class="info-title">Contexto Operacional (&Gamma;)</span>
+              <div class="info-box" id="context-desc">
+                Execução local determinística, processo único, inteiros binários.
+              </div>
+            </div>
+
+            <div class="info-section">
+              <span class="info-title">Perfil Constitutivo (&Phi;)</span>
+              <div class="info-box" style="padding: 0.5rem 0.6rem;">
+                <table class="profile-table">
+                  <thead>
+                    <tr>
+                      <th>Dimensão</th>
+                      <th>Relação Essencial</th>
+                      <th>Restrição Temporal</th>
+                    </tr>
+                  </thead>
+                  <tbody id="profile-dimensions-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center: Interactive Causal Space Graph -->
+        <section class="glass-panel causal-space-panel" aria-label="Espaço Causal">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span>☍</span> Espaço Causal Gₚ = (R, I)
+            </span>
+            <span class="panel-badge">Arraste nós • Clique para inspecionar</span>
+          </div>
+          
+          <div class="graph-canvas-container" id="graph-container">
+            <!-- SVG rendered dynamically by graph.js -->
+          </div>
+
+          <!-- Bottom Frontier Dock -->
+          <div class="frontier-dock">
+            <div class="frontier-dock-header">
+              <span class="frontier-dock-title">Fronteira de Intervenções (Executadas e Planejadas)</span>
+              <span class="panel-badge">Clique para ver predição</span>
+            </div>
+            <div class="frontier-chips" id="frontier-chips-container">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </section>
+
+        <!-- Right: Runs, Witness Evaluation & Evidence Verification -->
+        <aside class="glass-panel" aria-label="Runs e Evidências">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span>⌬</span> Runs & Evidência
+            </span>
+            <span class="panel-badge">Imutável</span>
+          </div>
+          <div class="panel-body">
+            <div class="run-list" id="runs-list-container">
+              <!-- Populated dynamically -->
+            </div>
+
+            <div class="info-section" style="margin-top: 0.5rem;">
+              <span class="info-title">Inspeção & Proveniência</span>
+              <div id="inspector-details-container">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Bottom 2-Column Grid: Claims Ladder & Frontier Analysis -->
+      <div class="bottom-grid">
+        <!-- Claims Ladder (L0 to L8) -->
+        <section class="glass-panel" aria-label="Escada Epistêmica de Claims">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span>⚖</span> Escada Epistêmica de Claims (L0–L8)
+            </span>
+            <span class="panel-badge">Força & Escopo</span>
+          </div>
+          <div class="panel-body claims-table-container">
+            <table class="claims-table">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">Nível</th>
+                  <th style="width: 140px;">Sujeito</th>
+                  <th>Afirmação Teórica</th>
+                  <th style="width: 140px;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="claims-table-body">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Frontier Analysis & Incompleteness Rationale -->
+        <section class="glass-panel" aria-label="Análise de Fronteira">
+          <div class="panel-header">
+            <span class="panel-title">
+              <span>⚑</span> Fronteira Experimental & Incompletude
+            </span>
+            <span class="panel-badge">Minimalidade Relativa</span>
+          </div>
+          <div class="panel-body frontier-analysis" id="frontier-analysis-container">
+            <!-- Populated dynamically -->
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Modal for JSON Export / Evidence Details -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>◈</span>
+            <span id="modal-title">Exportação Determinística</span>
+          </div>
+          <button class="modal-close" id="btn-modal-close">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-content">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/engine.js"></script>
+  <script src="js/graph.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

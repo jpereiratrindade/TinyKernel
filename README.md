@@ -29,6 +29,7 @@ realizações, intervenções, witnesses e revisões ontológicas continuam aber
 - `libtinykernel`: núcleo C++ independente da apresentação;
 - `tinykernel`: CLI para workspace, experimentos, claims, frontier e export;
 - `tinykernel-gui`: interface Qt Quick do mesmo núcleo;
+- `tinykernel-web`: interface web interativa no grafismo do ecossistema SisTer;
 - SQLite: memória experimental local, com evidence imutável;
 - export JSON determinístico;
 - ontologia TK-O versionada e escada de claims L0–L8;
@@ -186,6 +187,24 @@ evidências associadas.
 
 QML contém somente apresentação. Classificação causal, adjudicação, claims e frontier
 são produzidos pelas APIs C++ compartilhadas com a CLI.
+
+## Interface Web (SisTer)
+
+Para utilizar a interface web com o grafismo e padrão visual do ecossistema **SisTer** (`sisterlocal`, `Sister-Studio`):
+
+```bash
+./bin/tinykernel-web
+# ou para abrir automaticamente no navegador:
+./bin/tinykernel-web --open
+```
+
+Recursos da Interface Web:
+- Visual baseado em *dark obsidian/slate glassmorphism* e paleta de acentos do SisTer;
+- Dashboard analítico com KPIs e contadores de evidência;
+- Grafo Causal $G_P = (R, I)$ vetorial interativo com nós arrastáveis e curvas direcionadas;
+- Inspeção dinâmica de runs, witnesses e hashes SHA-256 de evidências imutáveis;
+- Escada epistêmica de claims (L0 a L8) e análise de fronteira/incompletude;
+- Importação e exportação de workspaces JSON determinísticos.
 
 ## Arquitetura e fundamento
 
