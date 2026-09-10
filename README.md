@@ -164,29 +164,19 @@ tinykernel gui [workspace]
 
 `--json` está disponível nas consultas analíticas. O export é sempre JSON canônico.
 
-## GUI
+## GUI (Desktop Qt Quick)
 
-Após executar TK-0001, abra a representação gráfica:
+Abra a interface gráfica desktop do laboratório:
 
 ```bash
 ./bin/tinykernel gui ./workspace
 ```
 
-A tela mostra:
+A interface desktop incorpora a mesma arquitetura em 3 níveis:
 
-- fenômeno, contexto e perfil constitutivo;
-- causal space interativo;
-- runs e evidências;
-- claims e níveis;
-- frontier e limites;
-- proveniência da realização ou intervenção selecionada.
-
-Também é possível executar TK-0001 e salvar o export JSON diretamente pela barra de
-ações. Runs e claims são selecionáveis e exibem adjudicação, limites e digests das
-evidências associadas.
-
-QML contém somente apresentação. Classificação causal, adjudicação, claims e frontier
-são produzidos pelas APIs C++ compartilhadas com a CLI.
+1. **Home do Laboratório**: Catálogo de investigações disponíveis no workspace (`TK-0000`, `TK-0001` e investigações do usuário), estatísticas consolidadas e métricas de evidência SHA-256;
+2. **Wizard de Formulação**: Assistente para criar novas investigações genéricas sem necessidade de programar código C++;
+3. **Workbench Analítico**: Espaço Causal $G_P = (R, I)$ interativo com nós arrastáveis, pílulas de intervenção, adição dinâmica de novas intervenções sob demanda, runs com evidências imutáveis e escada de claims (L0–L8).
 
 ## Interface Web (SisTer)
 

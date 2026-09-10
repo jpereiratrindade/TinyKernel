@@ -5,9 +5,15 @@
 #include <QObject>
 #include <QString>
 #include <QVariantList>
+#include <QVariantMap>
 
 class GuiBridge final : public QObject {
   Q_OBJECT
+  Q_PROPERTY(QString currentView READ currentView NOTIFY currentViewChanged)
+  Q_PROPERTY(QString activeInvestigationId READ activeInvestigationId NOTIFY activeInvestigationIdChanged)
+  Q_PROPERTY(QVariantList investigations READ investigations NOTIFY investigationsChanged)
+  Q_PROPERTY(QVariantMap globalStats READ globalStats NOTIFY globalStatsChanged)
+
   Q_PROPERTY(QString phenomenon READ phenomenon NOTIFY dataChanged)
   Q_PROPERTY(QString context READ context NOTIFY dataChanged)
   Q_PROPERTY(QString profile READ profile NOTIFY dataChanged)
@@ -21,6 +27,12 @@ class GuiBridge final : public QObject {
 
 public:
   explicit GuiBridge(const QString &workspace, QObject *parent = nullptr);
+
+  QString currentView() const;
+  QString activeInvestigationId() const;
+  QVariantList investigations() const;
+  QVariantMap globalStats() const;
+
   QString phenomenon() const;
   QString context() const;
   QString profile() const;
@@ -31,19 +43,38 @@ public:
   QString frontier() const;
   QString statusMessage() const;
   QString selectedDetails() const;
+
+  Q_INVOKABLE void openInvestigation(const QString &id);
+  Q_INVOKABLE void backToHome();
+  Q_INVOKABLE void openWizard();
   Q_INVOKABLE void selectEntity(const QString &id);
   Q_INVOKABLE void runInvestigation();
   Q_INVOKABLE void exportInvestigation();
+  Q_INVOKABLE void exportCurrent();
+  Q_INVOKABLE void createInvestigation(const QVariantMap &config);
+  Q_INVOKABLE void addIntervention(const QString &sourceId, const QString &kind,
+                                  const QString &targetComponent, const QString &replacementComponent);
 
 signals:
   void dataChanged();
+  void currentViewChanged();
+  void activeInvestigationIdChanged();
+  void investigationsChanged();
+  void globalStatsChanged();
   void selectedDetailsChanged();
   void statusMessageChanged();
 
 private:
   void setStatus(QString message);
-  tinykernel::ontology::Study study_;
+  void refreshStudies();
+  void loadStudy(const std::string &id);
+  void saveStudyToRepository(const tinykernel::ontology::Study &study);
+
   QString workspace_;
+  QString current_view_{"home"}; // "home" | "wizard" | "workbench"
+  std::string active_id_{"TK-0001"};
+  tinykernel::ontology::Study study_;
+  std::vector<tinykernel::ontology::Study> all_studies_;
   QString status_message_;
   QString selected_details_;
 };
