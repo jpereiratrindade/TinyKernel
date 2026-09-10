@@ -1,0 +1,1414 @@
+% =============================================================================
+% TinyKernel — Documento Fundador
+% =============================================================================
+% document_id: TK-FND-00
+% title: TinyKernel — Fundamentos para uma Ciência Experimental da Minimalidade Causal
+% subtitle: Do “menor conjunto de componentes” ao “menor circuito causal que preserva um fenômeno”
+% version: 0.1.0
+% status: BASE FUNDADORA / PRÉ-IMPLEMENTAÇÃO / FALSIFICÁVEL
+% project: TinyKernel
+% family: TinyLogic
+% author: José Pedro Trindade
+% date: 2026-09-09
+% language: pt-BR
+% source_primary: diálogo de pesquisa “Recuperar essência do Kernel”, 2026-09-09
+% source_lineage: Sister-Kernel; TinyLogicLM; TinyLogicVision
+% epistemic_scope: hipóteses, definições operacionais candidatas e programa experimental
+% evidence_status: nenhuma hipótese deste documento deve ser tratada como resultado experimental
+% implementation_authority: NONE
+% sister_kernel_authority: NONE
+% motto: Sempre pronto. Sempre incompleto.
+% =============================================================================
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{geometry}
+\geometry{top=22mm,bottom=24mm,left=24mm,right=24mm}
+
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,longtable,tabularx,array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,shapes.geometric}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+
+% -----------------------------------------------------------------------------
+% Palette
+% -----------------------------------------------------------------------------
+\definecolor{TKInk}{HTML}{16202A}
+\definecolor{TKBlue}{HTML}{2457A6}
+\definecolor{TKTeal}{HTML}{157A7A}
+\definecolor{TKGold}{HTML}{B27A14}
+\definecolor{TKRed}{HTML}{A8423C}
+\definecolor{TKGreen}{HTML}{3C7A57}
+\definecolor{TKGray}{HTML}{F2F4F6}
+\definecolor{TKMidGray}{HTML}{66727E}
+\definecolor{TKDark}{HTML}{20262D}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=TKBlue,
+  urlcolor=TKTeal,
+  citecolor=TKBlue,
+  pdftitle={TinyKernel — Fundamentos para uma Ciência Experimental da Minimalidade Causal},
+  pdfauthor={José Pedro Trindade},
+  pdfsubject={Documento fundador do laboratório TinyKernel},
+  pdfkeywords={TinyKernel, minimalidade causal, kernel, causalidade, redução experimental, witness, ablação, TinyLogic}
+}
+
+% -----------------------------------------------------------------------------
+% Metadata commands
+% -----------------------------------------------------------------------------
+\newcommand{\TKProject}{TinyKernel}
+\newcommand{\TKDocID}{TK-FND-00}
+\newcommand{\TKVersion}{0.1.0}
+\newcommand{\TKDate}{09 de setembro de 2026}
+\newcommand{\TKStatus}{BASE FUNDADORA / PRÉ-IMPLEMENTAÇÃO}
+\newcommand{\TKMotto}{Sempre pronto. Sempre incompleto.}
+
+% -----------------------------------------------------------------------------
+% Layout
+% -----------------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small\sffamily\TKProject}
+\rhead{\small\sffamily\TKDocID\ — v\TKVersion}
+\cfoot{\small\sffamily\thepage}
+
+\titleformat{\section}
+  {\Large\bfseries\sffamily\color{TKInk}}
+  {\thesection}{0.75em}{}
+\titleformat{\subsection}
+  {\large\bfseries\sffamily\color{TKInk}}
+  {\thesubsection}{0.75em}{}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\sffamily\color{TKInk}}
+  {\thesubsubsection}{0.75em}{}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.65em}
+\setlist[itemize]{topsep=0.35em,itemsep=0.25em}
+\setlist[enumerate]{topsep=0.35em,itemsep=0.25em}
+
+% -----------------------------------------------------------------------------
+% Boxes
+% -----------------------------------------------------------------------------
+\newtcolorbox{thesisbox}[1][]{
+  enhanced,
+  breakable,
+  colback=TKBlue!5,
+  colframe=TKBlue!70,
+  boxrule=0.7pt,
+  arc=2mm,
+  left=3mm,right=3mm,top=2.5mm,bottom=2.5mm,
+  title=#1,
+  fonttitle=\bfseries\sffamily
+}
+
+\newtcolorbox{warningbox}[1][]{
+  enhanced,
+  breakable,
+  colback=TKGold!7,
+  colframe=TKGold!70,
+  boxrule=0.7pt,
+  arc=2mm,
+  left=3mm,right=3mm,top=2.5mm,bottom=2.5mm,
+  title=#1,
+  fonttitle=\bfseries\sffamily
+}
+
+\newtcolorbox{falsifybox}[1][]{
+  enhanced,
+  breakable,
+  colback=TKRed!5,
+  colframe=TKRed!70,
+  boxrule=0.7pt,
+  arc=2mm,
+  left=3mm,right=3mm,top=2.5mm,bottom=2.5mm,
+  title=#1,
+  fonttitle=\bfseries\sffamily
+}
+
+\newtcolorbox{markerbox}[1][]{
+  enhanced,
+  breakable,
+  colback=TKGray,
+  colframe=TKMidGray!65,
+  boxrule=0.6pt,
+  arc=1.5mm,
+  left=3mm,right=3mm,top=2mm,bottom=2mm,
+  title=#1,
+  fonttitle=\bfseries\sffamily
+}
+
+% -----------------------------------------------------------------------------
+% Listings
+% -----------------------------------------------------------------------------
+\lstdefinestyle{tk}{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{TKGray},
+  frame=single,
+  rulecolor=\color{TKMidGray!40},
+  framerule=0.4pt,
+  xleftmargin=0.5em,
+  framexleftmargin=0.5em,
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible
+}
+\lstset{style=tk}
+
+% =============================================================================
+\begin{document}
+
+% =============================================================================
+% Title page
+% =============================================================================
+\begin{titlepage}
+\pagecolor{TKDark}
+\color{white}
+
+\vspace*{1.5cm}
+
+{\sffamily\small
+\textbf{\TKProject}\par
+Família experimental TinyLogic\par}
+
+\vspace{2.0cm}
+
+{\sffamily\bfseries\fontsize{28}{33}\selectfont
+Fundamentos para uma Ciência Experimental da Minimalidade Causal\par}
+
+\vspace{0.6cm}
+
+{\sffamily\fontsize{14}{19}\selectfont\color{white!78}
+Do “menor conjunto de componentes” ao “menor circuito causal que preserva um fenômeno”\par}
+
+\vspace{1.2cm}
+
+\begin{tcolorbox}[
+  enhanced,
+  colback=white!6,
+  colframe=white!35,
+  boxrule=0.6pt,
+  arc=2mm,
+  left=4mm,right=4mm,top=3mm,bottom=3mm
+]
+\color{white}
+\textbf{Proposição de partida.}
+Encontrar um Kernel não consiste em escolher antecipadamente seus componentes,
+mas em remover abstrações até que uma remoção adicional destrua causalidade,
+significado ou capacidade.
+\end{tcolorbox}
+
+\vfill
+
+{\sffamily
+\begin{tabular}{@{}ll@{}}
+Documento & \TKDocID \\
+Versão & \TKVersion \\
+Status & \TKStatus \\
+Autor & José Pedro Trindade \\
+Data & \TKDate \\
+\end{tabular}
+}
+
+\vspace{1.1cm}
+
+{\sffamily\bfseries\color{white!92}\TKMotto\par}
+
+\end{titlepage}
+\nopagecolor
+\color{TKInk}
+
+% =============================================================================
+\section*{Metadados e autoridade do documento}
+\addcontentsline{toc}{section}{Metadados e autoridade do documento}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}p{4.1cm}X}
+\toprule
+Projeto & TinyKernel \\
+Documento & TK-FND-00 \\
+Versão & 0.1.0 \\
+Estado & Base fundadora, pré-implementação, deliberadamente falsificável \\
+Fonte primária & Diálogo de pesquisa “Recuperar essência do Kernel”, consolidado em 09/09/2026 \\
+Linhagem conceitual & Sister-Kernel; TinyLogicLM; TinyLogicVision \\
+Objeto candidato & Minimalidade causal \\
+Objeto que \emph{não} deve ser presumido & “Kernel” como entidade pronta, universal ou previamente definida \\
+Autoridade de implementação & Nenhuma. Este documento não autoriza código nem experimento por si só \\
+Autoridade sobre Sister-Kernel & Nenhuma. Resultados de TinyKernel só podem ser transferidos posteriormente mediante evidência e decisão própria \\
+Status epistemológico & Hipóteses, definições operacionais candidatas, distinções e programa experimental; não contém resultados experimentais de TinyKernel \\
+Princípio operacional & \textbf{READY $\neq$ COMPLETE} \\
+\bottomrule
+\end{tabularx}
+
+\begin{warningbox}[Leitura obrigatória]
+Este texto não deve ser usado como especificação de uma arquitetura que precisa ser
+confirmada. Sua função é construir um aparato suficientemente pequeno para que as
+próprias proposições aqui registradas possam falhar.
+
+Se o laboratório apenas reencontrar a teoria que o criou, ele terá produzido
+circularidade, não descoberta.
+\end{warningbox}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{Natureza deste documento}
+
+Este é o registro fundador do \TKProject, um laboratório experimental proposto a
+partir de uma convergência entre três trajetórias:
+
+\begin{enumerate}
+  \item a busca do Sister-Kernel por um conjunto mínimo de primitivas, invariantes e
+  mecanismos capazes de preservar identidade e evolução;
+  \item a materialização, em TinyLogicLM, de uma cadeia inteira de aprendizado em
+  escala humana;
+  \item a extensão, em TinyLogicVision, da pergunta sobre aprendizado para a relação
+  entre mundo observado, suporte, representação, inferência, decisão e proveniência.
+\end{enumerate}
+
+A hipótese que nasce dessa convergência não é simplesmente que sistemas complexos
+possuem um ``núcleo''. A hipótese mais forte é que talvez possamos investigar
+experimentalmente \emph{o que precisa permanecer causalmente verdadeiro para que um
+fenômeno continue sendo reconhecível como ele mesmo}.
+
+O laboratório existe para testar essa hipótese.
+
+\begin{thesisbox}[Tese de abertura]
+\textbf{Kernel não será tratado inicialmente como objeto dado.}
+O objeto científico do laboratório será a \textbf{minimalidade causal}. Um Kernel,
+se essa categoria sobreviver à investigação, será um resultado candidato obtido sob
+um fenômeno, contexto, família de intervenções e conjunto de testemunhos explicitados.
+\end{thesisbox}
+
+% =============================================================================
+\section{A mudança de pergunta}
+
+A formulação inicial de Kernel tendia naturalmente a perguntas do tipo:
+
+\begin{center}
+\emph{Quais são as entidades mínimas?}\\
+\emph{Quais são as relações mínimas?}\\
+\emph{Quais são os invariantes mínimos?}
+\end{center}
+
+Essas perguntas continuam úteis, mas carregam uma premissa oculta: a de que o Kernel
+é uma coleção de coisas.
+
+TinyLogicLM sugere uma pergunta mais fundamental:
+
+\begin{thesisbox}[Mudança central]
+Não perguntar primeiro \textbf{“qual é o menor conjunto de componentes?”}, mas:
+
+\begin{center}
+\Large\bfseries
+“qual é o menor circuito causal que ainda produz o fenômeno?”
+\end{center}
+\end{thesisbox}
+
+Essa mudança desloca o foco de substantivos para relações e transformações.
+
+Um Kernel pode conter componentes, mas sua identidade pode residir menos nos
+componentes isolados do que no fechamento causal entre eles.
+
+% =============================================================================
+\section{Linhagem: o que TinyLogic tornou visível}
+
+\subsection{TinyLogicLM: capacidade como fechamento causal}
+
+TinyLogicLM tornou observável, em uma escala em que cada etapa ainda podia ser
+inspecionada, uma cadeia do tipo:
+
+\begin{lstlisting}
+simbolo
+-> token
+-> representacao numerica
+-> transformacao
+-> resultado
+-> erro
+-> atribuicao do erro
+-> atualizacao
+-> comportamento posterior
+\end{lstlisting}
+
+O avanço conceitual relevante para TinyKernel não é a presença de Transformer,
+atenção, embedding, softmax ou SGD. Todos esses elementos podem ser realizações
+contingentes.
+
+A questão mais profunda é:
+
+\begin{center}
+\textbf{qual é o fechamento causal mínimo capaz de converter experiência em mudança
+persistente de comportamento?}
+\end{center}
+
+Uma abstração candidata é:
+
+\[
+\text{estado}_t
+\rightarrow
+\text{ação}
+\rightarrow
+\text{consequência observável}
+\rightarrow
+\text{diferença}
+\rightarrow
+\text{atualização}
+\rightarrow
+\text{estado}_{t+1}.
+\]
+
+Isso não define aprendizado. Define apenas uma estrutura candidata a ser testada.
+
+\subsection{TinyLogicVision: o mundo entra no circuito}
+
+TinyLogicVision introduziu uma dificuldade adicional: antes de perguntar o que o
+modelo aprendeu, tornou-se necessário perguntar \emph{o que exatamente foi
+observado e representado}.
+
+A cadeia passou a admitir algo como:
+
+\begin{lstlisting}
+fenomeno
+-> observacao
+-> amostragem
+-> suporte
+-> representacao
+-> entrada
+-> transformacao
+-> decisao
+-> projecao
+\end{lstlisting}
+
+Dessa prática emergiram distinções importantes:
+
+\begin{lstlisting}
+SUPPORT != DECISION POINT
+DECISION POINT != DISPLAY CELL
+DISPLAY CELL != H3 CELL
+RGB PREVIEW != MULTISPECTRAL TENSOR
+H3 != RASTER
+\end{lstlisting}
+
+Essas desigualdades sugerem um princípio central para TinyKernel:
+
+\begin{thesisbox}[Princípio de não-colapso]
+Duas coisas computacionalmente intercambiáveis em uma implementação não são
+necessariamente semanticamente equivalentes no fenômeno investigado.
+
+Um sistema pode continuar executando e, ainda assim, ter perdido a causalidade ou o
+significado que legitimava sua saída.
+\end{thesisbox}
+
+% =============================================================================
+\section{Hipótese central: minimalidade causal}
+
+Considere:
+
+\begin{itemize}
+  \item \(P\): um fenômeno explicitamente definido;
+  \item \(C\): o contexto no qual o fenômeno é observado;
+  \item \(R\): uma realização candidata;
+  \item \(W\): um conjunto de testemunhos (\emph{witnesses});
+  \item \(\mathcal{I}\): uma família de intervenções permitidas.
+\end{itemize}
+
+A notação inicial \(K(P,C,W)\) é útil como intuição, mas deve ser refinada:
+o que observamos diretamente não é o fenômeno em si; observamos respostas dos
+testemunhos sobre uma realização submetida a um contexto e a intervenções.
+
+Definimos provisoriamente:
+
+\[
+W(R,C) = \text{evidência produzida pelos testemunhos sobre }R\text{ em }C.
+\]
+
+Uma realização \(R\) é \textbf{suficiente sob o protocolo} quando os testemunhos
+previamente definidos continuam sustentando a presença de \(P\) no contexto \(C\).
+
+\[
+\operatorname{Suf}(R;P,C,W) = 1.
+\]
+
+Para um elemento \(e\) removível de \(R\), definimos uma intervenção subtrativa:
+
+\[
+\Delta^{-}_{e}(R) = R \setminus e.
+\]
+
+Uma primeira noção de necessidade observada seria:
+
+\[
+\operatorname{Nec}(e \mid R;P,C,W)
+=
+1
+\quad\text{se}\quad
+\operatorname{Suf}(R)=1
+\;\land\;
+\operatorname{Suf}(\Delta^{-}_{e}(R))=0.
+\]
+
+\subsection{Uma correção importante: irredutível não é necessariamente mínimo}
+
+A expressão
+
+\[
+\forall e\in R,\qquad
+\operatorname{Suf}(R\setminus e)=0
+\]
+
+mostra que \(R\) é \textbf{1-irredutível}: nenhuma remoção unitária preserva o
+fenômeno sob o protocolo.
+
+Ela \textbf{não prova} que \(R\) seja a menor realização possível.
+
+Pode existir outra realização \(R'\) com menos elementos, ou uma realização com
+elementos diferentes, que preserve o mesmo fenômeno.
+
+Portanto TinyKernel deve distinguir pelo menos:
+
+\begin{description}
+  \item[Irredutibilidade local:] nenhuma intervenção elementar autorizada preserva o
+  fenômeno.
+  \item[Minimalidade relativa:] não encontramos realização menor dentro do espaço de
+  busca examinado.
+  \item[Minimalidade global:] nenhuma realização possível é menor.
+\end{description}
+
+A terceira é, em geral, uma alegação muito mais forte e talvez inalcançável.
+
+\begin{falsifybox}[Regra epistemológica]
+TinyKernel não deve chamar uma realização de ``Kernel mínimo'' quando a evidência
+apenas demonstra irredutibilidade local.
+\end{falsifybox}
+
+% =============================================================================
+\section{O problema do witness: não observar não significa que deixou de existir}
+
+Esta é uma das armadilhas mais importantes do programa.
+
+Se uma intervenção faz o witness deixar de detectar o fenômeno, existem pelo menos
+duas interpretações:
+
+\begin{enumerate}
+  \item o fenômeno realmente foi destruído;
+  \item a intervenção destruiu a capacidade do witness de observá-lo.
+\end{enumerate}
+
+Logo:
+
+\[
+W(P)=0 \;\not\Rightarrow\; P=0.
+\]
+
+Da mesma forma:
+
+\[
+W(P)=1 \;\not\Rightarrow\; P=1
+\]
+
+sem que tenhamos alguma confiança na validade do witness.
+
+Isso significa que o witness não é um acessório do experimento. Ele é parte do
+aparato epistemológico e também deve estar sujeito a teste.
+
+\subsection{Triangulação mínima}
+
+Quando possível, o laboratório deverá empregar testemunhos de naturezas distintas:
+
+\begin{itemize}
+  \item \textbf{witness operacional}: o sistema produz ou não uma saída?
+  \item \textbf{witness causal}: a saída ainda depende da cadeia causal declarada?
+  \item \textbf{witness semântico}: a saída ainda significa aquilo que o experimento
+  afirma que significa?
+  \item \textbf{witness temporal}: a propriedade sobrevive a uma transição de estado
+  ou a uma interação posterior?
+\end{itemize}
+
+A existência de vários witnesses não produz verdade automática. Ela reduz a chance
+de confundir uma falha de observação com uma falha do fenômeno.
+
+% =============================================================================
+\section{Quatro tipos de ruptura}
+
+A versão inicial da ideia distinguia três rupturas: operacional, causal e semântica.
+A análise do papel do witness exige uma quarta.
+
+\begin{longtable}{>{\bfseries}p{3.4cm}p{10.4cm}}
+\toprule
+Ruptura & Definição operacional candidata \\
+\midrule
+\endhead
+Operacional &
+A realização deixa de produzir o comportamento ou artefato observável requerido
+pelo fenômeno. \\
+
+Causal &
+A saída continua existindo, mas já não decorre da cadeia causal que fundamentava a
+alegação. O sistema ``funciona'', porém por outra razão. \\
+
+Semântica &
+A saída computacional permanece, mas uma distinção necessária para seu significado
+foi perdida. O valor existe; a interpretação que o legitimava, não. \\
+
+Observacional / evidencial &
+O fenômeno pode permanecer, mas a intervenção compromete o mecanismo utilizado para
+detectá-lo, medi-lo ou distingui-lo. A ausência observada torna-se inconclusiva. \\
+\bottomrule
+\end{longtable}
+
+\begin{thesisbox}[Consequência]
+\textbf{PASS de software não é witness suficiente de preservação de Kernel.}
+Uma intervenção pode preservar execução e destruir causalidade; preservar causalidade
+e destruir semântica; ou preservar o fenômeno e destruir somente nossa capacidade
+de observá-lo.
+\end{thesisbox}
+
+% =============================================================================
+\section{O operador experimental fundamental: subtração}
+
+TinyLogicLM e TinyLogicVision foram construídos predominantemente por
+\textbf{materialização incremental}: adicionávamos somente aquilo que uma pergunta
+exigia.
+
+TinyKernel acrescenta deliberadamente o movimento inverso:
+
+\[
+\boxed{
+\text{construir}
+\;\longleftrightarrow\;
+\text{remover}
+}
+\]
+
+A unidade experimental básica é:
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=8mm,
+  box/.style={draw, rounded corners, align=center, minimum width=4.6cm,
+              minimum height=9mm, fill=TKGray},
+  arr/.style={-{Latex[length=2.4mm]}, thick, draw=TKBlue}
+]
+\node[box, fill=TKBlue!8] (p) {\textbf{Fenômeno}\\definição prévia};
+\node[box, below=of p] (r) {\textbf{Realização candidata}};
+\node[box, below=of r] (w0) {\textbf{Witness basal}\\fenômeno sustentado?};
+\node[box, below=of w0, fill=TKGold!9] (i) {\textbf{Intervenção subtrativa}\\remover / colapsar / substituir};
+\node[box, below=of i] (w1) {\textbf{Witness pós-intervenção}};
+\node[box, below left=10mm and 3mm of w1, fill=TKGreen!9] (keep) {preserva\\\(\Rightarrow\) dispensável candidato};
+\node[box, below right=10mm and 3mm of w1, fill=TKRed!8] (break) {rompe\\\(\Rightarrow\) necessário candidato};
+
+\draw[arr] (p) -- (r);
+\draw[arr] (r) -- (w0);
+\draw[arr] (w0) -- (i);
+\draw[arr] (i) -- (w1);
+\draw[arr] (w1) -- (keep);
+\draw[arr] (w1) -- (break);
+\end{tikzpicture}
+\end{center}
+
+A palavra \textbf{candidato} é obrigatória em ambos os ramos.
+
+Remover algo sem observar perda não prova inutilidade universal.
+Romper algo após uma remoção não prova necessidade universal.
+
+Cada resultado permanece limitado por \(P\), \(C\), \(W\) e \(\mathcal{I}\).
+
+% =============================================================================
+\section{Interações: por que remover uma coisa de cada vez pode enganar}
+
+Considere uma realização com dois mecanismos redundantes, \(a\) e \(b\).
+
+\[
+R=\{a,b\}
+\]
+
+Se retirarmos \(a\), \(b\) preserva o fenômeno.
+Se retirarmos \(b\), \(a\) preserva o fenômeno.
+
+Testes unitários de ablação poderiam sugerir:
+
+\[
+a\text{ é dispensável}
+\qquad\text{e}\qquad
+b\text{ é dispensável}.
+\]
+
+Mas:
+
+\[
+R\setminus\{a,b\}
+\]
+
+pode destruir completamente o fenômeno.
+
+Portanto necessidade pode ser \textbf{conjunta}, e redundância pode esconder
+causalidade.
+
+Para uma intervenção sobre um subconjunto \(S\) de elementos:
+
+\[
+\Delta^{-}_{S}(R)=R\setminus S.
+\]
+
+TinyKernel deverá começar com ablações simples, mas preservar desde o início a
+possibilidade de:
+
+\begin{itemize}
+  \item remoções pareadas;
+  \item remoções de grupos;
+  \item substituições por realizações alternativas;
+  \item colapso deliberado de distinções;
+  \item mudança da ordem das transformações;
+  \item intervenções temporais.
+\end{itemize}
+
+\begin{markerbox}[TK-MARKER-001 — Minimalidade combinatória | OPEN]
+Uma realização pode parecer irredutível ou dispensável dependendo da granularidade
+das intervenções. Investigar como distinguir dependência elementar, dependência
+conjunta e redundância causal sem transformar o laboratório prematuramente em um
+buscador combinatório geral.
+\end{markerbox}
+
+% =============================================================================
+\section{Kernel não é implementação}
+
+Considere:
+
+\begin{lstlisting}
+Realizacao A:
+a -> b -> c
+
+Realizacao B:
+x -> y
+\end{lstlisting}
+
+Se ambas preservam o mesmo fenômeno sob o mesmo contexto e sobrevivem aos mesmos
+testes causais relevantes, talvez estejamos observando duas realizações de uma
+estrutura mais abstrata.
+
+Isso sugere uma relação de equivalência experimental candidata:
+
+\[
+R_1 \sim_{P,C,W,\mathcal{I}} R_2
+\]
+
+quando \(R_1\) e \(R_2\) são indistinguíveis \emph{para o fenômeno e protocolo
+explicitados}, não em sentido absoluto.
+
+Essa equivalência é deliberadamente local.
+
+Duas realizações podem ser equivalentes para uma pergunta e profundamente diferentes
+para outra.
+
+\subsection{O espaço de realizações minimais}
+
+Pode haver:
+
+\[
+K_1=\{A,B,C\}
+\qquad\text{e}\qquad
+K_2=\{A,X\},
+\]
+
+ambos suficientes e localmente irredutíveis.
+
+Nesse caso, o objeto de interesse deixa de ser ``o Kernel'' e passa a ser:
+
+\begin{center}
+\textbf{o espaço de realizações causalmente minimais de um fenômeno sob um protocolo.}
+\end{center}
+
+Esse espaço pode conter famílias, equivalências, redundâncias, compensações e
+múltiplas formas de realizar a mesma capacidade.
+
+\begin{markerbox}[TK-MARKER-002 — Pluralidade de Kernel | OPEN]
+Testar se fenômenos simples admitem mais de uma realização irredutível não isomórfica.
+Se admitirem, abandonar qualquer pressuposto de unicidade do Kernel.
+\end{markerbox}
+
+% =============================================================================
+\section{Minimalidade causal versus minimalidade descritiva}
+
+Um sistema pode ter uma descrição curta e ainda conter causalidade supérflua.
+Outro pode exigir mais símbolos para descrever a mesma estrutura causal.
+
+TinyKernel não deve confundir:
+
+\begin{itemize}
+  \item menor número de linhas de código;
+  \item menor número de classes;
+  \item menor número de bytes;
+  \item menor número de estados;
+  \item menor descrição textual;
+  \item menor estrutura causal suficiente.
+\end{itemize}
+
+Essas medidas podem ser correlacionadas em alguns experimentos, mas não são
+sinônimos.
+
+\begin{markerbox}[TK-MARKER-003 — Unidade de complexidade | OPEN]
+Que medida, se alguma, permite comparar a complexidade de realizações diferentes sem
+reificar escolhas de implementação? Contagem de componentes é suficiente apenas para
+experimentos extremamente controlados.
+\end{markerbox}
+
+% =============================================================================
+\section{O primeiro fenômeno não deve se chamar “aprendizado”}
+
+A formulação inicial de TK-0001 usava ``persistência de aprendizado''. Isso carrega
+um problema: a palavra \emph{aprendizado} já embute uma interpretação.
+
+Para reduzir circularidade, o primeiro fenômeno deve ser mais fraco e diretamente
+observável.
+
+\begin{thesisbox}[Fenômeno TK-0001 — formulação recomendada]
+\textbf{Persistência adaptativa:}
+um sistema sofre uma experiência \(E\), altera algum estado interno em função dessa
+experiência e, em uma interação posterior na qual \(E\) não é reapresentada, produz
+um comportamento diferente do baseline em consequência daquela alteração persistida.
+\end{thesisbox}
+
+Isso não prova que o sistema ``aprendeu''.
+
+Permite perguntar depois:
+
+\begin{center}
+\emph{Que condições adicionais seriam necessárias para distinguir persistência
+adaptativa de memorização, ajuste, condicionamento ou aprendizado?}
+\end{center}
+
+Essa é precisamente a lógica do laboratório: começar com um fenômeno pequeno e
+deixar conceitos mais fortes emergirem apenas se a diferença se tornar necessária.
+
+% =============================================================================
+\section{TK-0000 e TK-0001: materialidade inicial}
+
+\subsection{TK-0000 — Bootstrap do aparato}
+
+TK-0000 não deve buscar um Kernel substantivo.
+
+Seu único objetivo é provar que o laboratório consegue executar de forma
+reproduzível:
+
+\begin{lstlisting}
+baseline
+-> witness
+-> intervention
+-> witness
+-> classification
+\end{lstlisting}
+
+Critério de saída:
+
+\begin{itemize}
+  \item build limpo;
+  \item execução determinística;
+  \item witness basal explícito;
+  \item uma intervenção subtrativa trivial;
+  \item restauração do baseline;
+  \item resultado reproduzível;
+  \item nenhum claim sobre minimalidade causal.
+\end{itemize}
+
+\subsection{TK-0001 — Persistência adaptativa}
+
+Uma realização inicial pode ser propositalmente banal:
+
+\[
+s_0=0.
+\]
+
+O sistema recebe uma experiência com um alvo \(y\in\{0,1\}\), produz uma ação baseada
+em \(s\), recebe informação sobre a diferença e atualiza \(s\). Em uma interação
+posterior, sem reapresentar a experiência original, o comportamento deve refletir o
+estado alterado.
+
+A realização candidata pode conter:
+
+\begin{lstlisting}
+estado
+-> entrada
+-> acao
+-> feedback
+-> diferenca
+-> atualizacao
+-> estado persistido
+-> interacao posterior
+\end{lstlisting}
+
+Intervenções iniciais candidatas:
+
+\begin{longtable}{p{4.1cm}p{5.0cm}p{5.0cm}}
+\toprule
+Intervenção & Previsão antes da execução & O que a observação pode distinguir \\
+\midrule
+\endhead
+Remover atualização &
+Experiência ocorre, mas não altera estado &
+Se mudança persistente exige atualização nesta realização \\
+
+Remover persistência &
+Mudança pode ocorrer durante a interação, mas desaparece depois &
+Se o fenômeno definido exige continuidade temporal \\
+
+Remover feedback &
+Mudança pode ainda ocorrer por outra regra &
+Se feedback é necessário para persistência adaptativa ou apenas para uma classe
+específica de adaptação \\
+
+Substituir feedback por ruído &
+O estado pode mudar sem se orientar pela experiência &
+Se orientação por consequência precisa ser distinguida de mera mutação \\
+
+Colapsar estado e ação &
+Pode preservar saída em um instante e perder memória causal &
+Se estado independente é necessário para explicar persistência \\
+\bottomrule
+\end{longtable}
+
+\begin{falsifybox}[Proibição de interpretação retroativa]
+Se TK-0001 mostrar que feedback não é necessário para o fenômeno definido, o resultado
+não deve ser ``corrigido'' redefinindo silenciosamente o fenômeno para fazer feedback
+parecer necessário.
+
+A definição prévia permanece registrada; uma definição sucessora deve receber outro
+experimento.
+\end{falsifybox}
+
+% =============================================================================
+\section{Classificação experimental de resultados}
+
+Cada intervenção deverá produzir uma classificação limitada ao protocolo.
+
+\begin{description}
+  \item[PRESERVED:] os witnesses preregistrados sustentam que o fenômeno permanece.
+  \item[BROKEN\_OPERATIONAL:] o fenômeno falha no nível operacional.
+  \item[BROKEN\_CAUSAL:] a saída permanece, mas sua dependência causal requerida foi
+  quebrada.
+  \item[BROKEN\_SEMANTIC:] a saída permanece, mas a distinção semântica necessária
+  foi perdida.
+  \item[WITNESS\_COMPROMISED:] a intervenção impede conclusão porque afeta o aparato
+  de observação.
+  \item[INCONCLUSIVE:] os dados não distinguem as alternativas definidas.
+\end{description}
+
+Nenhuma dessas classificações equivale automaticamente a:
+
+\begin{center}
+\texttt{KERNEL\_FOUND}
+\end{center}
+
+Essa etiqueta não deve existir nos primeiros experimentos.
+
+% =============================================================================
+\section{Da visão ao TinyKernel: intervenções semânticas futuras}
+
+TinyLogicVision sugere uma família especialmente fértil de experimentos:
+\textbf{colapso de distinções}.
+
+Em vez de apenas apagar componentes, podemos tornar duas categorias
+indistinguíveis e observar se a alegação científica continua legítima.
+
+Exemplos candidatos:
+
+\begin{lstlisting}
+support := decision_point
+preview_rgb := multispectral_tensor
+h3_cell := raster_support
+display_cell := observation_support
+\end{lstlisting}
+
+O objetivo não será verificar se o software continua executando.
+
+Será verificar se:
+
+\begin{enumerate}
+  \item a cadeia causal continua reconstruível;
+  \item a saída continua semanticamente atribuível à observação declarada;
+  \item dois mundos materialmente diferentes continuam distinguíveis.
+\end{enumerate}
+
+\begin{markerbox}[TK-MARKER-004 — Colapso semântico | OPEN]
+Formalizar uma classe de intervenção em que nenhuma função é removida, mas duas
+distinções são fundidas. Testar se a perda de distinguibilidade pode servir como
+evidência de necessidade ontológica relativa ao domínio.
+\end{markerbox}
+
+% =============================================================================
+\section{Da minimalidade ao Sister-Kernel}
+
+TinyKernel não deve nascer como laboratório de validação do Sister-Kernel.
+
+O fluxo correto é unidirecional apenas quando existe evidência suficiente:
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=10mm and 17mm,
+  box/.style={draw, rounded corners, align=center, minimum width=3.8cm,
+              minimum height=10mm, fill=TKGray},
+  arr/.style={-{Latex[length=2.5mm]}, thick, draw=TKBlue}
+]
+\node[box, fill=TKBlue!8] (lm) {TinyLogicLM\\capacidade aprendida};
+\node[box, right=of lm, fill=TKTeal!8] (vis) {TinyLogicVision\\observação e inferência};
+\node[box, below=14mm of $(lm)!0.5!(vis)$, fill=TKGold!10] (tk) {\textbf{TinyKernel}\\minimalidade causal};
+\node[box, below=of tk] (ev) {evidência experimental\\limitada ao protocolo};
+\node[box, below=of ev, fill=TKGreen!8] (sis) {Sister-Kernel / Atmos /\\Nexo / Praxis / outros};
+
+\draw[arr] (lm) -- (tk);
+\draw[arr] (vis) -- (tk);
+\draw[arr] (tk) -- (ev);
+\draw[arr] (ev) -- node[right,align=left]{\small somente após\\\small decisão própria} (sis);
+\end{tikzpicture}
+\end{center}
+
+Quando o laboratório estiver maduro o suficiente, poderá testar materialmente
+distinções como:
+
+\begin{lstlisting}
+Participant != Role
+Role != Authority
+Evidence != Decision
+Binding != Authority
+Artifact != Provenance
+\end{lstlisting}
+
+A estratégia será criar situações que \emph{devem permanecer distinguíveis} e testar
+se uma representação que colapsa a distinção perde capacidade de responder a uma
+pergunta operacional relevante.
+
+Se perder, isso será evidência em favor de uma distinção necessária \emph{naquele
+escopo}. Não será uma licença automática para universalizar a entidade.
+
+% =============================================================================
+\section{“Sempre pronto e sempre incompleto” como propriedade verificável}
+
+A frase deixa de ser apenas filosofia de desenvolvimento e passa a ser requisito
+operacional.
+
+\subsection{Sempre pronto}
+
+Um estado publicável do repositório deve satisfazer, no mínimo:
+
+\begin{lstlisting}
+HEAD compila
+HEAD executa
+HEAD verifica
+experimentos publicados sao reproduziveis
+estado atual possui witness
+claims atuais sao explicitos
+limites de evidencia sao explicitos
+\end{lstlisting}
+
+\subsection{Sempre incompleto}
+
+O mesmo estado deve preservar:
+
+\begin{lstlisting}
+nenhuma ontologia final declarada
+nenhum Kernel universalizado alem da evidencia
+novos contextos podem refutar minimalidade anterior
+realizacoes alternativas permanecem possiveis
+resultados inconclusivos permanecem resultados
+a proxima pergunta permanece aberta
+\end{lstlisting}
+
+Logo:
+
+\[
+\boxed{\text{READY}\neq\text{COMPLETE}}
+\]
+
+\begin{thesisbox}[Invariante de projeto]
+Um release pode ser tecnicamente fechado e epistemicamente aberto.
+
+Completude operacional não autoriza completude ontológica.
+\end{thesisbox}
+
+% =============================================================================
+\section{Constituição mínima de TinyKernel}
+
+Esta constituição deve ser pequena o suficiente para ser preservada e forte o
+suficiente para impedir que o laboratório se transforme em uma máquina de confirmar
+suas próprias suposições.
+
+\begin{enumerate}[label=\textbf{P\arabic*.}]
+  \item \textbf{Fenômeno antes de componentes.}
+  Nenhum componente é considerado necessário antes de o fenômeno investigado ser
+  definido de forma observável.
+
+  \item \textbf{Nenhuma necessidade por tradição.}
+  Práticas comuns, padrões arquiteturais e popularidade de uma tecnologia não
+  constituem evidência de pertencimento a Kernel.
+
+  \item \textbf{Necessidade exige intervenção.}
+  Alegações de necessidade devem, sempre que materialmente possível, sobreviver a
+  testes subtrativos, substitutivos ou de colapso.
+
+  \item \textbf{Witness não é fenômeno.}
+  Falha de observação não deve ser confundida automaticamente com ausência do
+  fenômeno.
+
+  \item \textbf{Execução não basta.}
+  Funcionamento computacional não é evidência suficiente se causalidade ou semântica
+  forem destruídas.
+
+  \item \textbf{Irredutível não significa globalmente mínimo.}
+  O laboratório deve declarar a força exata da minimalidade demonstrada.
+
+  \item \textbf{Implementação não é Kernel.}
+  Realizações distintas podem satisfazer a mesma estrutura causal relevante.
+
+  \item \textbf{Unicidade não é presumida.}
+  Pode existir mais de uma realização minimal suficiente para o mesmo fenômeno.
+
+  \item \textbf{Necessidade pode ser conjunta.}
+  Interações e redundâncias podem tornar ablações unitárias insuficientes.
+
+  \item \textbf{Resultados são contextuais.}
+  Toda alegação é limitada pelo fenômeno, contexto, witnesses e família de
+  intervenções examinados.
+
+  \item \textbf{História experimental é preservada.}
+  Previsões, falhas, resultados negativos e inconclusões não podem ser reescritos
+  retroativamente para acomodar estados sucessores.
+
+  \item \textbf{O conceito de Kernel é falsificável.}
+  Se ``Kernel'' deixar de ser uma categoria útil diante da evidência, o laboratório
+  deve continuar existindo sem ela.
+\end{enumerate}
+
+% =============================================================================
+\section{Estrutura inicial do repositório}
+
+A estrutura deve permanecer deliberadamente austera:
+
+\begin{lstlisting}
+TinyKernel/
+|-- CMakeLists.txt
+|-- README.md
+|-- bin/
+|   `-- tinykernel
+|-- src/
+|-- tests/
+`-- experiments/
+    |-- TK-0000/
+    |   |-- question.md
+    |   |-- preregistration.md
+    |   `-- result.md
+    `-- TK-0001/
+        |-- question.md
+        |-- preregistration.md
+        `-- result.md
+\end{lstlisting}
+
+Inicialmente, não introduzir:
+
+\begin{itemize}
+  \item banco de dados;
+  \item servidor web;
+  \item sistema de plugins;
+  \item framework de experimentos genérico;
+  \item DSL de Kernel;
+  \item grafo universal;
+  \item ontologia formal;
+  \item dependência de LLM;
+  \item integração direta com Sister-Kernel.
+\end{itemize}
+
+O primeiro executável pode precisar somente de:
+
+\begin{lstlisting}
+./bin/tinykernel verify
+./bin/tinykernel experiment TK-0000
+./bin/tinykernel experiment TK-0001
+\end{lstlisting}
+
+Qualquer nova superfície deve responder a uma necessidade observada.
+
+% =============================================================================
+\section{Programa experimental inicial}
+
+\begin{longtable}{p{2.3cm}p{4.6cm}p{7.3cm}}
+\toprule
+Experimento & Objeto & Pergunta \\
+\midrule
+\endhead
+TK-0000 &
+Bootstrap do aparato &
+Conseguimos executar baseline, intervenção e witness de forma determinística sem
+introduzir claims substantivos? \\
+
+TK-0001 &
+Persistência adaptativa &
+Quais relações são necessárias para que uma experiência produza mudança persistente
+de comportamento em uma interação posterior? \\
+
+TK-0002 &
+Witness e observabilidade &
+Podemos destruir o witness sem destruir o fenômeno? Como distinguir ausência de
+evidência de evidência de ausência? \\
+
+TK-0003 &
+Realizações alternativas &
+Duas máquinas estruturalmente diferentes podem preservar o mesmo fenômeno e resistir
+a intervenções causalmente equivalentes? \\
+
+TK-0004 &
+Redundância causal &
+Quais necessidades só aparecem em remoções conjuntas e permanecem invisíveis em
+ablações unitárias? \\
+
+TK-0010 &
+Colapso semântico &
+Uma implementação pode continuar funcional após fundir duas distinções e, ainda
+assim, perder o significado necessário para sua alegação? \\
+
+TK-0100 &
+Primitivas federadas &
+Participant, Role, Authority, Evidence e Decision são distinções experimentalmente
+necessárias em casos controlados de composição? \\
+\bottomrule
+\end{longtable}
+
+A numeração deliberadamente deixa espaço entre os primeiros experimentos e os
+experimentos de sistemas federados. A distância é metodológica: TinyKernel deve
+provar seu aparato em fenômenos pequenos antes de tentar explicar o SisTer.
+
+% =============================================================================
+\section{Marcadores de investigação}
+
+Os marcadores abaixo são perguntas abertas, não backlog de implementação.
+
+\begin{markerbox}[TK-MARKER-005 — Fronteira do fenômeno | OPEN]
+Quando duas definições muito próximas devem ser tratadas como o mesmo fenômeno em
+contextos diferentes, e quando a mudança de definição exige um novo experimento?
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-006 — Causalidade sem intervenção total | OPEN]
+Há situações em que uma relação causal relevante não pode ser removida de modo
+seguro ou semanticamente limpo. Que evidência substitutiva seria aceitável sem
+rebaixar ``necessidade'' a mera plausibilidade?
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-007 — Granularidade | OPEN]
+Um ``elemento'' removível pode ser função, estado, relação, ordem, fronteira,
+informação ou distinção semântica. Como evitar que a granularidade escolhida determine
+artificialmente o Kernel encontrado?
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-008 — Temporalidade | OPEN]
+Alguns fenômenos só existem como trajetória. Um Kernel temporal pode depender não
+apenas de estados, mas da ordem legítima das transições? Investigar kernels de
+trajetória, não apenas de configuração.
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-009 — Contexto e transferência | OPEN]
+Que parte de uma estrutura minimal descoberta em \(C_1\) sobrevive em \(C_2\)?
+Definir transferência como nova hipótese, nunca como consequência automática.
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-010 — O fim do Kernel | OPEN]
+Que resultado experimental faria abandonar a palavra ``Kernel''? Registrar desde o
+início condições sob as quais a categoria se mostraria enganosa, excessivamente
+contextual ou não identificável.
+\end{markerbox}
+
+% =============================================================================
+\section{Critérios para transferência a outros projetos}
+
+Nenhum resultado de TinyKernel deve ser transferido para Sister-Kernel, Nexo, Atmos,
+Praxis, Memória, Infra ou outro projeto apenas por analogia.
+
+Uma transferência deve declarar:
+
+\begin{enumerate}
+  \item fenômeno original estudado;
+  \item contexto original;
+  \item witnesses utilizados;
+  \item intervenções realizadas;
+  \item força real da alegação obtida;
+  \item novo fenômeno e novo contexto de destino;
+  \item quais condições de equivalência são assumidas;
+  \item qual experimento de destino pode falsificar a transferência.
+\end{enumerate}
+
+\begin{warningbox}[Regra de transferência]
+\textbf{Analogia gera hipótese; não gera autoridade.}
+\end{warningbox}
+
+% =============================================================================
+\section{Definições operacionais candidatas — v0.1.0}
+
+Estas definições existem apenas para tornar os primeiros experimentos formuláveis.
+
+\begin{description}
+  \item[Fenômeno:] propriedade, capacidade, relação ou trajetória que o experimento
+  pretende distinguir como presente ou ausente.
+
+  \item[Contexto:] condições materiais, temporais e observacionais dentro das quais a
+  alegação sobre o fenômeno é válida.
+
+  \item[Realização:] configuração concreta capaz de produzir observações relacionadas
+  ao fenômeno.
+
+  \item[Witness:] mecanismo explicitado que produz evidência sobre uma propriedade da
+  realização; não é sinônimo do fenômeno.
+
+  \item[Intervenção:] alteração controlada feita para distinguir explicações ou testar
+  necessidade, suficiência, causalidade ou semântica.
+
+  \item[Subtração:] intervenção que remove uma parte, relação, estado, etapa ou
+  distinção de uma realização.
+
+  \item[Colapso:] intervenção que funde categorias antes distinguíveis sem
+  necessariamente remover computação.
+
+  \item[Suficiência relativa:] preservação do fenômeno segundo witnesses e contexto
+  preregistrados.
+
+  \item[Necessidade relativa:] perda do fenômeno após intervenção comparável, dentro
+  do protocolo examinado.
+
+  \item[Irredutibilidade local:] inexistência de uma intervenção elementar autorizada
+  que preserve o fenômeno.
+
+  \item[Kernel candidato:] realização ou estrutura causal que, após uma sequência de
+  experimentos, possui evidência suficiente para ser tratada como mínima em um escopo
+  explicitado. O termo não deve aparecer como resultado de TK-0000.
+\end{description}
+
+% =============================================================================
+\section{O que este documento não demonstra}
+
+Este documento não demonstra:
+
+\begin{itemize}
+  \item que todo fenômeno possui um Kernel identificável;
+  \item que um Kernel é único;
+  \item que um Kernel pode ser encontrado por ablação;
+  \item que minimalidade causal é computável em geral;
+  \item que witnesses disponíveis conseguem distinguir preservação de ruptura;
+  \item que a noção de Kernel transfere entre domínios;
+  \item que TinyKernel produzirá resultados úteis ao SisTer;
+  \item que persistência adaptativa é aprendizado;
+  \item que causalidade pode ser reduzida a uma lista de componentes;
+  \item que a constituição P1--P12 permanecerá intacta.
+\end{itemize}
+
+O valor deste documento está justamente em tornar essas incertezas explícitas antes
+que a implementação as esconda.
+
+% =============================================================================
+\section{Primeiro estado autorizado}
+
+Após publicação deste documento, o único próximo estado tecnicamente justificável é:
+
+\begin{center}
+\boxed{
+\text{documentar TK-0000 antes de implementar TK-0001}
+}
+\end{center}
+
+TK-0000 deverá provar o aparato, não a teoria.
+
+Somente depois de TK-0000 reproduzível, TK-0001 poderá perguntar sobre persistência
+adaptativa.
+
+Nenhuma implementação deve tentar resolver antecipadamente TK-0002, TK-0003 ou os
+marcadores abertos.
+
+% =============================================================================
+\section{Síntese final}
+
+O TinyKernel nasce de uma inversão metodológica.
+
+Durante muito tempo, construir sistemas significou perguntar:
+
+\begin{center}
+\emph{“o que devemos acrescentar para que isto funcione?”}
+\end{center}
+
+O novo laboratório acrescenta uma pergunta complementar:
+
+\begin{center}
+\Large\bfseries
+“o que podemos retirar antes que isto deixe de ser isto?”
+\end{center}
+
+Essa pergunta parece simples, mas obriga a distinguir funcionamento, causalidade,
+significado, observação, contexto e realização.
+
+Talvez o Kernel seja uma estrutura causal mínima.
+Talvez existam muitos Kernels para o mesmo fenômeno.
+Talvez minimalidade dependa fortemente do contexto.
+Talvez a própria palavra Kernel seja inadequada.
+
+Todas essas possibilidades permanecem abertas.
+
+\begin{thesisbox}[Compromisso fundador]
+TinyKernel não será construído para provar que a teoria de TinyKernel está correta.
+
+Será construído para tornar materialmente possível descobrir onde ela está errada.
+\end{thesisbox}
+
+\vspace{0.8cm}
+
+\begin{center}
+{\sffamily\Large\bfseries\color{TKBlue}
+Sempre pronto. Sempre incompleto.}
+\end{center}
+
+% =============================================================================
+\appendix
+
+\section{Registro de proveniência do documento}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}p{4.1cm}X}
+\toprule
+Evento de origem & Diálogo exploratório sobre a essência do Kernel e os avanços
+conceituais derivados de TinyLogicLM e TinyLogicVision \\
+Data da consolidação & 09/09/2026 \\
+Transformação realizada & Conversão de diálogo em documento fundador com
+formalizações, limites, constituição e programa experimental \\
+Elementos preservados & minimalidade causal; construir/remover; \(K(P,C,W)\);
+suficiência; irredutibilidade; múltiplas realizações; rupturas operacional, causal e
+semântica; ``sempre pronto e sempre incompleto'' \\
+Elementos adicionados nesta versão & distinção entre 1-irredutibilidade e minimalidade
+global; papel falível do witness; ruptura observacional; necessidade conjunta;
+relação de equivalência experimental; TK-0000; reformulação de TK-0001 como
+persistência adaptativa; constituição P1--P12; marcadores de investigação \\
+Natureza das adições & hipóteses e refinamentos conceituais, não resultados \\
+Próxima revisão esperada & após preregistro e execução de TK-0000 \\
+\bottomrule
+\end{tabularx}
+
+\section{Histórico de versões}
+
+\begin{longtable}{p{2.2cm}p{2.8cm}p{9.4cm}}
+\toprule
+Versão & Data & Mudança \\
+\midrule
+\endhead
+0.1.0 & 09/09/2026 &
+Primeiro registro fundador. Formaliza minimalidade causal como objeto de pesquisa,
+separa fenômeno de witness, distingue irredutibilidade local de minimalidade,
+introduz ruptura observacional, define constituição P1--P12 e programa experimental
+TK-0000--TK-0100. \\
+\bottomrule
+\end{longtable}
+
+\end{document}
