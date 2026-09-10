@@ -1,0 +1,1527 @@
+% =============================================================================
+% TinyKernel — Documento Fundador
+% =============================================================================
+% document_id: TK-FND-00
+% title: TinyKernel — Fundamentos Ontológicos de um Programa Experimental para Estruturas Causais Minimais
+% subtitle: Fenômeno, realização, intervenção, evidência e minimalidade em uma ontologia operacional versionada
+% version: 0.2.0
+% status: BASE ONTOLÓGICA / PROGRAMA EXPERIMENTAL / PRÉ-TK-0000
+% project: TinyKernel
+% family: TinyLogic
+% author: José Pedro Trindade
+% date: 2026-09-09
+% language: pt-BR
+% source_primary: TK-FND-00 v0.1.0 + revisão conceitual de 2026-09-09
+% source_lineage: Sister-Kernel; TinyLogicLM; TinyLogicVision
+% ontology_id: TK-O
+% ontology_version: 0.2.0
+% epistemic_scope: ontologia de trabalho, definições operacionais, hipóteses e programa experimental
+% evidence_status: pré-experimental; claims empíricos dependerão dos experimentos versionados
+% implementation_authority: TK-0000 somente após preregistro próprio
+% sister_kernel_authority: transferência somente por nova hipótese e revalidação
+% motto: Sempre pronto. Sempre incompleto.
+% =============================================================================
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{geometry}
+\geometry{top=22mm,bottom=24mm,left=24mm,right=24mm}
+
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,longtable,tabularx,array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,shapes.geometric}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+
+% -----------------------------------------------------------------------------
+% Palette
+% -----------------------------------------------------------------------------
+\definecolor{TKInk}{HTML}{16202A}
+\definecolor{TKBlue}{HTML}{2457A6}
+\definecolor{TKTeal}{HTML}{157A7A}
+\definecolor{TKGold}{HTML}{B27A14}
+\definecolor{TKRed}{HTML}{A8423C}
+\definecolor{TKGreen}{HTML}{3C7A57}
+\definecolor{TKGray}{HTML}{F2F4F6}
+\definecolor{TKMidGray}{HTML}{66727E}
+\definecolor{TKDark}{HTML}{20262D}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=TKBlue,
+  urlcolor=TKTeal,
+  citecolor=TKBlue,
+  pdftitle={TinyKernel — Fundamentos Ontológicos de um Programa Experimental para Estruturas Causais Minimais},
+  pdfauthor={José Pedro Trindade},
+  pdfsubject={Documento fundador e ontologia operacional do laboratório TinyKernel},
+  pdfkeywords={TinyKernel, ontologia, causalidade, estruturas causais minimais, intervenção, witness, evidência, causal abstraction}
+}
+
+% -----------------------------------------------------------------------------
+% Metadata commands
+% -----------------------------------------------------------------------------
+\newcommand{\TKProject}{TinyKernel}
+\newcommand{\TKDocID}{TK-FND-00}
+\newcommand{\TKVersion}{0.2.0}
+\newcommand{\TKOntology}{TK-O}
+\newcommand{\TKDate}{09 de setembro de 2026}
+\newcommand{\TKStatus}{BASE ONTOLÓGICA / PROGRAMA EXPERIMENTAL}
+\newcommand{\TKMotto}{Sempre pronto. Sempre incompleto.}
+
+% -----------------------------------------------------------------------------
+% Layout
+% -----------------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small\sffamily\TKProject}
+\rhead{\small\sffamily\TKDocID\ — v\TKVersion}
+\cfoot{\small\sffamily\thepage}
+
+\titleformat{\section}
+  {\Large\bfseries\sffamily\color{TKInk}}
+  {\thesection}{0.75em}{}
+\titleformat{\subsection}
+  {\large\bfseries\sffamily\color{TKInk}}
+  {\thesubsection}{0.75em}{}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\sffamily\color{TKInk}}
+  {\thesubsubsection}{0.75em}{}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.65em}
+\setlist[itemize]{topsep=0.35em,itemsep=0.25em}
+\setlist[enumerate]{topsep=0.35em,itemsep=0.25em}
+\setlist[description]{topsep=0.35em,itemsep=0.35em}
+
+% -----------------------------------------------------------------------------
+% Boxes
+% -----------------------------------------------------------------------------
+\newtcolorbox{thesisbox}[1][]{
+  enhanced,
+  breakable,
+  colback=TKBlue!5,
+  colframe=TKBlue!70,
+  boxrule=0.7pt,
+  arc=2mm,
+  left=3mm,right=3mm,top=2.5mm,bottom=2.5mm,
+  title=#1,
+  fonttitle=\bfseries\sffamily
+}
+
+\newtcolorbox{ontologybox}[1][]{
+  enhanced,
+  breakable,
+  colback=TKTeal!5,
+  colframe=TKTeal!70,
+  boxrule=0.7pt,
+  arc=2mm,
+  left=3mm,right=3mm,top=2.5mm,bottom=2.5mm,
+  title=#1,
+  fonttitle=\bfseries\sffamily
+}
+
+\newtcolorbox{warningbox}[1][]{
+  enhanced,
+  breakable,
+  colback=TKGold!7,
+  colframe=TKGold!70,
+  boxrule=0.7pt,
+  arc=2mm,
+  left=3mm,right=3mm,top=2.5mm,bottom=2.5mm,
+  title=#1,
+  fonttitle=\bfseries\sffamily
+}
+
+\newtcolorbox{falsifybox}[1][]{
+  enhanced,
+  breakable,
+  colback=TKRed!5,
+  colframe=TKRed!70,
+  boxrule=0.7pt,
+  arc=2mm,
+  left=3mm,right=3mm,top=2.5mm,bottom=2.5mm,
+  title=#1,
+  fonttitle=\bfseries\sffamily
+}
+
+\newtcolorbox{markerbox}[1][]{
+  enhanced,
+  breakable,
+  colback=TKGray,
+  colframe=TKMidGray!65,
+  boxrule=0.6pt,
+  arc=1.5mm,
+  left=3mm,right=3mm,top=2mm,bottom=2mm,
+  title=#1,
+  fonttitle=\bfseries\sffamily
+}
+
+% -----------------------------------------------------------------------------
+% Listings
+% -----------------------------------------------------------------------------
+\lstdefinestyle{tk}{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{TKGray},
+  frame=single,
+  rulecolor=\color{TKMidGray!40},
+  framerule=0.4pt,
+  xleftmargin=0.5em,
+  framexleftmargin=0.5em,
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible
+}
+\lstset{style=tk}
+
+% =============================================================================
+\begin{document}
+
+% =============================================================================
+% Title page
+% =============================================================================
+\begin{titlepage}
+\pagecolor{TKDark}
+\color{white}
+
+\vspace*{1.5cm}
+
+{\sffamily\small
+\textbf{\TKProject}\par
+Família experimental TinyLogic\par}
+
+\vspace{1.8cm}
+
+{\sffamily\bfseries\fontsize{27}{32}\selectfont
+Fundamentos Ontológicos de um Programa Experimental para Estruturas Causais Minimais\par}
+
+\vspace{0.6cm}
+
+{\sffamily\fontsize{14}{19}\selectfont\color{white!78}
+Fenômeno, realização, intervenção, evidência e minimalidade em uma ontologia operacional versionada\par}
+
+\vspace{1.2cm}
+
+\begin{tcolorbox}[
+	enhanced,
+	colback=white!8!TKDark,
+	colframe=white!28!TKDark,
+	boxrule=0.6pt,
+	arc=2mm,
+	left=4mm,right=4mm,top=3mm,bottom=3mm
+	]
+\color{white}
+\textbf{Proposição de partida.}
+TinyKernel investiga estruturas causais minimais por meio de uma ontologia operacional
+que torna explícitos o fenômeno, suas realizações, as intervenções admissíveis, o regime
+de observação, as evidências produzidas e os critérios pelos quais preservação,
+necessidade, minimalidade e equivalência podem ser afirmadas.
+\end{tcolorbox}
+
+\vfill
+
+{\sffamily
+\begin{tabular}{@{}ll@{}}
+Documento & \TKDocID \\
+Versão & \TKVersion \\
+Ontologia & \TKOntology\ v\TKVersion \\
+Status & \TKStatus \\
+Autor & José Pedro Trindade \\
+Data & \TKDate \\
+\end{tabular}
+}
+
+\vspace{1.1cm}
+
+{\sffamily\bfseries\color{white!92}\TKMotto\par}
+
+\end{titlepage}
+\nopagecolor
+\color{TKInk}
+
+% =============================================================================
+\section*{Metadados, escopo e autoridade}
+\addcontentsline{toc}{section}{Metadados, escopo e autoridade}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}p{4.0cm}X}
+\toprule
+Projeto & TinyKernel \\
+Documento & TK-FND-00 \\
+Versão & 0.2.0 \\
+Ontologia de trabalho & TK-O v0.2.0 \\
+Estado & Base ontológica, programa experimental e pré-registro conceitual anterior a TK-0000 \\
+Fonte primária & TK-FND-00 v0.1.0 e revisão conceitual consolidada em 09/09/2026 \\
+Linhagem & Sister-Kernel; TinyLogicLM; TinyLogicVision \\
+Objeto científico & Estruturas causais minimais relativas a fenômenos, contextos, regimes de intervenção e observação explicitados \\
+Unidade de investigação & Relações entre fenômeno, realização, transformação, observação, evidência e preservação \\
+Status epistemológico & Ontologia de trabalho, definições operacionais, hipóteses e programa de experimentação \\
+Autoridade experimental imediata & Especificação e preregistro de TK-0000 \\
+Transferência a outros projetos & Nova hipótese, novo contexto e revalidação própria \\
+Princípio operacional & \textbf{READY $\neq$ COMPLETE} \\
+\bottomrule
+\end{tabularx}
+
+\begin{ontologybox}[Leitura do documento]
+Este documento organiza o TinyKernel como uma investigação ontologicamente explícita.
+Cada termo central possui um papel definido; cada relação inferida possui um regime de
+evidência; cada alegação possui uma força declarada. A ontologia é versionada junto com
+o programa experimental para permitir que mudanças conceituais permaneçam rastreáveis.
+\end{ontologybox}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{Propósito científico}
+
+TinyKernel é um laboratório experimental dedicado à investigação de
+\textbf{estruturas causais minimais}. Seu problema central é identificar, para um
+fenômeno especificado, quais organizações materiais ou computacionais preservam esse
+fenômeno sob um contexto e um conjunto explícito de intervenções, e quais dessas
+realizações ocupam posições minimais em uma relação de redução declarada.
+
+A pergunta de pesquisa fundadora é:
+
+\begin{thesisbox}[Pergunta científica]
+\begin{center}
+\large\bfseries
+Sob quais condições uma realização pode ser sustentada experimentalmente como
+causalmente minimal para a preservação de um fenômeno especificado?
+\end{center}
+\end{thesisbox}
+
+A hipótese de trabalho é que parte dessa pergunta pode ser tornada empiricamente
+tratável quando o experimento declara, antes da intervenção:
+
+\begin{enumerate}
+  \item o fenômeno e seu perfil constitutivo;
+  \item o contexto em que a alegação vale;
+  \item o espaço de realizações candidatas;
+  \item as intervenções admissíveis;
+  \item a relação de redução usada para comparar realizações;
+  \item o regime de observação e os witnesses;
+  \item a regra de adjudicação que liga evidência a claims.
+\end{enumerate}
+
+Esse arranjo transforma ``minimalidade'' de uma impressão arquitetural em uma
+propriedade investigável dentro de um espaço experimental delimitado.
+
+% =============================================================================
+\section{Linhagem experimental}
+
+\subsection{TinyLogicLM: mudança persistente como trajetória causal}
+
+TinyLogicLM tornou observável uma cadeia completa de transformação em escala humana:
+
+\begin{lstlisting}
+simbolo
+-> token
+-> representacao numerica
+-> transformacao
+-> resultado
+-> erro
+-> atribuicao do erro
+-> atualizacao
+-> comportamento posterior
+\end{lstlisting}
+
+A contribuição para TinyKernel é a percepção de que capacidades podem depender do
+\textbf{fechamento de uma trajetória causal}, e não apenas da presença de componentes.
+Uma abstração candidata é:
+
+\[
+\text{estado}_t
+\rightarrow
+\text{ação}
+\rightarrow
+\text{consequência}
+\rightarrow
+\text{diferença}
+\rightarrow
+\text{atualização}
+\rightarrow
+\text{estado}_{t+1}.
+\]
+
+A pergunta experimental correspondente é quais relações dessa trajetória são
+necessárias para que uma experiência produza mudança persistente de comportamento.
+
+\subsection{TinyLogicVision: preservação de distinções na relação com o mundo}
+
+TinyLogicVision acrescentou uma segunda exigência: uma inferência só pode ser
+interpretada adequadamente quando a cadeia entre mundo observado, suporte,
+representação e decisão permanece reconstruível.
+
+\begin{lstlisting}
+fenomeno
+-> observacao
+-> amostragem
+-> suporte
+-> representacao
+-> entrada
+-> transformacao
+-> decisao
+-> projecao
+\end{lstlisting}
+
+Dessa prática emergiram distinções como:
+
+\begin{lstlisting}
+SUPPORT != DECISION POINT
+DECISION POINT != DISPLAY CELL
+DISPLAY CELL != H3 CELL
+RGB PREVIEW != MULTISPECTRAL TENSOR
+H3 != RASTER
+\end{lstlisting}
+
+TinyKernel generaliza essa experiência por meio da noção de
+\textbf{distinção constitutiva}: uma distinção integra o fenômeno quando sua fusão
+altera uma dependência, capacidade discriminativa, trajetória ou atribuição exigida
+pela especificação do fenômeno.
+
+% =============================================================================
+\section{Enquadramento conceitual e literatura de referência}
+
+A base do TinyKernel se beneficia de cinco tradições próximas, usadas aqui como
+instrumentos de precisão conceitual.
+
+\subsection{Intervenção e causalidade}
+
+Modelos causais estruturais e abordagens intervencionistas tratam intervenções e
+contrafactuais como ferramentas para distinguir dependências causais de mera
+associação \cite{pearl2009,woodward2003}. TinyKernel adota esse compromisso
+metodológico em escala experimental: uma alegação de necessidade ganha força quando
+mudanças controladas em uma realização produzem mudanças previstas no fenômeno ou em
+seu perfil constitutivo.
+
+\subsection{Mecanismos e organização}
+
+A literatura mecanicista descreve mecanismos por entidades e atividades organizadas
+de maneira produtiva \cite{machamer2000}. TinyKernel toma essa organização como
+objeto de redução: componentes, relações, ordem, estado e fronteiras podem ser
+intervencionados separadamente para determinar qual estrutura permanece necessária.
+
+\subsection{Abstração e consistência causal entre realizações}
+
+Trabalhos sobre abstração causal mostram que modelos em níveis diferentes podem ser
+comparados por sua consistência frente a intervenções \cite{rubenstein2017,beckers2019}.
+Em redes neurais, intervenções de intercâmbio também têm sido usadas para testar se
+representações internas realizam estruturas causais interpretáveis
+\cite{geiger2021}. TinyKernel incorpora essa perspectiva para comparar realizações
+mínimas estruturalmente distintas.
+
+\subsection{Minimalidade causal em descoberta causal}
+
+Na literatura de descoberta causal, a expressão \emph{Causal Minimality} possui uso
+técnico ligado à relação entre uma distribuição e a estrutura gráfica que a torna
+Markov \cite{spirtes2001,peters2017}. Neste documento, a expressão
+\textbf{minimalidade causal de realização} designa uma propriedade diferente e
+explicitamente operacional: a minimalidade de uma realização dentro de uma relação de
+redução declarada, condicionada à preservação de um fenômeno sob um protocolo.
+
+\subsection{Ontologia formal e governança de conceitos}
+
+Ontologias contemporâneas tratam escopo, definições, relações, axiomatização,
+versionamento e interoperabilidade como elementos explícitos. A ISO/IEC 21838-2:2021,
+por exemplo, formaliza uma top-level ontology em OWL~2 e Common Logic
+\cite{iso21838bfo}; iniciativas como a OBO Foundry operacionalizam princípios de
+escopo, definições, relações e versionamento \cite{obofoundry2021}. TinyKernel usa
+esses princípios como referência de governança conceitual, mantendo TK-O como uma
+ontologia de domínio própria e evolutiva.
+
+\begin{thesisbox}[Posição do TinyKernel]
+TinyKernel combina ontologia explícita, intervenção controlada, redução ordenada e
+comparação entre realizações para investigar a estrutura necessária à preservação de
+fenômenos. A contribuição pretendida está no método experimental de redução e na
+rastreabilidade entre ontologia, intervenção, evidência e claim.
+\end{thesisbox}
+
+% =============================================================================
+\section{Ontologia de trabalho TK-O v0.2.0}
+
+A ontologia de trabalho organiza o domínio em quatro planos conectados:
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=8mm,
+  box/.style={draw, rounded corners, align=center, minimum width=11.0cm,
+              minimum height=10mm, fill=TKGray},
+  arr/.style={-{Latex[length=2.4mm]}, thick, draw=TKBlue}
+]
+\node[box, fill=TKTeal!8] (onto) {\textbf{Plano ontológico}\\fenômeno -- contexto -- realização -- estrutura -- trajetória};
+\node[box, below=of onto, fill=TKGold!8] (exp) {\textbf{Plano experimental}\\intervenção -- transformação -- comparação -- redução};
+\node[box, below=of exp, fill=TKBlue!7] (epi) {\textbf{Plano epistemológico}\\observação -- witness -- evidência -- adjudicação -- claim};
+\node[box, below=of epi, fill=TKGreen!8] (inf) {\textbf{Plano inferencial}\\suficiência -- necessidade -- irredutibilidade -- minimalidade -- equivalência};
+\draw[arr] (onto) -- (exp);
+\draw[arr] (exp) -- (epi);
+\draw[arr] (epi) -- (inf);
+\end{tikzpicture}
+\end{center}
+
+\subsection{Tipos ontológicos fundamentais}
+
+\begin{longtable}{>{\bfseries}p{3.0cm}p{4.0cm}p{7.0cm}}
+\toprule
+ID & Tipo & Definição de trabalho \\
+\midrule
+\endhead
+TKO:P & Fenômeno &
+Padrão distinguível de organização, capacidade, relação ou trajetória cuja
+preservação constitui a pergunta experimental. \\
+
+TKO:C & Contexto &
+Conjunto explicitado de condições materiais, temporais, ambientais, computacionais e
+observacionais que delimitam a validade de uma alegação sobre o fenômeno. \\
+
+TKO:$\Phi$ & Perfil constitutivo &
+Especificação das distinções, relações e restrições temporais que tornam o fenômeno
+experimentalmente identificável dentro de um contexto. \\
+
+TKO:R & Realização &
+Configuração concreta de entidades, estados, relações e processos que pode instanciar
+o perfil constitutivo de um fenômeno. \\
+
+TKO:$\Sigma$ & Estrutura da realização &
+Descrição das partes, relações, dependências, ordem e fronteiras relevantes de uma
+realização em uma granularidade declarada. \\
+
+TKO:I & Intervenção &
+Transformação controlada aplicada a uma realização ou a uma relação selecionada para
+produzir uma comparação causalmente informativa. \\
+
+TKO:O & Observação &
+Registro produzido pelo aparato ao acompanhar uma realização em uma condição
+experimental. \\
+
+TKO:W & Witness &
+Procedimento explicitado que extrai, testa ou classifica propriedades relevantes de
+uma ou mais observações. \\
+
+TKO:E & Evidência &
+Resultado versionado de um witness acompanhado de contexto, intervenção, observações e
+proveniência suficientes para sustentar uma inferência delimitada. \\
+
+TKO:A & Regra de adjudicação &
+Regra preregistrada que relaciona evidência a uma classificação experimental ou a um
+nível de claim. \\
+
+TKO:Q & Claim &
+Alegação inferencial explicitamente vinculada às evidências, ao contexto e à força de
+inferência que a sustentam. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Perfil constitutivo do fenômeno}
+
+O fenômeno é descrito por um perfil constitutivo:
+
+\[
+\Phi(P)=\left\langle
+\mathcal{D}_P,
+\mathcal{L}_P,
+\mathcal{T}_P
+\right\rangle,
+\]
+
+onde:
+
+\begin{description}
+  \item[$\mathcal{D}_P$ — distinções:] estados, categorias ou condições que precisam
+  permanecer distinguíveis para a pergunta científica;
+  \item[$\mathcal{L}_P$ — relações:] dependências, acoplamentos ou vínculos cuja
+  presença integra a organização investigada;
+  \item[$\mathcal{T}_P$ — restrições temporais:] ordem, persistência, precedência,
+  duração ou trajetória necessárias à identidade experimental do fenômeno.
+\end{description}
+
+O contexto complementa o perfil:
+
+\[
+(P,C,\Phi(P))
+\]
+
+é a unidade mínima de especificação de uma pergunta sobre preservação.
+
+\begin{ontologybox}[Critério ontológico de identidade experimental]
+Duas observações pertencem ao mesmo fenômeno experimental quando satisfazem o mesmo
+perfil constitutivo sob o contexto declarado e segundo uma regra de adjudicação
+previamente registrada. Esse critério é versionado junto com o experimento.
+\end{ontologybox}
+
+% =============================================================================
+\section{Relações centrais da ontologia}
+
+TK-O trata relações como elementos de primeira classe. As relações abaixo formam a
+espinha dorsal do programa experimental.
+
+\begin{longtable}{>{\ttfamily}p{5.2cm}p{8.9cm}}
+\toprule
+Relação & Leitura \\
+\midrule
+\endhead
+specified\_by$(P,\Phi)$ &
+O fenômeno $P$ possui o perfil constitutivo $\Phi$. \\
+
+situated\_in$(P,C)$ &
+A alegação sobre $P$ é situada no contexto $C$. \\
+
+candidate$(R,P,C)$ &
+$R$ é uma realização candidata para $P$ em $C$. \\
+
+has\_structure$(R,\Sigma)$ &
+$\Sigma$ descreve a estrutura relevante de $R$ na granularidade adotada. \\
+
+transforms$(I,R,R')$ &
+A intervenção $I$ transforma $R$ em $R'$. \\
+
+observes$(W,R,I,C,O)$ &
+O witness $W$ participa da obtenção da observação $O$ em uma condição experimental. \\
+
+produces$(W,O,E)$ &
+A aplicação de $W$ a $O$ produz a evidência $E$. \\
+
+supports$(E,Q)$ &
+A evidência $E$ sustenta o claim $Q$ na força inferencial declarada. \\
+
+reduces$(R',R;\mathcal I,\Gamma)$ &
+$R'$ é uma redução admissível de $R$ segundo a família de intervenções $\mathcal I$
+e o critério de ordem $\Gamma$. \\
+
+preserves$(R,P,C,W,A)$ &
+$R$ preserva $P$ sob o contexto, witnesses e regra de adjudicação declarados. \\
+
+causal\_equivalent$(R_1,R_2)$ &
+$R_1$ e $R_2$ apresentam a mesma assinatura intervencional relevante para $\Phi$ sob
+a família de provas $\mathcal J$. \\
+\bottomrule
+\end{longtable}
+
+Essas relações permitem que um claim científico seja reconstruído como um caminho
+explícito de proveniência:
+
+\begin{lstlisting}
+phenomenon
+-> constitutive_profile
+-> context
+-> candidate_realization
+-> intervention
+-> observation
+-> witness
+-> evidence
+-> adjudication
+-> claim
+\end{lstlisting}
+
+% =============================================================================
+\section{Observação, evidência e adjudicação}
+
+Para uma realização $R$, um contexto $C$ e uma intervenção $I$, o aparato produz uma
+observação:
+
+\[
+O = \operatorname{Obs}(R,C,I).
+\]
+
+Um conjunto de witnesses $W$ transforma observações em evidência estruturada:
+
+\[
+E = W(O;\Phi(P),C,I).
+\]
+
+Uma regra de adjudicação $A$ associa a evidência a uma classificação experimental:
+
+\[
+A(E,\Phi(P)) \in
+\{\texttt{PRESERVED},\texttt{BROKEN},\texttt{INCONCLUSIVE},
+\texttt{WITNESS\_COMPROMISED}\}.
+\]
+
+A função de preservação é então definida operacionalmente por:
+
+\[
+\operatorname{Pres}(R;P,C,W,A)=1
+\quad\Longleftrightarrow\quad
+A(E,\Phi(P))=\texttt{PRESERVED}.
+\]
+
+Essa definição vincula preservação a um protocolo público e versionado. O fenômeno,
+a observação e a decisão experimental ocupam posições ontológicas distintas, mas
+permanecem ligados por relações rastreáveis.
+
+\subsection{Dimensões de preservação}
+
+O perfil de witnesses pode observar diferentes dimensões:
+
+\begin{longtable}{>{\bfseries}p{3.2cm}p{10.8cm}}
+\toprule
+Dimensão & Pergunta experimental \\
+\midrule
+\endhead
+Operacional &
+A realização continua produzindo o comportamento ou artefato requerido? \\
+
+Causal &
+A saída continua dependente das relações causais especificadas no protocolo? \\
+
+Discriminativa &
+As distinções constitutivas continuam preservadas e capazes de separar estados que a
+pergunta científica exige distinguir? \\
+
+Observacional &
+O aparato mantém capacidade de detectar e medir as propriedades usadas na adjudicação? \\
+
+Temporal &
+Persistência, ordem e trajetória continuam satisfazendo as restrições temporais do
+perfil constitutivo? \\
+\bottomrule
+\end{longtable}
+
+A ruptura experimental é representada como a falha de uma ou mais dessas dimensões,
+com classificação específica e proveniência preservada.
+
+% =============================================================================
+\section{Intervenção e relação de redução}
+
+A operação fundamental de TinyKernel é uma transformação controlada:
+
+\[
+I:R\mapsto R'.
+\]
+
+Uma intervenção pode remover, substituir, fundir, reordenar, desativar ou alterar
+uma relação, estado, fronteira ou etapa temporal. O protocolo declara uma família de
+intervenções admissíveis $\mathcal I$.
+
+Para falar em minimalidade, o experimento também declara um critério de comparação
+$\Gamma$. Definimos:
+
+\[
+R' \prec_{\mathcal I,\Gamma} R
+\]
+
+quando existe uma intervenção admissível que transforma $R$ em $R'$ e $R'$ ocupa
+posição estritamente inferior a $R$ segundo $\Gamma$.
+
+$\Gamma$ pode expressar, conforme o experimento:
+
+\begin{itemize}
+  \item inclusão estrutural;
+  \item número de relações causais ativas;
+  \item número de estados ou processos independentes;
+  \item profundidade ou extensão de uma trajetória;
+  \item conjunto de distinções ontológicas necessárias;
+  \item outra ordem parcial definida e justificada antes da busca.
+\end{itemize}
+
+\begin{thesisbox}[Minimalidade como propriedade ordenada]
+Minimalidade é definida em relação a uma ordem explícita sobre realizações. Isso
+permite comparar estruturas sem identificar ``menor'' com linhas de código, classes,
+bytes ou preferência arquitetural.
+\end{thesisbox}
+
+% =============================================================================
+\section{Suficiência, necessidade, irredutibilidade e minimalidade}
+
+Defina o conjunto de realizações preservadoras:
+
+\[
+\mathcal S_{P,C,W,A}
+=
+\left\{
+R\in\mathcal R:
+\operatorname{Pres}(R;P,C,W,A)=1
+\right\}.
+\]
+
+Uma realização $R$ é \textbf{suficiente sob o protocolo} quando:
+
+\[
+R\in\mathcal S_{P,C,W,A}.
+\]
+
+Uma relação, parte ou distinção $e$ de $R$ possui \textbf{necessidade observada}
+quando uma intervenção comparável sobre $e$ produz uma realização $R'$ que perde a
+preservação:
+
+\[
+R' = I_e(R),
+\qquad
+\operatorname{Pres}(R)=1,
+\qquad
+\operatorname{Pres}(R')=0.
+\]
+
+Uma realização é \textbf{irredutível relativa à família de intervenções} quando toda
+redução imediatamente admissível rompe a preservação:
+
+\[
+\forall R'
+\left(
+R'\prec_{\mathcal I,\Gamma}R
+\land
+\operatorname{Cover}(R',R)
+\right)
+\Rightarrow
+R'\notin\mathcal S.
+\]
+
+O conjunto de realizações \textbf{minimais} é:
+
+\[
+\boxed{
+\mathcal M(P,C,W,A,\mathcal I,\Gamma)
+=
+\left\{
+R\in\mathcal S:
+\nexists R'\in\mathcal S
+\text{ com }
+R'\prec_{\mathcal I,\Gamma}R
+\right\}.
+}
+\]
+
+Essa formulação é central porque $\mathcal M$ pode conter uma, várias ou nenhuma
+realização sustentada pelo espaço de busca examinado.
+
+\subsection{Necessidade conjunta e redundância}
+
+Para um subconjunto $S$ de elementos ou relações:
+
+\[
+I^{-}_{S}(R)=R\setminus S.
+\]
+
+Se intervenções individuais preservam o fenômeno e uma intervenção conjunta o rompe,
+a necessidade é registrada como propriedade de uma combinação:
+
+\[
+\operatorname{Nec}(S\mid R;P,C,W,A)=1.
+\]
+
+A ontologia registra, portanto, necessidade elementar, necessidade conjunta,
+redundância e substituibilidade como relações experimentalmente distintas.
+
+% =============================================================================
+\section{Assinatura intervencional e equivalência causal}
+
+Realizações estruturalmente diferentes podem produzir o mesmo fenômeno. A comparação
+entre elas deve envolver o comportamento sob intervenções relevantes, e não apenas a
+saída basal.
+
+Para uma família de provas $\mathcal J$, definimos uma assinatura intervencional:
+
+\[
+\sigma_{\mathcal J}(R;\Phi,C)
+=
+\left\langle
+A\bigl(E_j(R),\Phi\bigr)
+\right\rangle_{j\in\mathcal J}.
+\]
+
+Duas realizações são experimentalmente equivalentes no escopo quando suas assinaturas
+coincidem sob uma correspondência declarada de intervenções e observáveis:
+
+\[
+R_1\sim_{\Phi,C,\mathcal J}R_2.
+\]
+
+A equivalência é sempre indexada ao fenômeno, ao contexto e à família de provas.
+Ela permite comparar implementações diferentes sem perder o vínculo com o que foi
+efetivamente testado.
+
+\subsection{Hipótese de Kernel como classe de equivalência}
+
+A partir do conjunto de realizações minimais, TinyKernel introduz a seguinte hipótese
+de trabalho:
+
+\begin{thesisbox}[Hipótese K]
+Um \textbf{Kernel candidato} pode ser representado por uma classe de equivalência de
+realizações minimais que compartilham uma assinatura intervencional relevante para o
+mesmo perfil constitutivo.
+\end{thesisbox}
+
+Formalmente, o espaço de Kernels candidatos pode ser escrito como:
+
+\[
+\boxed{
+\mathcal K^{\ast}(P,C)
+=
+\mathcal M(P,C,W,A,\mathcal I,\Gamma)
+\big/
+\sim_{\Phi,C,\mathcal J}
+}
+\]
+
+Essa construção desloca a atenção da implementação concreta para invariâncias
+intervencionais que sobrevivem entre realizações minimais.
+
+A unidade científica de interesse passa a ser a sequência:
+
+\[
+\boxed{
+P
+\rightarrow
+\Phi
+\rightarrow
+\mathcal S
+\rightarrow
+\mathcal M
+\rightarrow
+\mathcal K^{\ast}
+}
+\]
+
+Cada seta corresponde a uma operação explicitável, testável e versionável.
+
+% =============================================================================
+\section{Ciclo experimental TinyKernel}
+
+O ciclo básico conecta ontologia e experimento:
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=8mm,
+  box/.style={draw, rounded corners, align=center, minimum width=5.2cm,
+              minimum height=9mm, fill=TKGray},
+  arr/.style={-{Latex[length=2.4mm]}, thick, draw=TKBlue}
+]
+\node[box, fill=TKTeal!9] (phi) {\textbf{Especificar}\\$P,C,\Phi$};
+\node[box, below=of phi] (r) {\textbf{Materializar}\\realização candidata $R$};
+\node[box, below=of r] (base) {\textbf{Caracterizar baseline}\\observação + witnesses};
+\node[box, below=of base, fill=TKGold!9] (i) {\textbf{Intervir}\\$I:R\mapsto R'$};
+\node[box, below=of i] (e) {\textbf{Produzir evidência}\\$O\rightarrow W\rightarrow E$};
+\node[box, below=of e] (a) {\textbf{Adjudicar}\\$E\rightarrow A\rightarrow Q$};
+\node[box, below=of a, fill=TKGreen!9] (m) {\textbf{Atualizar espaço de hipóteses}\\$\mathcal S,\mathcal M,\mathcal K^{\ast}$};
+
+\draw[arr] (phi) -- (r);
+\draw[arr] (r) -- (base);
+\draw[arr] (base) -- (i);
+\draw[arr] (i) -- (e);
+\draw[arr] (e) -- (a);
+\draw[arr] (a) -- (m);
+\draw[arr] (m.east) .. controls +(2.0,0) and +(2.0,0) .. (phi.east);
+\end{tikzpicture}
+\end{center}
+
+O ciclo admite materialização e redução como operações complementares:
+
+\[
+\boxed{
+\text{materializar}
+\;\longleftrightarrow\;
+\text{intervir}
+\;\longleftrightarrow\;
+\text{reduzir}
+}
+\]
+
+O objetivo é tornar cada passagem justificável por uma pergunta experimental, e cada
+claim reconstruível a partir das evidências que o sustentam.
+
+% =============================================================================
+\section{Escada de força dos claims}
+
+Para impedir que uma observação local seja promovida diretamente a conclusão geral,
+TinyKernel classifica a força das alegações.
+
+\begin{longtable}{>{\bfseries}p{1.4cm}p{4.1cm}p{9.0cm}}
+\toprule
+Nível & Claim & Evidência requerida \\
+\midrule
+\endhead
+L0 & Especificação ontológica &
+$P$, $C$, $\Phi$, tipos e relações definidos e versionados. \\
+
+L1 & Observação &
+Resultado empírico reproduzível em uma condição declarada. \\
+
+L2 & Suficiência relativa &
+Realização preserva o fenômeno segundo witnesses e adjudicação preregistrados. \\
+
+L3 & Necessidade relativa &
+Intervenção controlada em uma relação ou conjunto produz perda de preservação. \\
+
+L4 & Irredutibilidade &
+Todas as reduções imediatas relevantes examinadas rompem preservação. \\
+
+L5 & Minimalidade relativa &
+Nenhuma realização preservadora inferior foi encontrada no espaço de busca e ordem
+de redução declarados. \\
+
+L6 & Equivalência causal experimental &
+Realizações minimais compartilham assinatura intervencional sob uma família de provas. \\
+
+L7 & Robustez contextual &
+A estrutura preserva a alegação em contextos adicionais previamente especificados. \\
+
+L8 & Kernel candidato &
+Classe de equivalência ou invariante causal sustentado por evidência acumulada em
+L5--L7. \\
+\bottomrule
+\end{longtable}
+
+Essa escada permite que o laboratório publique resultados fortes ou modestos sem
+confundir os respectivos alcances.
+
+% =============================================================================
+\section{O primeiro fenômeno: persistência adaptativa}
+
+TK-0001 usará um fenômeno deliberadamente pequeno e observável.
+
+\begin{thesisbox}[Fenômeno TK-0001]
+\textbf{Persistência adaptativa:}
+um sistema sofre uma experiência $E$, altera algum estado interno em função dessa
+experiência e, em uma interação posterior na qual $E$ não é reapresentada, produz um
+comportamento diferente do baseline em consequência daquela alteração persistida.
+\end{thesisbox}
+
+Um perfil constitutivo inicial pode ser:
+
+\[
+\Phi_{PA}
+=
+\left\langle
+\mathcal D_{PA},
+\mathcal L_{PA},
+\mathcal T_{PA}
+\right\rangle
+\]
+
+com:
+
+\begin{description}
+  \item[$\mathcal D_{PA}$:] estado antes/depois; experiência presente/ausente;
+  comportamento baseline/comportamento posterior;
+  \item[$\mathcal L_{PA}$:] experiência influencia alteração persistida; alteração
+  persistida influencia comportamento posterior;
+  \item[$\mathcal T_{PA}$:] a alteração ocorre após a experiência e permanece até
+  uma interação posterior sem reapresentação de $E$.
+\end{description}
+
+Uma realização inicial pode conter:
+
+\begin{lstlisting}
+estado
+-> entrada
+-> acao
+-> feedback
+-> diferenca
+-> atualizacao
+-> estado persistido
+-> interacao posterior
+\end{lstlisting}
+
+Intervenções iniciais candidatas:
+
+\begin{longtable}{p{4.0cm}p{4.8cm}p{5.3cm}}
+\toprule
+Intervenção & Previsão preregistrada & Relação investigada \\
+\midrule
+\endhead
+Remover atualização &
+A experiência deixa de alterar o estado persistido &
+Dependência entre experiência e mudança persistente \\
+
+Remover persistência &
+Mudança transitória deixa de alcançar a interação posterior &
+Restrição temporal de continuidade \\
+
+Remover feedback &
+A dinâmica pode mudar de classe ou permanecer adaptativa por outra relação &
+Papel causal do feedback nesta realização \\
+
+Substituir feedback por ruído &
+Estado pode variar sem permanecer orientado pela consequência &
+Distinção entre adaptação orientada e mutação \\
+
+Fundir estado e ação &
+Saída imediata pode persistir enquanto a trajetória explicativa se altera &
+Necessidade de estado separável para persistência causal \\
+\bottomrule
+\end{longtable}
+
+% =============================================================================
+\section{Programa experimental inicial}
+
+\begin{longtable}{p{2.1cm}p{4.2cm}p{7.8cm}}
+\toprule
+Experimento & Objeto & Pergunta \\
+\midrule
+\endhead
+TK-0000 &
+Aparato experimental &
+O ciclo especificação--baseline--intervenção--observação--evidência--adjudicação é
+reproduzível, determinístico e rastreável? \\
+
+TK-0001 &
+Persistência adaptativa &
+Quais relações preservam o perfil constitutivo de uma mudança persistente de
+comportamento após uma experiência? \\
+
+TK-0002 &
+Observabilidade &
+Como intervenções no aparato de observação alteram a confiança na adjudicação sem
+alterar necessariamente a realização? \\
+
+TK-0003 &
+Realizações alternativas &
+Realizações estruturalmente distintas podem ocupar $\mathcal M$ e compartilhar uma
+assinatura intervencional? \\
+
+TK-0004 &
+Redundância e necessidade conjunta &
+Quais relações necessárias emergem apenas em intervenções combinadas? \\
+
+TK-0005 &
+Granularidade ontológica &
+Como diferentes decomposições de uma mesma realização alteram a relação de redução e
+o conjunto de minimais? \\
+
+TK-0010 &
+Colapso de distinções &
+Quais distinções do perfil constitutivo sustentam capacidade discriminativa,
+proveniência ou atribuição causal? \\
+
+TK-0100 &
+Composição federada &
+Quais relações entre Participant, Role, Authority, Evidence e Decision permanecem
+necessárias em fenômenos controlados de composição? \\
+\bottomrule
+\end{longtable}
+
+% =============================================================================
+\section{Colapso de distinções como intervenção ontológica}
+
+Uma contribuição metodológica específica de TinyKernel é tratar a fusão de
+categorias como intervenção experimental.
+
+Considere uma distinção:
+
+\[
+d=(x_1,x_2)\in\mathcal D_P.
+\]
+
+Uma intervenção de colapso aplica um operador $\rho$ tal que:
+
+\[
+\rho(x_1)=\rho(x_2).
+\]
+
+A pergunta experimental é se essa fusão altera a preservação de $\Phi(P)$.
+Quando dois estados que o perfil exige distinguir tornam-se indistinguíveis e uma
+inferência relevante deixa de ser sustentada, registra-se perda de
+\textbf{capacidade discriminativa constitutiva}.
+
+Exemplos provenientes da linhagem TinyLogicVision incluem:
+
+\begin{lstlisting}
+support := decision_point
+preview_rgb := multispectral_tensor
+h3_cell := raster_support
+display_cell := observation_support
+\end{lstlisting}
+
+A ontologia descreve essas intervenções de forma positiva: cada distinção possui uma
+função no perfil constitutivo e pode ser submetida a um teste explícito de colapso.
+
+% =============================================================================
+\section{Versionamento ontológico e materialização computacional}
+
+TK-O evolui junto com os experimentos. Cada versão deve registrar:
+
+\begin{enumerate}
+  \item identificadores estáveis para tipos e relações;
+  \item definição textual operacional;
+  \item domínio e alcance de cada relação;
+  \item mudanças de significado entre versões;
+  \item experimentos que utilizam cada termo;
+  \item claims afetados por uma mudança ontológica;
+  \item marcadores de investigação associados.
+\end{enumerate}
+
+Uma representação computacional futura pode mapear TK-O para OWL~2, Common Logic,
+RDF/SHACL ou outra linguagem adequada. O requisito central é que a serialização
+preserve os conceitos e relações versionados no registro científico.
+
+\subsection{Forma mínima sugerida para um termo}
+
+\begin{lstlisting}
+id: TKO:Phenomenon
+label: Fenomeno
+definition: Padrao distinguivel de organizacao, capacidade,
+            relacao ou trajetoria cuja preservacao constitui
+            a pergunta experimental.
+version: 0.2.0
+relations:
+  - specified_by -> TKO:ConstitutiveProfile
+  - situated_in -> TKO:Context
+used_by:
+  - TK-0001
+status: ACTIVE
+\end{lstlisting}
+
+Essa forma aproxima documento, ontologia e execução sem transformar a ontologia em
+um artefato meramente documental.
+
+% =============================================================================
+\section{Constituição metodológica v0.2.0}
+
+\begin{enumerate}[label=\textbf{P\arabic*.}]
+  \item \textbf{Primazia do fenômeno.}
+  Toda investigação começa por um fenômeno situado e por um perfil constitutivo
+  versionado.
+
+  \item \textbf{Ontologia explícita.}
+  Tipos, relações, granularidade e critérios de identidade relevantes são declarados
+  antes da inferência sobre minimalidade.
+
+  \item \textbf{Intervenção como evidência de dependência.}
+  Necessidade e suficiência são fortalecidas por transformações controladas e
+  comparáveis.
+
+  \item \textbf{Separação epistemológica.}
+  Fenômeno, observação, witness, evidência, adjudicação e claim possuem papéis próprios
+  e proveniência conectada.
+
+  \item \textbf{Preservação multidimensional.}
+  Operação, causalidade, discriminação, observabilidade e temporalidade podem compor o
+  perfil de preservação.
+
+  \item \textbf{Minimalidade ordenada.}
+  Toda alegação de minimalidade declara a relação $\prec_{\mathcal I,\Gamma}$ que a
+  torna significativa.
+
+  \item \textbf{Pluralidade de realizações.}
+  O espaço experimental admite múltiplos elementos minimais e múltiplas classes de
+  equivalência.
+
+  \item \textbf{Interações explícitas.}
+  Dependência conjunta, redundância e substituibilidade são investigadas por
+  intervenções combinadas.
+
+  \item \textbf{Contextualidade declarada.}
+  Claims carregam o contexto, o protocolo e a força inferencial que delimitam seu
+  alcance.
+
+  \item \textbf{Preregistro e história experimental.}
+  Previsões, intervenções, critérios e resultados são registrados de forma imutável
+  por experimento.
+
+  \item \textbf{Evolução ontológica versionada.}
+  Mudanças de conceito ou relação geram nova versão e preservam impacto sobre
+  experimentos anteriores.
+
+  \item \textbf{Transferência por revalidação.}
+  Aplicação a outro domínio começa por mapear fenômeno, contexto e relações e por
+  produzir evidência própria no destino.
+\end{enumerate}
+
+% =============================================================================
+\section{Transferência para Sister e outros domínios}
+
+A transferência de resultados de TinyKernel é tratada como uma nova hipótese de
+correspondência ontológica.
+
+Uma transferência deve declarar:
+
+\begin{enumerate}
+  \item o perfil constitutivo no domínio de origem;
+  \item o contexto e a família de intervenções de origem;
+  \item a estrutura ou classe minimal sustentada;
+  \item o mapeamento ontológico proposto para o domínio de destino;
+  \item as relações preservadas pelo mapeamento;
+  \item os witnesses e critérios de adjudicação do destino;
+  \item o experimento capaz de sustentar ou refinar a transferência.
+\end{enumerate}
+
+Para Sister, exemplos futuros incluem relações entre:
+
+\begin{lstlisting}
+Participant
+Role
+Authority
+Evidence
+Decision
+Binding
+Artifact
+Provenance
+\end{lstlisting}
+
+O objetivo será testar quais distinções e dependências são constitutivas de fenômenos
+controlados de identidade, autoridade, decisão e composição federada.
+
+% =============================================================================
+\section{Marcadores de investigação}
+
+\begin{markerbox}[TK-MARKER-001 — Critério de identidade do fenômeno | OPEN]
+Comparar perfis constitutivos alternativos para o mesmo domínio e determinar quais
+mudanças configuram refinamento de $\Phi$ e quais configuram um novo fenômeno
+experimental.
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-002 — Ordem de redução | OPEN]
+Investigar quais ordens parciais $\Gamma$ permitem comparar realizações sem tornar a
+minimalidade um reflexo arbitrário da decomposição escolhida.
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-003 — Granularidade ontológica | OPEN]
+Determinar como funções, estados, relações, fronteiras, informação e distinções
+semânticas podem ocupar unidades comparáveis de intervenção.
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-004 — Assinatura intervencional | OPEN]
+Definir condições suficientes para que duas realizações minimais sejam tratadas como
+causalmente equivalentes sob uma família de provas.
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-005 — Fenômenos temporais | OPEN]
+Formalizar perfis em que identidade depende de trajetória e ordem legítima das
+transições, permitindo investigar estruturas minimais de continuidade dinâmica.
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-006 — Capacidade discriminativa | OPEN]
+Relacionar colapso de distinções a perda mensurável de inferência, proveniência,
+atribuição ou decisão sem reduzir semântica a mera equivalência de valores.
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-007 — Cobertura do espaço de busca | OPEN]
+Definir como registrar a extensão efetivamente explorada de $\mathcal R$ e distinguir
+minimalidade sustentada no espaço examinado de alegações de cobertura mais ampla.
+\end{markerbox}
+
+\begin{markerbox}[TK-MARKER-008 — Robustez entre contextos | OPEN]
+Investigar como classes de equivalência e invariantes causais se transformam quando o
+contexto muda de $C_1$ para $C_2$.
+\end{markerbox}
+
+% =============================================================================
+\section{Estado operacional do programa}
+
+O primeiro estado executável deve materializar apenas o aparato necessário a TK-0000.
+A estrutura inicial pode permanecer austera:
+
+\begin{lstlisting}
+TinyKernel/
+|-- CMakeLists.txt
+|-- README.md
+|-- bin/
+|   `-- tinykernel
+|-- ontology/
+|   `-- TK-O-0.2.0.yaml
+|-- src/
+|-- tests/
+`-- experiments/
+    |-- TK-0000/
+    |   |-- question.md
+    |   |-- preregistration.md
+    |   `-- result.md
+    `-- TK-0001/
+        |-- question.md
+        |-- preregistration.md
+        `-- result.md
+\end{lstlisting}
+
+O primeiro executável precisa suportar somente a superfície necessária para:
+
+\begin{lstlisting}
+./bin/tinykernel verify
+./bin/tinykernel experiment TK-0000
+\end{lstlisting}
+
+TK-0000 deverá produzir um caminho completo e reproduzível entre especificação,
+realização, intervenção, observação, evidência e adjudicação antes de qualquer claim
+de minimalidade.
+
+% =============================================================================
+\section{\texorpdfstring{READY $\neq$ COMPLETE}{READY != COMPLETE}}
+
+A disciplina de desenvolvimento acompanha a disciplina epistemológica.
+
+\subsection{READY}
+
+Um estado publicável possui:
+
+\begin{lstlisting}
+HEAD compila
+HEAD executa
+HEAD verifica
+ontologia usada pelo experimento esta versionada
+experimentos publicados sao reproduziveis
+witnesses e regras de adjudicacao sao explicitos
+claims apontam para evidencia e escopo
+\end{lstlisting}
+
+\subsection{INCOMPLETE}
+
+Um estado científico permanece aberto a:
+
+\begin{lstlisting}
+novos contextos
+novas realizacoes
+novas intervencoes
+novas granularidades
+novos witnesses
+novas classes minimais
+revisoes ontologicas versionadas
+\end{lstlisting}
+
+\begin{thesisbox}[Invariante de projeto]
+Completude operacional significa que o estado atual pode ser executado e auditado.
+Abertura epistemológica significa que novas evidências podem ampliar ou reorganizar a
+ontologia e o espaço de hipóteses sem apagar a história experimental.
+\end{thesisbox}
+
+% =============================================================================
+\section{Síntese}
+
+TinyKernel organiza a investigação da minimalidade causal de realização como uma
+sequência explícita:
+
+\[
+\boxed{
+\begin{aligned}
+\text{fenômeno} &\rightarrow \text{perfil constitutivo} \rightarrow \text{realizações} \rightarrow \text{intervenções} \\n&\rightarrow \text{evidências} \rightarrow \text{ordem de redução} \rightarrow \text{minimais} \\n&\rightarrow \text{equivalência causal}
+\end{aligned}
+}
+\]
+
+O conceito de Kernel adquire, nesse quadro, uma forma precisa e experimentalmente
+progressiva: uma classe candidata de realizações minimais cuja equivalência é
+sustentada por assinaturas intervencionais relevantes para o mesmo fenômeno.
+
+A ontologia torna explícito \emph{o que existe no universo experimental}; o protocolo
+determina \emph{como essas entidades e relações podem ser perturbadas}; o aparato de
+observação determina \emph{que evidência é produzida}; e a escada de claims determina
+\emph{quão forte pode ser a inferência resultante}.
+
+Essa integração entre ontologia, intervenção e evidência constitui a base científica
+do programa TinyKernel.
+
+\vspace{0.8cm}
+
+\begin{center}
+{\sffamily\Large\bfseries\color{TKBlue}
+Sempre pronto. Sempre incompleto.}
+\end{center}
+
+% =============================================================================
+\appendix
+
+\section{Registro de proveniência da revisão v0.2.0}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}p{4.1cm}X}
+\toprule
+Versão de origem & TK-FND-00 v0.1.0 \\
+Data da revisão & 09/09/2026 \\
+Mudança estrutural & Reorganização do documento em torno de uma ontologia operacional e
+de uma cadeia formal entre fenômeno, realização, intervenção, observação, evidência e claim \\
+Mudança formal & Introdução de $\Phi(P)$, da relação de redução
+$\prec_{\mathcal I,\Gamma}$, do conjunto $\mathcal M$ de realizações minimais e do
+quociente experimental $\mathcal K^{\ast}=\mathcal M/\sim$ \\
+Mudança epistemológica & Introdução de escada L0--L8 para graduar a força dos claims \\
+Mudança semântica & Reformulação de ruptura semântica como perda de capacidade
+discriminativa constitutiva sob colapso de distinções \\
+Mudança metodológica & Ontologia TK-O passa a ser versionada junto com experimentos e claims \\
+Literatura adicionada & causalidade interventional, mecanismos, causal abstraction,
+causal discovery e governança contemporânea de ontologias \\
+Próximo estado & Preregistro de TK-0000 e materialização mínima de TK-O em formato legível por máquina \\
+\bottomrule
+\end{tabularx}
+
+\section{Histórico de versões}
+
+\begin{longtable}{p{2.0cm}p{2.7cm}p{9.7cm}}
+\toprule
+Versão & Data & Mudança \\
+\midrule
+\endhead
+0.1.0 & 09/09/2026 &
+Primeiro registro fundador: minimalidade causal, witness, irredutibilidade,
+intervenções, pluralidade de realizações, constituição P1--P12 e programa inicial. \\
+
+0.2.0 & 09/09/2026 &
+Revisão ontológica: define TK-O; introduz perfil constitutivo, ordem explícita de
+redução, conjunto de minimais, assinatura intervencional, equivalência causal,
+hipótese de Kernel como classe de equivalência, escada de claims e literatura de
+enquadramento. \\
+\bottomrule
+\end{longtable}
+
+\section{Referências}
+
+\begin{thebibliography}{99}
+
+\bibitem{pearl2009}
+Pearl, J. (2009).
+\emph{Causality: Models, Reasoning, and Inference}.
+2nd ed. Cambridge University Press.
+
+\bibitem{woodward2003}
+Woodward, J. (2003).
+\emph{Making Things Happen: A Theory of Causal Explanation}.
+Oxford University Press.
+\href{https://doi.org/10.1093/0195155270.001.0001}{doi:10.1093/0195155270.001.0001}.
+
+\bibitem{machamer2000}
+Machamer, P.; Darden, L.; Craver, C. F. (2000).
+Thinking about mechanisms.
+\emph{Philosophy of Science}, 67(1), 1--25.
+\href{https://doi.org/10.1086/392759}{doi:10.1086/392759}.
+
+\bibitem{spirtes2001}
+Spirtes, P.; Glymour, C.; Scheines, R. (2001).
+\emph{Causation, Prediction, and Search}.
+2nd ed. MIT Press.
+\href{https://doi.org/10.7551/mitpress/1754.001.0001}{doi:10.7551/mitpress/1754.001.0001}.
+
+\bibitem{peters2017}
+Peters, J.; Janzing, D.; Schölkopf, B. (2017).
+\emph{Elements of Causal Inference: Foundations and Learning Algorithms}.
+MIT Press.
+
+\bibitem{rubenstein2017}
+Rubenstein, P. K.; Weichwald, S.; Bongers, S.; Mooij, J. M.; Janzing, D.;
+Grosse-Wentrup, M.; Schölkopf, B. (2017).
+Causal consistency of structural equation models.
+\emph{Proceedings of the 33rd Conference on Uncertainty in Artificial Intelligence
+(UAI 2017)}, paper 11.
+
+\bibitem{beckers2019}
+Beckers, S.; Halpern, J. Y. (2019).
+Abstracting causal models.
+\emph{Proceedings of the AAAI Conference on Artificial Intelligence}, 33(01),
+2678--2685.
+\href{https://doi.org/10.1609/aaai.v33i01.33012678}{doi:10.1609/aaai.v33i01.33012678}.
+
+\bibitem{geiger2021}
+Geiger, A.; Lu, H.; Icard, T.; Potts, C. (2021).
+Causal abstractions of neural networks.
+\emph{arXiv:2106.02997}.
+
+\bibitem{iso21838bfo}
+ISO/IEC (2021).
+\emph{ISO/IEC 21838-2:2021 — Information technology — Top-level ontologies (TLO) —
+Part 2: Basic Formal Ontology (BFO)}.
+International Organization for Standardization.
+
+\bibitem{obofoundry2021}
+Vita, R.; Balhoff, J. P.; et al. (2021).
+OBO Foundry in 2021: operationalizing open data principles to evaluate ontologies.
+\emph{Database}, 2021, baab069.
+\href{https://doi.org/10.1093/database/baab069}{doi:10.1093/database/baab069}.
+
+\end{thebibliography}
+
+\end{document}
+
