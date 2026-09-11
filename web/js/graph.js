@@ -84,11 +84,40 @@ class TkCausalGraph {
       };
     });
 
+    // Planned interventions are rendered as translucent possible worlds. They
+    // are projections only: no realization or evidence is created here.
+    const planned = interventions.filter(itv => itv.status !== "performed");
+    const possibleTargets = new Map();
+    const possibilityColumns = Math.max(1, Math.floor(width / 190));
+    const possibilityRows = Math.ceil(planned.length / possibilityColumns);
+    planned.forEach((itv, index) => {
+      const source = realizations.find(r => r.id === itv.source) || realizations[0];
+      const components = source ? [...(source.components || [])] : [];
+      const targetIndex = components.indexOf(itv.target_component);
+      if ((itv.kind === "remove" || itv.kind === "disable") && targetIndex >= 0) components.splice(targetIndex, 1);
+      if (itv.kind === "replace" && targetIndex >= 0) components[targetIndex] = itv.replacement_component || `${itv.target_component}_replacement`;
+      const possibleId = `possibility:${itv.id}`;
+      possibleTargets.set(itv.id, possibleId);
+      this.nodes.push({
+        id: possibleId,
+        label: `${itv.kind}(${itv.target_component || "?"})`,
+        components,
+        complexity: components.length,
+        outcome: "possible",
+        possible: true,
+        x: 10 + (index % possibilityColumns) * Math.floor(width / possibilityColumns),
+        y: Math.max(15, height - (possibilityRows - Math.floor(index / possibilityColumns)) * 66),
+        width: Math.min(174, Math.floor(width / possibilityColumns) - 18),
+        height: 56,
+        raw: { ...itv, _possibility: true }
+      });
+    });
+
     this.edges = interventions.map((itv) => ({
       id: itv.id,
       kind: itv.kind,
       source: itv.source,
-      target: itv.target,
+      target: itv.status === "performed" ? itv.target : possibleTargets.get(itv.id),
       prediction: itv.prediction,
       status: itv.status,
       target_component: itv.target_component,
@@ -106,8 +135,6 @@ class TkCausalGraph {
 
     // 1. Render Edges (Interventions)
     this.edges.forEach((edge) => {
-      if (edge.status !== "performed") return;
-
       const srcNode = this.nodes.find(n => n.id === edge.source);
       const tgtNode = this.nodes.find(n => n.id === edge.target);
       if (!srcNode || !tgtNode) return;
@@ -127,10 +154,12 @@ class TkCausalGraph {
       const d = `M ${sx} ${sy} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${tx} ${ty}`;
       path.setAttribute("d", d);
       path.setAttribute("fill", "none");
-      path.setAttribute("stroke", edge.prediction === "BROKEN_CAUSAL" ? "#f87171" : "#38bdf8");
+      const isPossible = edge.status !== "performed";
+      path.setAttribute("stroke", isPossible ? "#a78bfa" : (edge.prediction === "BROKEN_CAUSAL" ? "#f87171" : "#38bdf8"));
       path.setAttribute("stroke-width", "2.5");
-      path.setAttribute("stroke-dasharray", edge.prediction === "BROKEN_CAUSAL" ? "5,3" : "none");
-      path.setAttribute("marker-end", edge.prediction === "BROKEN_CAUSAL" ? "url(#arrow-ruptured)" : "url(#arrow)");
+      path.setAttribute("stroke-dasharray", isPossible ? "3,6" : (edge.prediction === "BROKEN_CAUSAL" ? "5,3" : "none"));
+      path.setAttribute("opacity", isPossible ? "0.62" : "1");
+      path.setAttribute("marker-end", isPossible ? "" : (edge.prediction === "BROKEN_CAUSAL" ? "url(#arrow-ruptured)" : "url(#arrow)"));
       path.style.transition = "stroke 0.2s";
       this.edgeGroup.appendChild(path);
 
@@ -180,6 +209,9 @@ class TkCausalGraph {
       const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
       g.setAttribute("class", "graph-node");
       g.setAttribute("transform", `translate(${node.x}, ${node.y})`);
+      g.setAttribute("role", "button");
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("aria-label", node.possible ? `Mundo possível: ${node.label}` : `Realização: ${node.label}`);
       g.style.cursor = "move";
 
       const isSelected = this.selectedId === node.id;
@@ -192,12 +224,14 @@ class TkCausalGraph {
       rect.setAttribute("height", node.height);
       rect.setAttribute("rx", "10");
       
-      const bgColor = isPreserved ? "rgba(29, 80, 65, 0.88)" : (isRuptured ? "rgba(101, 57, 56, 0.88)" : "rgba(30, 41, 59, 0.85)");
-      const borderColor = isSelected ? "#38bdf8" : (isPreserved ? "#34d399" : (isRuptured ? "#f87171" : "rgba(148, 163, 184, 0.3)"));
+      const isPossible = node.possible;
+      const bgColor = isPossible ? "rgba(76, 29, 149, 0.18)" : (isPreserved ? "rgba(29, 80, 65, 0.88)" : (isRuptured ? "rgba(101, 57, 56, 0.88)" : "rgba(30, 41, 59, 0.85)"));
+      const borderColor = isSelected ? "#38bdf8" : (isPossible ? "#a78bfa" : (isPreserved ? "#34d399" : (isRuptured ? "#f87171" : "rgba(148, 163, 184, 0.3)")));
 
       rect.setAttribute("fill", bgColor);
       rect.setAttribute("stroke", borderColor);
       rect.setAttribute("stroke-width", isSelected ? "2.5" : "1.2");
+      if (isPossible) rect.setAttribute("stroke-dasharray", "5,4");
       if (isSelected) rect.setAttribute("filter", "url(#glow)");
       g.appendChild(rect);
 
@@ -224,8 +258,8 @@ class TkCausalGraph {
 
       // Outcome Badge Pill
       const badgeY = 52;
-      const statusText = isPreserved ? "PRESERVED" : (isRuptured ? "RUPTURED" : "PENDING");
-      const statusColor = isPreserved ? "#34d399" : (isRuptured ? "#f87171" : "#94a3b8");
+      const statusText = isPossible ? "POSSÍVEL" : (isPreserved ? "PRESERVED" : (isRuptured ? "RUPTURED" : "PENDING"));
+      const statusColor = isPossible ? "#c4b5fd" : (isPreserved ? "#34d399" : (isRuptured ? "#f87171" : "#94a3b8"));
 
       const statusTag = document.createElementNS("http://www.w3.org/2000/svg", "text");
       statusTag.setAttribute("x", "14");
@@ -256,6 +290,12 @@ class TkCausalGraph {
         this.dragOffset.x = (e.clientX - rectBound.left) - node.x;
         this.dragOffset.y = (e.clientY - rectBound.top) - node.y;
         this.select(node.id, node.raw);
+      });
+      g.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          this.select(node.id, node.raw);
+        }
       });
 
       this.nodeGroup.appendChild(g);

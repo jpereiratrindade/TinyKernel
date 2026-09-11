@@ -119,6 +119,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function renderLabHome() {
     try {
       const studies = await window.tkEngine.getAllStudies();
+      renderRuntimeStatus();
 
       // Global Stats
       let totalEvidence = 0;
@@ -235,6 +236,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     state.activeStudy = await window.tkEngine.getStudy(studyId);
     state.selectedEntity = null;
     state.activeRunId = state.activeStudy && state.activeStudy.runs && state.activeStudy.runs.length ? state.activeStudy.runs[0].id : null;
+    window.history.replaceState(null, "", `#study/${encodeURIComponent(studyId)}`);
     switchView("workbench");
   }
 
@@ -395,11 +397,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         data.baselineComponents = ["sensor", "integrator", "threshold", "actuator"];
       }
 
-      const newStudy = await window.tkEngine.createGenericStudy(data);
-      window.tkEngine.saveStudy(newStudy);
-
-      btnWizNext.disabled = false;
-      openStudyWorkbench(newStudy.investigation.id);
+      try {
+        const newStudy = await window.tkEngine.createGenericStudy(data);
+        await window.tkEngine.persistStudy(newStudy);
+        await openStudyWorkbench(newStudy.investigation.id);
+      } catch (error) {
+        alert(`Não foi possível criar a investigação: ${error.message}`);
+      } finally {
+        btnWizNext.disabled = false;
+        btnWizNext.textContent = "Executar & Abrir Investigação";
+      }
     }
   });
 
@@ -409,6 +416,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function renderWorkbench() {
     if (!state.activeStudy) return;
     const s = state.activeStudy;
+    renderRuntimeStatus();
 
     document.getElementById("workbench-investigation-title").textContent = `${s.investigation.id} — ${s.investigation.title || s.phenomenon.name}`;
     
@@ -417,9 +425,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     workbenchStatusBadge.className = `card-status-badge ${invStatus}`;
     workbenchStatusBadge.textContent = invStatus.toUpperCase();
 
-    // Delete Button (only for custom investigations, not canonical TK-0000 / TK-0001)
+    // Core studies contain sealed structural evidence and cannot be deleted.
+    // The action remains available only to non-canonical local fallback drafts.
     if (btnWorkbenchDelete) {
-      if (s.investigation.id !== "TK-0000" && s.investigation.id !== "TK-0001") {
+      if (s.runtime_source !== "libtinykernel" &&
+          s.investigation.id !== "TK-0000" && s.investigation.id !== "TK-0001" &&
+          s.investigation.id !== "TK-SAIT-001") {
         btnWorkbenchDelete.style.display = "inline-flex";
       } else {
         btnWorkbenchDelete.style.display = "none";
@@ -427,6 +438,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     renderStats();
+    renderInvestigationDesk();
     renderPhenomenon();
     renderGraph();
     renderFrontierDock();
@@ -434,6 +446,113 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderClaims();
     renderFrontierAnalysis();
     renderInspector(state.selectedEntity ? state.selectedEntity.id : null, state.selectedEntity ? state.selectedEntity.data : null);
+  }
+
+  function renderRuntimeStatus() {
+    const badge = document.getElementById("runtime-status");
+    const label = document.getElementById("runtime-status-text");
+    const connected = window.tkEngine.apiAvailable === true;
+    badge.classList.toggle("connected", connected);
+    badge.classList.toggle("local", !connected);
+    label.textContent = connected ? "CORE C++ • READY" : "MODO LOCAL • READY";
+    badge.title = connected
+      ? "Referências canônicas carregadas do libtinykernel via API local"
+      : "Núcleo local indisponível; referências embarcadas no navegador";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function renderInvestigationDesk(preferredIntervention) {
+    const s = state.activeStudy;
+    const workflow = window.tkEngine.analyzeWorkflow(s);
+    const rail = document.getElementById("workflow-phase-rail");
+    const phaseLabels = ["Formulada", "Materializada", "Observada", "Adjudicada", "Inferida"];
+    rail.innerHTML = workflow.phases.map((phase, index) => {
+      const stateClass = index < workflow.current_phase_index ? "complete" : (index === workflow.current_phase_index ? "active" : "");
+      return `<span class="phase-step ${stateClass}" data-phase="${phase}">${phaseLabels[index]}</span>`;
+    }).join("");
+
+    document.getElementById("workflow-phase-caption").textContent =
+      `Baseline ${workflow.completeness.baseline.observed}/${workflow.completeness.baseline.total} • ` +
+      `${workflow.completeness.performed_interventions} intervenções materializadas • ` +
+      `${workflow.completeness.planned_interventions} possibilidades abertas`;
+    document.getElementById("workflow-action-title").textContent = workflow.action.title;
+    document.getElementById("workflow-action-reason").textContent = workflow.action.reason;
+    document.getElementById("workflow-blockers").innerHTML = workflow.action.blockers
+      .map(blocker => `<span class="blocker-chip">${escapeHtml(blocker)}</span>`).join("");
+
+    const actionButton = document.getElementById("btn-workflow-action");
+    const actionLabels = {
+      formulate: "Definir baseline",
+      observe: "Registrar próxima observação",
+      adjudicate: "Adjudicar agora",
+      infer: "Inferir claims",
+      materialize: "Examinar possibilidade",
+      complete: "Inspecionar fronteira"
+    };
+    actionButton.textContent = actionLabels[workflow.action.type] || "Continuar investigação";
+    actionButton.disabled = workflow.action.type === "formulate";
+    actionButton.onclick = () => {
+      if (workflow.action.type === "observe") {
+        btnWorkbenchNewObservation.click();
+        modalObsRealization.value = workflow.action.target_realization_id || modalObsRealization.value;
+        modalObsDimension.value = workflow.action.target_dimension || modalObsDimension.value;
+      } else if (workflow.action.type === "adjudicate") {
+        btnWorkbenchAdjudicate.click();
+      } else if (workflow.action.type === "infer") {
+        btnWorkbenchInfer.click();
+      } else if (workflow.action.type === "materialize") {
+        const itv = s.interventions.find(item => item.id === workflow.action.intervention_id);
+        if (itv) {
+          renderCounterfactual(itv);
+          state.graph.select(`possibility:${itv.id}`, { ...itv, _possibility: true });
+        }
+      } else {
+        document.getElementById("frontier-analysis-container")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    };
+
+    let intervention = preferredIntervention;
+    if (!intervention || intervention.status === "performed") {
+      intervention = window.tkEngine.rankInterventions(s)[0]?.intervention;
+    }
+    renderCounterfactual(intervention);
+  }
+
+  function renderCounterfactual(intervention) {
+    const container = document.getElementById("counterfactual-preview");
+    const preview = intervention && window.tkEngine.previewIntervention(state.activeStudy, intervention);
+    if (!preview) {
+      container.textContent = "Não há mundos possíveis preregistrados para comparar.";
+      return;
+    }
+    const impacted = preview.affected_claims.length
+      ? `${preview.affected_claims.length} claim(s) diretamente relacionado(s)`
+      : "amplia a cobertura da fronteira";
+    container.innerHTML = `
+      <div class="counterfactual-worlds">
+        <div class="counterfactual-world">
+          <div class="counterfactual-label">Agora · ${escapeHtml(preview.source.label || preview.source.id)}</div>
+          <div class="counterfactual-components" title="${escapeHtml(preview.before.join(" · "))}">${preview.before.map(escapeHtml).join(" · ")}</div>
+        </div>
+        <div class="counterfactual-operator">${escapeHtml(preview.intervention.kind)}<br>→</div>
+        <div class="counterfactual-world future">
+          <div class="counterfactual-label">Possível · ainda não observado</div>
+          <div class="counterfactual-components" title="${escapeHtml(preview.after.join(" · "))}">${preview.after.map(escapeHtml).join(" · ")}</div>
+        </div>
+      </div>
+      <div class="counterfactual-impact">Δ ${escapeHtml(preview.removed.join(", ") || preview.added.join(", ") || "estrutura perturbada")} • ${escapeHtml(impacted)}</div>
+      ${preview.intervention.status !== "performed" ? `<button class="btn btn-sm" id="btn-materialize-preview" type="button" style="margin-top: 0.55rem;">Materializar este mundo possível</button>` : ''}
+    `;
+    const materializeButton = document.getElementById("btn-materialize-preview");
+    if (materializeButton) materializeButton.onclick = () => openMaterializeInterventionModal(preview.intervention);
   }
 
   function renderStats() {
@@ -686,6 +805,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let detailsHtml = "";
     if (entity.level) {
+      const explanation = window.tkEngine.explainClaim(s, entity);
       detailsHtml = `
         <div class="inspector-card">
           <h4>Claim: ${entity.id}</h4>
@@ -695,6 +815,15 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div><strong>Status:</strong> <span class="claim-status ${entity.status === 'supported' ? 'supported' : 'open'}">${entity.status.toUpperCase()}</span></div>
           <div><strong>Limitações:</strong> ${entity.limitations || "Nenhuma declarada"}</div>
           <div style="margin-top: 0.4rem;"><strong>Testemunhas / Escopo:</strong> ${(entity.witness_scope || []).join(", ") || "Nenhuma"}</div>
+          <div style="margin-top: 0.7rem;"><strong>Rastro epistemológico:</strong></div>
+          <div class="epistemic-trace">
+            ${(explanation?.steps || []).map(step => `
+              <div class="trace-step ${step.passed ? 'pass' : 'blocked'}">
+                <span>${step.passed ? '✓' : '○'}</span><span>${escapeHtml(step.label)}</span>
+              </div>
+            `).join("")}
+          </div>
+          ${explanation?.next_blocker ? `<div class="callout-box warning" style="margin-top: 0.7rem;"><strong>Próximo bloqueio</strong>${escapeHtml(explanation.next_blocker)}</div>` : ''}
         </div>
       `;
     } else if (entity.kind) {
@@ -737,6 +866,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function handleEntitySelection(id, entity) {
     state.selectedEntity = { id, data: entity };
+    if (entity && entity._possibility) renderCounterfactual(entity);
     renderInspector(id, entity);
   }
 
@@ -834,19 +964,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!targetComp) return;
 
-    await window.tkEngine.applyIntervention(state.activeStudy, {
-      planned_id: plannedId,
-      source: sourceId,
-      kind: kind,
-      target_component: targetComp,
-      replacement_component: replComp,
-      execution_type: execType,
-      protocol: protocol
-    });
-
-    window.tkEngine.saveStudy(state.activeStudy);
-    modalAddIntervention.classList.remove("active");
-    renderWorkbench();
+    try {
+      await window.tkEngine.applyIntervention(state.activeStudy, {
+        planned_id: plannedId,
+        source: sourceId,
+        kind: kind,
+        target_component: targetComp,
+        replacement_component: replComp,
+        execution_type: execType,
+        protocol: protocol
+      });
+      window.tkEngine.saveStudy(state.activeStudy);
+      modalAddIntervention.classList.remove("active");
+      renderWorkbench();
+    } catch (error) {
+      alert(`Não foi possível materializar a intervenção: ${error.message}`);
+    }
   });
 
   btnCloseModalIntervention.addEventListener("click", () => modalAddIntervention.classList.remove("active"));
@@ -878,16 +1011,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     const satisfied = modalObsStatus.value === "true";
     const trace = modalObsTrace.value.trim() || `measurement_status=${satisfied}; timestamp=${new Date().toISOString()}`;
 
-    await window.tkEngine.injectEmpiricalObservation(state.activeStudy, {
-      realization_id: realizationId,
-      dimension: dimension,
-      satisfied: satisfied,
-      trace: trace
-    });
-
-    window.tkEngine.saveStudy(state.activeStudy);
-    modalAddObservation.classList.remove("active");
-    renderWorkbench();
+    try {
+      await window.tkEngine.injectEmpiricalObservation(state.activeStudy, {
+        realization_id: realizationId,
+        dimension: dimension,
+        satisfied: satisfied,
+        trace: trace
+      });
+      window.tkEngine.saveStudy(state.activeStudy);
+      modalAddObservation.classList.remove("active");
+      renderWorkbench();
+    } catch (error) {
+      alert(`Não foi possível registrar a observação: ${error.message}`);
+    }
   });
 
   btnCloseModalObservation.addEventListener("click", () => modalAddObservation.classList.remove("active"));
@@ -901,15 +1037,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnWorkbenchAdjudicate.disabled = true;
     btnWorkbenchAdjudicate.textContent = "Adjudicando...";
 
-    await window.tkEngine.adjudicateWitnesses(state.activeStudy);
-    window.tkEngine.saveStudy(state.activeStudy);
-
-    const adjCount = (state.activeStudy.adjudications || []).length;
-    alert(`Adjudicação concluída! ${adjCount} realização(ões) adjudicada(s). Os claims continuam abertos até a etapa de inferência.`);
-
-    btnWorkbenchAdjudicate.disabled = false;
-    btnWorkbenchAdjudicate.textContent = "⚖ Adjudicar Witnesses";
-    renderWorkbench();
+    try {
+      await window.tkEngine.adjudicateWitnesses(state.activeStudy);
+      window.tkEngine.saveStudy(state.activeStudy);
+      const adjCount = (state.activeStudy.adjudications || []).length;
+      alert(`Adjudicação concluída! ${adjCount} realização(ões) adjudicada(s). Os claims continuam abertos até a etapa de inferência.`);
+      renderWorkbench();
+    } catch (error) {
+      alert(`Falha na adjudicação: ${error.message}`);
+    } finally {
+      btnWorkbenchAdjudicate.disabled = false;
+      btnWorkbenchAdjudicate.textContent = "⚖ Adjudicar Witnesses";
+    }
   });
 
   // ========================================================
@@ -921,15 +1060,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       btnWorkbenchInfer.disabled = true;
       btnWorkbenchInfer.textContent = "Inferindo...";
 
-      await window.tkEngine.inferClaims(state.activeStudy);
-      window.tkEngine.saveStudy(state.activeStudy);
-
-      const supported = state.activeStudy.claims.filter(c => c.status === "supported").length;
-      alert(`Inferência concluída! ${supported}/${state.activeStudy.claims.length} claims sustentados formalmente por evidência empírica.`);
-
-      btnWorkbenchInfer.disabled = false;
-      btnWorkbenchInfer.textContent = "⚡ Inferir Claims";
-      renderWorkbench();
+      try {
+        await window.tkEngine.inferClaims(state.activeStudy);
+        window.tkEngine.saveStudy(state.activeStudy);
+        const supported = state.activeStudy.claims.filter(c => c.status === "supported").length;
+        alert(`Inferência concluída! ${supported}/${state.activeStudy.claims.length} claims sustentados formalmente por evidência empírica.`);
+        renderWorkbench();
+      } catch (error) {
+        alert(`Falha na inferência: ${error.message}`);
+      } finally {
+        btnWorkbenchInfer.disabled = false;
+        btnWorkbenchInfer.textContent = "⚡ Inferir Claims";
+      }
     });
   }
 
@@ -943,11 +1085,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnHeroOpenCanonical.addEventListener("click", () => openStudyWorkbench("TK-0001"));
 
   if (btnWorkbenchDelete) {
-    btnWorkbenchDelete.addEventListener("click", () => {
+    btnWorkbenchDelete.addEventListener("click", async () => {
       if (!state.activeStudyId) return;
       if (confirm(`Tem certeza que deseja excluir a investigação ${state.activeStudyId}?`)) {
         try {
-          window.tkEngine.deleteStudy(state.activeStudyId);
+          await window.tkEngine.deleteStudy(state.activeStudyId, state.activeStudy);
           alert(`Investigação ${state.activeStudyId} excluída.`);
           switchView("lab-home");
         } catch (err) {
@@ -1028,15 +1170,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const parsed = JSON.parse(event.target.result);
         if (parsed.studies && Array.isArray(parsed.studies)) {
-          parsed.studies.forEach(s => window.tkEngine.saveStudy(s));
+          for (const study of parsed.studies) await window.tkEngine.persistStudy(study);
           alert(`Workspace com ${parsed.studies.length} investigações importado com sucesso!`);
           renderLabHome();
         } else if (parsed.investigation && parsed.investigation.id) {
-          window.tkEngine.saveStudy(parsed);
+          await window.tkEngine.persistStudy(parsed);
           alert(`Investigação ${parsed.investigation.id} importada com sucesso!`);
           openStudyWorkbench(parsed.investigation.id);
         } else {
@@ -1054,6 +1196,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (e.target === modalOverlay) modalOverlay.classList.remove("active");
   });
 
-  // Initial Route -> Lab Home
-  switchView("lab-home");
+  // Deep links make an investigation a navigable object, while the catalog
+  // remains the safe fallback for invalid or missing study identifiers.
+  const deepLink = window.location.hash.match(/^#study\/(.+)$/);
+  if (deepLink) {
+    const studyId = decodeURIComponent(deepLink[1]);
+    const study = await window.tkEngine.getStudy(studyId);
+    if (study) await openStudyWorkbench(studyId);
+    else switchView("lab-home");
+  } else {
+    switchView("lab-home");
+  }
 });

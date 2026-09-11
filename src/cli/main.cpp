@@ -1,6 +1,7 @@
 #include "tinykernel/causal/engine.hpp"
 #include "tinykernel/evidence/digest.hpp"
 #include "tinykernel/experiment/laboratory.hpp"
+#include "tinykernel/experiment/workflow.hpp"
 #include "tinykernel/knowledge/analysis.hpp"
 #include "tinykernel/persistence/repository.hpp"
 #include "tinykernel/version.hpp"
@@ -8,17 +9,16 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+#include <map>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-#ifdef __linux__
-#include <unistd.h>
-#endif
-
 namespace {
 
 using tinykernel::ontology::ClaimStatus;
+using Form = std::map<std::string, std::vector<std::string>, std::less<>>;
 
 struct Arguments {
   std::vector<std::string> positional;
@@ -48,7 +48,64 @@ std::filesystem::path database_path(const Arguments &arguments) {
 void usage() {
   std::cout << "TinyKernel " << tinykernel::version << "\n"
       << "usage: tinykernel [--workspace PATH] [--json] COMMAND [ARG]\n"
-      << "commands: version, verify, init, list, show, run, experiment, frontier, claims, export, gui\n";
+      << "commands: version, verify, init, list, show, run, experiment, create, materialize, observe, adjudicate, infer, delete, frontier, claims, export\n";
+}
+
+int hex_digit(const char value) {
+  if (value >= '0' && value <= '9') return value - '0';
+  if (value >= 'a' && value <= 'f') return value - 'a' + 10;
+  if (value >= 'A' && value <= 'F') return value - 'A' + 10;
+  return -1;
+}
+
+std::string url_decode(const std::string &value) {
+  std::string result;
+  for (std::size_t index = 0; index < value.size(); ++index) {
+    if (value[index] == '+') result.push_back(' ');
+    else if (value[index] == '%' && index + 2 < value.size()) {
+      const int high = hex_digit(value[index + 1]);
+      const int low = hex_digit(value[index + 2]);
+      if (high < 0 || low < 0) throw std::invalid_argument("invalid form encoding");
+      result.push_back(static_cast<char>((high << 4) | low));
+      index += 2;
+    } else result.push_back(value[index]);
+  }
+  return result;
+}
+
+Form read_form() {
+  std::ostringstream input;
+  input << std::cin.rdbuf();
+  Form form;
+  const auto encoded = input.str();
+  std::size_t begin = 0;
+  while (begin <= encoded.size()) {
+    const auto end = encoded.find('&', begin);
+    const auto token = encoded.substr(begin, end == std::string::npos ? std::string::npos : end - begin);
+    if (!token.empty()) {
+      const auto separator = token.find('=');
+      const auto key = url_decode(token.substr(0, separator));
+      const auto value = separator == std::string::npos ? std::string{} : url_decode(token.substr(separator + 1));
+      form[key].push_back(value);
+    }
+    if (end == std::string::npos) break;
+    begin = end + 1;
+  }
+  return form;
+}
+
+std::string one(const Form &form, const std::string &key, const std::string &fallback = {}) {
+  const auto found = form.find(key);
+  return found == form.end() || found->second.empty() ? fallback : found->second.front();
+}
+
+std::vector<std::string> many(const Form &form, const std::string &key) {
+  const auto found = form.find(key);
+  return found == form.end() ? std::vector<std::string>{} : found->second;
+}
+
+void output_study(const tinykernel::ontology::Study &study) {
+  std::cout << tinykernel::persistence::deterministic_export(study) << '\n';
 }
 
 tinykernel::ontology::Study execute_named(const std::string &id) {
@@ -99,21 +156,6 @@ int verify() {
   return ready ? 0 : 1;
 }
 
-int launch_gui(const Arguments &arguments) {
-#ifdef __linux__
-  const auto self = std::filesystem::canonical("/proc/self/exe");
-  const auto gui = self.parent_path() / "tinykernel-gui";
-  const auto workspace = arguments.positional.size() > 1
-      ? arguments.positional[1]
-      : arguments.workspace.string();
-  execl(gui.c_str(), gui.c_str(), "--workspace", workspace.c_str(), static_cast<char *>(nullptr));
-  throw std::runtime_error("cannot launch tinykernel-gui at " + gui.string());
-#else
-  static_cast<void>(arguments);
-  throw std::runtime_error("GUI launcher currently supports Linux");
-#endif
-}
-
 } // namespace
 
 int main(int argc, char **argv) {
@@ -126,8 +168,6 @@ int main(int argc, char **argv) {
       return 0;
     }
     if (command == "verify") return verify();
-    if (command == "gui") return launch_gui(arguments);
-
     if (command == "init") {
       if (arguments.positional.size() != 2) throw std::invalid_argument("init requires <workspace>");
       const auto workspace = std::filesystem::path(arguments.positional[1]);
@@ -135,7 +175,9 @@ int main(int argc, char **argv) {
       repository.initialize();
       repository.save(tinykernel::experiment::make_tk0000());
       repository.save(tinykernel::experiment::make_tk0001());
-      std::cout << "Initialized TinyKernel workspace: " << workspace << "\nInvestigations: TK-0000, TK-0001 (preregistered)\n";
+      repository.save(tinykernel::experiment::make_tk_sait_001());
+      std::cout << "Initialized TinyKernel workspace: " << workspace
+                << "\nInvestigations: TK-0000, TK-0001 (preregistered), TK-SAIT-001 (formulated)\n";
       return 0;
     }
 
@@ -150,6 +192,36 @@ int main(int argc, char **argv) {
       } else for (const auto &id : ids) std::cout << id << '\n';
       return 0;
     }
+    if (command == "create") {
+      const auto form = read_form();
+      tinykernel::experiment::StudyDraft draft;
+      draft.id = one(form, "id");
+      draft.title = one(form, "title");
+      draft.phenomenon_description = one(form, "phenomenon_description");
+      draft.context_description = one(form, "context_description");
+      draft.baseline_label = one(form, "baseline_label", "baseline completa");
+      draft.components = many(form, "component");
+      draft.distinctions = many(form, "distinction");
+      draft.relations = many(form, "relation");
+      draft.temporal_constraints = many(form, "temporal_constraint");
+      const auto kinds = many(form, "intervention_kind");
+      const auto targets = many(form, "intervention_target");
+      const auto replacements = many(form, "intervention_replacement");
+      if (kinds.size() != targets.size() || kinds.size() != replacements.size()) {
+        throw std::invalid_argument("intervention fields have different lengths");
+      }
+      for (std::size_t index = 0; index < kinds.size(); ++index) {
+        draft.interventions.push_back({kinds[index], targets[index], replacements[index]});
+      }
+      const auto existing = repository.list();
+      if (std::find(existing.begin(), existing.end(), draft.id) != existing.end()) {
+        throw std::invalid_argument("investigation already exists: " + draft.id);
+      }
+      const auto created = tinykernel::experiment::create_study(draft);
+      repository.save(created);
+      output_study(created);
+      return 0;
+    }
     if (arguments.positional.size() < 2) throw std::invalid_argument(command + " requires <investigation>");
     const auto &id = arguments.positional[1];
     if (command == "run" || command == "experiment") {
@@ -159,6 +231,32 @@ int main(int argc, char **argv) {
       if (arguments.json) std::cout << tinykernel::knowledge::frontier_json(frontier) << '\n';
       else std::cout << id << " executed: " << study.runs.size() << " runs, " << study.evidence.size()
                      << " immutable evidence records, " << frontier.supported_claims.size() << " supported claims.\n";
+      return 0;
+    }
+    if (command == "delete") {
+      if (id == "TK-0000" || id == "TK-0001") throw std::invalid_argument("canonical investigation is read-only");
+      if (!repository.delete_investigation(id)) throw std::invalid_argument("investigation not found: " + id);
+      std::cout << "{\"deleted\":true}\n";
+      return 0;
+    }
+    if (command == "materialize" || command == "observe" || command == "adjudicate" || command == "infer") {
+      auto mutable_study = repository.load(id);
+      if (command == "materialize") {
+        const auto form = read_form();
+        tinykernel::experiment::materialize_intervention(mutable_study, one(form, "planned_id"),
+            one(form, "source_id", id + ":R:BASE"), one(form, "kind"), one(form, "target"),
+            one(form, "replacement"), one(form, "protocol"));
+      } else if (command == "observe") {
+        const auto form = read_form();
+        tinykernel::experiment::record_observation(mutable_study, one(form, "realization_id"),
+            one(form, "dimension"), one(form, "satisfied") == "true", one(form, "trace"));
+      } else if (command == "adjudicate") {
+        tinykernel::experiment::adjudicate_observations(mutable_study);
+      } else {
+        tinykernel::experiment::infer_observed_claims(mutable_study);
+      }
+      repository.save(mutable_study);
+      output_study(mutable_study);
       return 0;
     }
     const auto study = repository.load(id);

@@ -4,6 +4,7 @@ cmake-build-*/
 CMakeFiles/
 CMakeCache.txt
 compile_commands.json
+.tinykernel-web/
 *.o
 *.a
 *.so

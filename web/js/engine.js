@@ -9,6 +9,8 @@ class TkEngine {
     this.ontologyVersion = "0.2.1";
     this.schemaVersion = 2;
     this.storageKey = "tinykernel_workspace_studies_v2";
+    this.apiBase = "/api";
+    this.apiAvailable = null;
   }
 
   // Calculate SHA-256 hash using Web Crypto API or pure fallback
@@ -365,7 +367,7 @@ class TkEngine {
           observation_ids: [obsId],
           artifact: artifact,
           sha256: sha256,
-          evidence_type: "WITNESS_ADJUDICATION"
+          evidence_type: "EMPIRICAL_OBSERVATION"
         });
         evidenceIds.push(evidenceId);
       }
@@ -557,7 +559,7 @@ class TkEngine {
           observation_ids: [obsId],
           artifact: artifact,
           sha256: sha256,
-          evidence_type: "WITNESS_ADJUDICATION"
+          evidence_type: "EMPIRICAL_OBSERVATION"
         });
         evidenceIds.push(evidenceId);
       }
@@ -902,6 +904,9 @@ class TkEngine {
 
   // Materialize or apply a structural intervention in the workspace
   async applyIntervention(study, itvCfg) {
+    if (this.apiAvailable === true && study.runtime_source === "libtinykernel") {
+      return this.mutateCoreStudy(study, "interventions", itvCfg);
+    }
     const studyId = study.investigation.id;
     const itvIndex = study.realizations.length;
     const kind = itvCfg.kind || "remove";
@@ -1048,6 +1053,152 @@ class TkEngine {
     }
   }
 
+  // Read-only orchestration layer: tells the interface what is scientifically
+  // possible next without inventing observations or bypassing epistemic gates.
+  analyzeWorkflow(study) {
+    const witnesses = study.witnesses || [];
+    const realizations = study.realizations || [];
+    const observations = study.observations || [];
+    const adjudications = study.adjudications || [];
+    const interventions = study.interventions || [];
+    const baseline = realizations.find(r => r.isBaseline || (r.id || "").includes(":BASE")) || realizations[0];
+    const witnessKinds = witnesses.map(w => w.kind);
+    const observedKinds = (realizationId) => new Set(
+      observations.filter(o => o.realization_id === realizationId).map(o => o.witness_kind || o.dimension)
+    );
+    const missingFor = (realizationId) => witnessKinds.filter(kind => !observedKinds(realizationId).has(kind));
+    const baselineMissing = baseline ? missingFor(baseline.id) : witnessKinds;
+    const performed = interventions.filter(i => i.status === "performed" && i.target);
+    const planned = interventions.filter(i => i.status !== "performed");
+    const incompletePerformed = performed
+      .map(i => ({ intervention: i, missing: missingFor(i.target) }))
+      .filter(item => item.missing.length > 0);
+    const completeUnadjudicated = realizations.find(r => {
+      if (missingFor(r.id).length > 0) return false;
+      const run = (study.runs || []).find(item =>
+        item.target_realization_id === r.id || item.result_realization_id === r.id
+      );
+      return !run || !adjudications.some(a => a.run_id === run.id && a.classification !== "STALE");
+    });
+    const hasAdjudication = adjudications.length > 0;
+    const inferred = (study.investigation.status || "").toLowerCase() === "inferred" ||
+      (study.investigation.status || "").toLowerCase() === "executed";
+
+    let action;
+    if (!baseline) {
+      action = { type: "formulate", title: "Definir a realização baseline", reason: "Não existe um mundo de referência para comparar intervenções.", blockers: ["baseline ausente"] };
+    } else if (baselineMissing.length > 0) {
+      action = { type: "observe", title: "Completar a observação da baseline", reason: `A baseline possui ${witnessKinds.length - baselineMissing.length}/${witnessKinds.length} witnesses observados.`, target_realization_id: baseline.id, target_dimension: baselineMissing[0], blockers: baselineMissing };
+    } else if (completeUnadjudicated) {
+      action = { type: "adjudicate", title: "Adjudicar observações completas", reason: `${completeUnadjudicated.label || completeUnadjudicated.id} já possui todos os witnesses necessários.`, blockers: [] };
+    } else if (incompletePerformed.length > 0) {
+      const target = incompletePerformed[0];
+      action = { type: "observe", title: `Observar ${target.intervention.target_component || "realização derivada"}`, reason: `A intervenção foi materializada, mas faltam ${target.missing.length} dimensões empíricas.`, target_realization_id: target.intervention.target, target_dimension: target.missing[0], blockers: target.missing };
+    } else if (hasAdjudication && !inferred) {
+      action = { type: "infer", title: "Inferir claims elegíveis", reason: "Há adjudicações disponíveis para avaliação formal dos claims.", blockers: [] };
+    } else if (planned.length > 0) {
+      const ranked = this.rankInterventions(study);
+      action = { type: "materialize", title: `Explorar ${ranked[0].intervention.kind}(${ranked[0].intervention.target_component})`, reason: ranked[0].reason, intervention_id: ranked[0].intervention.id, blockers: [`${planned.length} possibilidades abertas`] };
+    } else {
+      action = { type: "complete", title: "Revisar a fronteira conhecida", reason: "Não há operações mecânicas pendentes. Revise limitações ou formule uma nova intervenção.", blockers: [] };
+    }
+
+    const phaseNames = ["formulated", "materialized", "observed", "adjudicated", "inferred"];
+    const phaseRank = { unspecified: 0, draft: 0, formulated: 0, preregistered: 0, materialized: 1, observed: 2, adjudicated: 3, inferred: 4, completed: 4, executed: 4 };
+    const currentStatus = (study.investigation.status || "formulated").toLowerCase();
+
+    return {
+      current_phase: phaseNames[phaseRank[currentStatus] ?? 0],
+      current_phase_index: phaseRank[currentStatus] ?? 0,
+      phases: phaseNames,
+      action,
+      completeness: {
+        baseline: { observed: witnessKinds.length - baselineMissing.length, total: witnessKinds.length, missing: baselineMissing },
+        performed_interventions: performed.length,
+        planned_interventions: planned.length
+      }
+    };
+  }
+
+  rankInterventions(study) {
+    const openClaims = (study.claims || []).filter(c => c.status !== "supported");
+    return (study.interventions || [])
+      .filter(i => i.status !== "performed")
+      .map(intervention => {
+        const target = (intervention.target_component || "").toLowerCase();
+        const claimMatch = openClaims.some(c =>
+          (c.subject || "").toLowerCase() === target || (c.id || "").toLowerCase().includes(target)
+        );
+        const causalOperator = ["remove", "disable", "replace"].includes(intervention.kind);
+        const score = (claimMatch ? 4 : 0) + (causalOperator ? 2 : 1);
+        return {
+          intervention,
+          score,
+          reason: claimMatch
+            ? "Esta possibilidade testa diretamente um claim aberto e reduz a fronteira experimental."
+            : "Esta possibilidade ainda não foi explorada e amplia a cobertura do espaço causal."
+        };
+      })
+      .sort((a, b) => b.score - a.score || a.intervention.id.localeCompare(b.intervention.id));
+  }
+
+  previewIntervention(study, interventionOrId) {
+    const intervention = typeof interventionOrId === "string"
+      ? (study.interventions || []).find(i => i.id === interventionOrId)
+      : interventionOrId;
+    if (!intervention) return null;
+    const source = (study.realizations || []).find(r => r.id === intervention.source) || study.realizations[0];
+    if (!source) return null;
+    const before = [...(source.components || [])];
+    const after = [...before];
+    const target = intervention.target_component || "";
+    const replacement = intervention.replacement_component || "";
+    if (intervention.kind === "remove" || intervention.kind === "disable") {
+      for (let index = after.length - 1; index >= 0; index--) if (after[index] === target) after.splice(index, 1);
+    } else if (intervention.kind === "replace") {
+      const index = after.indexOf(target);
+      if (index >= 0) after[index] = replacement || `${target}_replacement`;
+    } else if (intervention.kind === "merge") {
+      const merged = `${target}+${replacement || "component"}`;
+      const filtered = after.filter(c => c !== target && c !== replacement);
+      filtered.push(merged);
+      after.splice(0, after.length, ...filtered);
+    } else if (intervention.kind === "perturb") {
+      const index = after.indexOf(target);
+      if (index >= 0) after[index] = `${target}~perturbed`;
+    }
+    const affectedClaims = (study.claims || []).filter(c =>
+      (c.subject || "").toLowerCase() === target.toLowerCase() ||
+      (c.id || "").toLowerCase().includes(target.toLowerCase())
+    ).map(c => c.id);
+    return { intervention, source, before, after, removed: before.filter(c => !after.includes(c)), added: after.filter(c => !before.includes(c)), affected_claims: affectedClaims };
+  }
+
+  explainClaim(study, claimOrId) {
+    const claim = typeof claimOrId === "string"
+      ? (study.claims || []).find(c => c.id === claimOrId)
+      : claimOrId;
+    if (!claim) return null;
+    const baselineRun = (study.runs || []).find(r => (r.id || "").includes("BASELINE"));
+    const baselineAdjudication = baselineRun && (study.adjudications || []).find(a => a.run_id === baselineRun.id);
+    const steps = [{ label: "Baseline adjudicada como PRESERVED", passed: baselineAdjudication?.classification === "PRESERVED" }];
+    if (claim.level === "L3") {
+      const scoped = (study.interventions || []).find(i => (claim.intervention_scope || []).includes(i.id)) ||
+        (study.interventions || []).find(i => i.target_component === claim.subject);
+      const run = scoped && (study.runs || []).find(r => r.intervention_id === scoped.id || r.target_realization_id === scoped.target);
+      const adjudication = run && (study.adjudications || []).find(a => a.run_id === run.id);
+      steps.push({ label: `Intervenção sobre ${claim.subject || "o alvo"} materializada`, passed: scoped?.status === "performed" });
+      steps.push({ label: "Ruptura causal empírica adjudicada", passed: adjudication?.classification === "BROKEN_CAUSAL" });
+    } else if (claim.level === "L5") {
+      const open = (study.interventions || []).filter(i => i.status !== "performed").length;
+      steps.push({ label: "Todas as intervenções preregistradas exploradas", passed: open === 0 });
+      steps.push({ label: "Limite de escopo explicitamente preservado", passed: Boolean(claim.limitations) });
+    }
+    const evidenceCount = (claim.evidence_references || []).length;
+    steps.push({ label: `Evidências vinculadas (${evidenceCount})`, passed: evidenceCount > 0 });
+    return { claim, steps, supported: claim.status === "supported", next_blocker: steps.find(step => !step.passed)?.label || null };
+  }
+
   // Inject real empirical observation trace for a single witness dimension
   async injectEmpiricalObservation(study, param2, param3, param4, param5) {
     let realizationId, dimension, passed, rawTrace;
@@ -1063,6 +1214,15 @@ class TkEngine {
       dimension = opts.dimension || "causal";
       passed = opts.passed !== undefined ? opts.passed : (opts.satisfied !== undefined ? opts.satisfied : true);
       rawTrace = opts.trace || `dimension=${dimension};passed=${passed}`;
+    }
+
+    if (this.apiAvailable === true && study.runtime_source === "libtinykernel") {
+      return this.mutateCoreStudy(study, "observations", {
+        realization_id: realizationId,
+        dimension,
+        satisfied: passed,
+        trace: rawTrace
+      });
     }
 
     const studyId = study.investigation.id;
@@ -1140,6 +1300,9 @@ class TkEngine {
 
   // Explicit Adjudication: Evaluates all empirical evidence without promoting claims
   async adjudicateWitnesses(study) {
+    if (this.apiAvailable === true && study.runtime_source === "libtinykernel") {
+      return this.mutateCoreStudy(study, "adjudicate", {});
+    }
     const studyId = study.investigation.id;
     
     // 1. Check baseline empirical evidence
@@ -1252,6 +1415,9 @@ class TkEngine {
 
   // Explicit Inference: Evaluates claims from adjudications and promotes supported claims
   async inferClaims(study) {
+    if (this.apiAvailable === true && study.runtime_source === "libtinykernel") {
+      return this.mutateCoreStudy(study, "infer", {});
+    }
     const studyId = study.investigation.id;
 
     // 1. Evaluate baseline sufficiency (L2)
@@ -1344,6 +1510,13 @@ class TkEngine {
       st.context = { id: `${st.investigation.id}:C`, description: "Execução local determinística." };
     }
 
+    // Canonical C++ exports and browser projections intentionally use the same
+    // ontology with slightly different presentation names. Normalize only at
+    // this boundary; preserve the original export fields for round-tripping.
+    if (st.phenomenon && !st.phenomenon.description && st.phenomenon.definition) {
+      st.phenomenon.description = st.phenomenon.definition;
+    }
+
     st.constitutive_profile = st.constitutive_profile || { dimensions: [], essential_relations: [], temporal_bounds: [] };
     if (!st.constitutive_profile.dimensions) st.constitutive_profile.dimensions = st.constitutive_profile.distinctions || [];
     if (!st.constitutive_profile.essential_relations) st.constitutive_profile.essential_relations = st.constitutive_profile.relations || [];
@@ -1352,12 +1525,96 @@ class TkEngine {
     st.realizations = Array.isArray(st.realizations) ? st.realizations : [];
     st.interventions = Array.isArray(st.interventions) ? st.interventions : [];
     st.runs = Array.isArray(st.runs) ? st.runs : [];
+    st.observations = Array.isArray(st.observations) ? st.observations : [];
     st.evidence = Array.isArray(st.evidence) ? st.evidence : [];
     st.witnesses = Array.isArray(st.witnesses) ? st.witnesses : [];
     st.claims = Array.isArray(st.claims) ? st.claims : [];
     st.adjudications = Array.isArray(st.adjudications) ? st.adjudications : [];
 
+    for (const realization of st.realizations) {
+      if (realization.complexity === undefined) realization.complexity = realization.reduction_rank || (realization.components || []).length;
+      if (!realization.outcome) realization.outcome = "untested";
+    }
+    for (const intervention of st.interventions) {
+      const isCoreExport = Boolean(intervention.source_realization_id);
+      if (!intervention.source) intervention.source = intervention.source_realization_id;
+      if (isCoreExport) {
+        if (!intervention.target_component) intervention.target_component = intervention.target;
+        intervention.target = intervention.target_realization_id || null;
+        if (!intervention.replacement_component) intervention.replacement_component = intervention.replacement || "";
+        if (intervention.status === "preregistered" && intervention.target) intervention.status = "performed";
+      }
+    }
+    for (const run of st.runs) {
+      if (!run.target_realization_id) run.target_realization_id = run.result_realization_id;
+      const adjudication = st.adjudications.find(item => item.run_id === run.id);
+      const realization = st.realizations.find(item => item.id === run.target_realization_id);
+      if (adjudication && realization) realization.outcome = adjudication.outcome;
+    }
+    for (const observation of st.observations) {
+      if (!observation.witness_kind) observation.witness_kind = observation.dimension;
+    }
+
     return st;
+  }
+
+  async getCoreStudies() {
+    if (typeof fetch === "undefined" || this.apiAvailable === false) return [];
+    try {
+      const response = await fetch(`${this.apiBase}/studies`, { headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error(`API ${response.status}`);
+      const index = await response.json();
+      const studies = await Promise.all((index.studies || []).map(async id => {
+        const itemResponse = await fetch(`${this.apiBase}/studies/${encodeURIComponent(id)}`, { headers: { Accept: "application/json" } });
+        if (!itemResponse.ok) return null;
+        return this.normalizeStudy(await itemResponse.json());
+      }));
+      this.apiAvailable = true;
+      return studies.filter(Boolean);
+    } catch (error) {
+      this.apiAvailable = false;
+      console.warn("Núcleo local indisponível; usando referências embarcadas.", error);
+      return [];
+    }
+  }
+
+  replaceStudy(target, source) {
+    for (const key of Object.keys(target)) delete target[key];
+    Object.assign(target, this.normalizeStudy(source));
+    return target;
+  }
+
+  async apiRequest(path, options = {}) {
+    const response = await fetch(`${this.apiBase}${path}`, {
+      ...options,
+      headers: { "Content-Type": "application/json", Accept: "application/json", ...(options.headers || {}) }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `API ${response.status}`);
+    return payload;
+  }
+
+  async mutateCoreStudy(study, action, payload) {
+    const id = encodeURIComponent(study.investigation.id);
+    const updated = await this.apiRequest(`/studies/${id}/${action}`, {
+      method: "POST",
+      body: JSON.stringify(payload || {})
+    });
+    return this.replaceStudy(study, updated);
+  }
+
+  async persistStudy(study) {
+    if (this.apiAvailable === true) {
+      if (study.runtime_source === "libtinykernel") return study;
+      const persisted = await this.apiRequest("/studies", {
+        method: "POST",
+        body: JSON.stringify(study)
+      });
+      this.removeLocalStudy(study.investigation.id);
+      return this.replaceStudy(study, persisted);
+    }
+    this.saveStudy(study);
+    return study;
   }
 
   // Workspace Storage Management (Local Repository)
@@ -1395,16 +1652,22 @@ class TkEngine {
     const defaultTk0001 = await this.buildTk0001();
     const defaultTkSait001 = await this.buildTkSait001();
 
+    const coreStudies = await this.getCoreStudies();
+
     const map = new Map();
     map.set("TK-0000", defaultTk0000);
     map.set("TK-0001", defaultTk0001);
     map.set("TK-SAIT-001", defaultTkSait001);
 
+    for (const coreStudy of coreStudies) {
+      if (coreStudy?.investigation?.id) map.set(coreStudy.investigation.id, coreStudy);
+    }
+
     for (const rawSt of custom) {
       const st = this.normalizeStudy(rawSt);
       if (st && st.investigation && st.investigation.id) {
         // If the user created a custom investigation, include it in the map
-        if (st.investigation.id !== "TK-0000" && st.investigation.id !== "TK-0001" && st.investigation.id !== "TK-SAIT-001") {
+        if (!map.has(st.investigation.id)) {
           map.set(st.investigation.id, st);
         }
       }
@@ -1419,6 +1682,7 @@ class TkEngine {
   }
 
   saveStudy(study) {
+    if (study && study.runtime_source === "libtinykernel") return true;
     if (typeof localStorage === "undefined") return;
     try {
       const normalized = this.normalizeStudy(study);
@@ -1432,14 +1696,24 @@ class TkEngine {
       });
       list.push(normalized);
       localStorage.setItem(this.storageKey, JSON.stringify(list));
+      return true;
     } catch (e) {
       console.warn("Falha ao salvar no localStorage", e);
+      return false;
     }
   }
 
-  deleteStudy(id) {
-    if (typeof localStorage === "undefined") return;
+  async deleteStudy(id, study = null) {
     if (id === "TK-0000" || id === "TK-0001" || id === "TK-SAIT-001") return;
+    if (this.apiAvailable === true && study?.runtime_source === "libtinykernel") {
+      await this.apiRequest(`/studies/${encodeURIComponent(id)}`, { method: "DELETE" });
+      return;
+    }
+    this.removeLocalStudy(id);
+  }
+
+  removeLocalStudy(id) {
+    if (typeof localStorage === "undefined") return;
     try {
       const raw = localStorage.getItem(this.storageKey);
       let list = raw ? JSON.parse(raw) : [];

@@ -1,6 +1,7 @@
 #include "tinykernel/causal/engine.hpp"
 #include "tinykernel/evidence/digest.hpp"
 #include "tinykernel/experiment/laboratory.hpp"
+#include "tinykernel/experiment/workflow.hpp"
 #include "tinykernel/knowledge/analysis.hpp"
 #include "tinykernel/persistence/repository.hpp"
 
@@ -408,6 +409,68 @@ void evidence_envelope_immutability() {
   require(rej_type, "mutation of evidence_type rejected");
 }
 
+void web_workflow_transactions() {
+  using namespace tinykernel::ontology;
+  tinykernel::experiment::StudyDraft draft;
+  draft.id = "TK-WORKFLOW";
+  draft.title = "Fluxo transacional web";
+  draft.phenomenon_description = "Persistência de estado sob atualização";
+  draft.context_description = "Ensaio controlado";
+  draft.baseline_label = "baseline";
+  draft.components = {"state", "update"};
+  draft.distinctions = {"state"};
+  draft.relations = {"state->output"};
+  draft.temporal_constraints = {"t+1"};
+  draft.interventions = {{"remove", "update", ""}};
+
+  auto study = tinykernel::experiment::create_study(draft);
+  const auto planned_id = study.interventions.front().identity.id;
+  tinykernel::experiment::materialize_intervention(
+      study, planned_id, "TK-WORKFLOW:R:BASE", "remove", "update", "", "controlled removal");
+  const auto target_id = *study.interventions.front().target_realization_id;
+  const std::vector<std::string> dimensions{
+      "operational", "causal", "discriminative", "observational", "temporal"};
+  for (const auto &dimension : dimensions) {
+    tinykernel::experiment::record_observation(
+        study, "TK-WORKFLOW:R:BASE", dimension, true, "baseline:" + dimension);
+    tinykernel::experiment::record_observation(
+        study, target_id, dimension, dimension != "causal", "intervention:" + dimension);
+  }
+  tinykernel::experiment::adjudicate_observations(study);
+  tinykernel::experiment::infer_observed_claims(study);
+
+  const auto supported = [&](ClaimLevel level) {
+    return std::any_of(study.claims.begin(), study.claims.end(), [&](const auto &claim) {
+      return claim.level == level && claim.status == ClaimStatus::supported;
+    });
+  };
+  require(supported(ClaimLevel::l2_relative_sufficiency), "baseline supports L2");
+  require(supported(ClaimLevel::l3_relative_necessity), "causal rupture supports L3");
+
+  const auto sealed_count = study.evidence.size();
+  const auto sealed_digest = study.evidence.front().sha256;
+  tinykernel::experiment::record_observation(
+      study, target_id, "causal", true, "corrected intervention:causal");
+  require(study.evidence.size() == sealed_count + 1, "revision appends sealed evidence");
+  require(study.evidence.front().sha256 == sealed_digest, "revision preserves prior evidence");
+  require(study.evidence.back().identity.id.ends_with(":REV:0001"), "revision has stable suffix");
+  const auto stale = std::find_if(study.adjudications.begin(), study.adjudications.end(), [&](const auto &item) {
+    return item.run_id.find("INT_") != std::string::npos;
+  });
+  require(stale != study.adjudications.end() && stale->classification == "STALE",
+          "revision invalidates derived adjudication");
+  require(!supported(ClaimLevel::l3_relative_necessity), "revision reopens derived L3 claim");
+
+  tinykernel::persistence::Repository repository(":memory:");
+  repository.initialize();
+  repository.save(study);
+  const auto loaded = repository.load("TK-WORKFLOW");
+  require(loaded.evidence.size() == study.evidence.size(), "append-only revision persists");
+  require(std::any_of(loaded.adjudications.begin(), loaded.adjudications.end(), [](const auto &item) {
+    return item.classification == "STALE";
+  }), "stale adjudication persists");
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -426,7 +489,8 @@ int main(int argc, char **argv) {
       {"monotonic_phase_machine", monotonic_phase_machine},
       {"partial_observation_inconclusive", partial_observation_inconclusive},
       {"delete_investigation_safe_lifecycle", delete_investigation_safe_lifecycle},
-      {"evidence_envelope_immutability", evidence_envelope_immutability}};
+      {"evidence_envelope_immutability", evidence_envelope_immutability},
+      {"web_workflow_transactions", web_workflow_transactions}};
   try {
     if (argc != 2 || !cases.contains(argv[1])) throw std::invalid_argument("unknown test case");
     cases.at(argv[1])();

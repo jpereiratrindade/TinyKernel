@@ -37,6 +37,25 @@ async function runTests() {
   console.log('--- Starting Web Causal Engine Tests ---');
   const engine = new context.TkEngine();
 
+  // Investigation Desk projections must be read-only and epistemically safe.
+  const deskStudy = await engine.buildTkSait001();
+  const deskSnapshot = JSON.stringify(deskStudy);
+  const workflow = engine.analyzeWorkflow(deskStudy);
+  assert(workflow.action.type === 'observe', 'workflow recommends observing an untested baseline');
+  assert(workflow.action.blockers.length === 5, 'workflow exposes all missing baseline witnesses');
+  const ranked = engine.rankInterventions(deskStudy);
+  assert(ranked.length === 6, 'workflow ranks all planned interventions');
+  const preview = engine.previewIntervention(deskStudy, ranked[0].intervention);
+  assert(preview && preview.before.length === preview.after.length + 1, 'counterfactual preview removes one component');
+  const explanation = engine.explainClaim(deskStudy, deskStudy.claims[0]);
+  assert(explanation && explanation.next_blocker, 'claim debugger exposes the next epistemic blocker');
+  assert(JSON.stringify(deskStudy) === deskSnapshot, 'desk analysis does not mutate scientific state');
+  console.log('PASS: investigation_desk_read_only_projections');
+
+  const canonicalDeskStudy = await engine.buildTk0001();
+  assert(canonicalDeskStudy.evidence.every(e => e.evidence_type === 'EMPIRICAL_OBSERVATION'), 'canonical runs expose empirical evidence consistently');
+  assert(engine.analyzeWorkflow(canonicalDeskStudy).action.type === 'materialize', 'completed canonical study recommends exploring its open frontier');
+
   // Test 1: TK-SAIT-001 Baseline Rigor
   const sait = await engine.buildTkSait001();
   assert(sait.investigation.id === 'TK-SAIT-001', 'SAIT investigation ID');

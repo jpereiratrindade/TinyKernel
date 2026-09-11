@@ -14,18 +14,24 @@ instrumento revisável, não uma ontologia final nem evidência de que um Kernel
 ## Boundaries
 
 ```text
-CLI ─────┐
-         ├── libtinykernel ── ontology
-Qt Quick ┘                   ├─ causal
-                            ├─ experiment + adapter boundary
-                            ├─ evidence
-                            ├─ knowledge
-                            └─ persistence (SQLite + canonical JSON)
+CLI ── libtinykernel ── ontology
+                    ├─ causal
+                    ├─ experiment + adapter boundary
+                    ├─ evidence
+                    ├─ knowledge
+                    └─ persistence (SQLite + canonical JSON)
+
+Web ── Mesa de Investigação ── API local ── CLI/libtinykernel
+                         └──── engine/projeções no navegador
 ```
 
-`libtinykernel` não depende de Qt. CLI e GUI leem o mesmo agregado `Study` e usam a
-mesma análise de causal space, claims e frontier. QML recebe projeções prontas para
-apresentação; não adjudica evidência nem classifica realizações.
+O produto possui uma única interface de usuário: a Mesa de Investigação web. A CLI
+permanece como superfície operacional do `libtinykernel`. A API local fornece as
+investigações canônicas e personalizadas a partir do C++/SQLite. Criação, materialização,
+observação, adjudicação e inferência percorrem o fluxo transacional do núcleo; estudos
+com evidência selada não podem ser apagados.
+O engine do navegador conserva projeções e um fallback local para abertura estática,
+mas não é a autoridade persistente quando a API está conectada.
 
 ## Ontologia materializada
 
@@ -85,6 +91,6 @@ produz bytes idênticos.
 ## READY e incompletude
 
 `./bin/tinykernel verify` configura, constrói, executa todos os testes CTest (incluindo
-startup Qt Quick) e roda os invariantes internos. Um resultado `READY` significa que o
+o motor epistemológico web) e roda os invariantes internos. Um resultado `READY` significa que o
 estado material é reproduzível. As intervenções planejadas e a ausência de evidência
 L4–L8 mantêm o sistema `INCOMPLETE BY DESIGN`.

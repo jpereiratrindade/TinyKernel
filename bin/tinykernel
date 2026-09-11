@@ -6,7 +6,7 @@ TK_BUILD="$TK_ROOT/build"
 TK_COMMAND=${1:-}
 
 cmake -S "$TK_ROOT" -B "$TK_BUILD" -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DTINYKERNEL_BUILD_GUI=ON -DBUILD_TESTING=ON
+  -DBUILD_TESTING=ON
 
 if [ "$TK_COMMAND" = "verify" ]; then
   cmake --build "$TK_BUILD"
@@ -14,10 +14,6 @@ if [ "$TK_COMMAND" = "verify" ]; then
   exec "$TK_BUILD/bin/tinykernel" verify
 fi
 
-if [ "$TK_COMMAND" = "gui" ]; then
-  cmake --build "$TK_BUILD" --target tinykernel-gui tinykernel-cli
-else
-  cmake --build "$TK_BUILD" --target tinykernel-cli
-fi
+cmake --build "$TK_BUILD" --target tinykernel-cli
 
 exec "$TK_BUILD/bin/tinykernel" "$@"

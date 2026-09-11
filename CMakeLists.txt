@@ -15,6 +15,7 @@ add_library(libtinykernel
   src/ontology/types.cpp
   src/causal/engine.cpp
   src/experiment/laboratory.cpp
+  src/experiment/workflow.cpp
   src/evidence/digest.cpp
   src/knowledge/analysis.cpp
   src/persistence/repository.cpp
@@ -38,23 +39,6 @@ add_executable(tinykernel-cli src/cli/main.cpp)
 set_target_properties(tinykernel-cli PROPERTIES OUTPUT_NAME tinykernel)
 target_link_libraries(tinykernel-cli PRIVATE TinyKernel::core)
 
-option(TINYKERNEL_BUILD_GUI "Build the Qt Quick interface" ON)
-if(TINYKERNEL_BUILD_GUI)
-  find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2)
-  qt_standard_project_setup(REQUIRES 6.5)
-  qt_policy(SET QTP0004 NEW)
-  qt_add_executable(tinykernel-gui src/gui/main.cpp src/gui/gui_bridge.cpp src/gui/gui_bridge.hpp)
-  target_include_directories(tinykernel-gui PRIVATE src/gui)
-  target_link_libraries(tinykernel-gui PRIVATE
-    TinyKernel::core Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2)
-  qt_add_qml_module(tinykernel-gui
-    URI TinyKernel
-    VERSION 1.0
-    NO_CACHEGEN
-    QML_FILES qml/Main.qml
-  )
-endif()
-
 if(BUILD_TESTING)
   add_executable(tinykernel-tests tests/core_tests.cpp)
   target_link_libraries(tinykernel-tests PRIVATE TinyKernel::core)
@@ -67,7 +51,8 @@ if(BUILD_TESTING)
       epistemic_phase_separation adjudication_provenance_run_id
       l3_strict_causal_gate schema_migration_v1_to_v2
       monotonic_phase_machine partial_observation_inconclusive
-      delete_investigation_safe_lifecycle evidence_envelope_immutability)
+      delete_investigation_safe_lifecycle evidence_envelope_immutability
+      web_workflow_transactions)
     add_test(NAME "core.${case_name}" COMMAND tinykernel-tests "${case_name}")
   endforeach()
 
@@ -77,20 +62,16 @@ if(BUILD_TESTING)
       COMMAND ${NODE_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/web_engine_tests.js)
   endif()
 
+  find_package(Python3 COMPONENTS Interpreter)
+  if(Python3_Interpreter_FOUND)
+    add_test(NAME web.api_bridge
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/web_api_tests.py)
+  endif()
+
   add_test(NAME cli.commands
     COMMAND ${CMAKE_COMMAND}
       -DCLI=$<TARGET_FILE:tinykernel-cli>
       -DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/cli-test-workspace
       -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli_smoke.cmake)
 
-  if(TINYKERNEL_BUILD_GUI)
-    add_test(NAME gui.startup COMMAND tinykernel-gui --smoke)
-    set_tests_properties(gui.startup PROPERTIES
-      ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QSG_RHI_BACKEND=software")
-    add_test(NAME gui.workflow
-      COMMAND ${CMAKE_COMMAND}
-        -DGUI=$<TARGET_FILE:tinykernel-gui>
-        -DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/gui-test-workspace
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/gui_workflow.cmake)
-  endif()
 endif()

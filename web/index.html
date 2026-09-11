@@ -39,9 +39,9 @@
         <input type="file" id="file-import-input" accept=".json" style="display: none;">
 
         <!-- Status Badge -->
-        <div class="sync-badge">
+        <div class="sync-badge" id="runtime-status" title="Origem do estado científico">
           <span class="sync-dot"></span>
-          <span>READY ≠ COMPLETE</span>
+          <span id="runtime-status-text">CONECTANDO AO NÚCLEO…</span>
         </div>
       </div>
     </header>
@@ -304,7 +304,9 @@
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+        <details class="expert-tools">
+          <summary>Ferramentas avançadas</summary>
+          <div class="expert-tools-menu">
           <button class="btn btn-teal" id="btn-workbench-new-observation" title="Injetar medição real ou traço de campo">
             <span>🔬</span> + Registrar Observação Empírica
           </button>
@@ -323,8 +325,36 @@
           <button class="btn btn-sm" id="btn-workbench-delete" style="color: var(--danger, #ef4444); display: none;" title="Excluir estudo (apenas estudos customizados)">
             <span>🗑</span> Excluir Estudo
           </button>
-        </div>
+          </div>
+        </details>
       </div>
+
+      <!-- Investigation Desk: the study as a live causal object, not a document -->
+      <section class="investigation-desk" aria-label="Mesa de Investigação">
+        <div class="desk-block desk-trajectory">
+          <div class="desk-eyebrow">Trajetória experimental</div>
+          <div class="phase-rail" id="workflow-phase-rail" aria-label="Fases da investigação"></div>
+          <div class="desk-footnote" id="workflow-phase-caption"></div>
+        </div>
+
+        <div class="desk-block desk-next-action">
+          <div class="desk-eyebrow">Próxima ação científica</div>
+          <h3 id="workflow-action-title">Analisando investigação…</h3>
+          <p id="workflow-action-reason"></p>
+          <div class="workflow-blockers" id="workflow-blockers"></div>
+          <button class="btn btn-primary" id="btn-workflow-action" type="button">Continuar investigação</button>
+        </div>
+
+        <div class="desk-block counterfactual-lens">
+          <div class="desk-heading-row">
+            <div class="desk-eyebrow">Lente contrafactual</div>
+            <span class="possibility-badge">POSSIBILIDADE ≠ OBSERVAÇÃO</span>
+          </div>
+          <div id="counterfactual-preview" class="counterfactual-preview">
+            Selecione uma possibilidade translúcida no espaço causal.
+          </div>
+        </div>
+      </section>
 
       <!-- Top KPI Stats Banner -->
       <section class="stats-banner" aria-label="Estatísticas do Espaço Causal">

@@ -29,15 +29,14 @@ realizações, intervenções, witnesses e revisões ontológicas continuam aber
 
 - `libtinykernel`: núcleo C++ independente da apresentação;
 - `tinykernel`: CLI para workspace, experimentos, claims, frontier e export;
-- `tinykernel-gui`: interface Qt Quick do mesmo núcleo com ciclo CRUD seguro;
-- `tinykernel-web`: interface web interativa no grafismo do ecossistema SisTer com ciclo CRUD seguro;
+- `tinykernel-web`: interface única do produto, uma Mesa de Investigação causal interativa;
 - SQLite: memória experimental local (schema 2), com evidência imutável, migração transacional `1 -> 2` e verificação de integridade do envelope completo (`artifact`, `sha256`, `evidence_type`, `run_id`, `witness_id`, `observation_ids`);
 - export JSON determinístico com discriminação canônica de tipos de evidência e versão ontológica TK-O v0.2.1;
 - ontologia TK-O v0.2.1 versionada com isolamento estrito entre registros estruturais (`STRUCTURAL_RECORD`) e evidências empíricas (`EMPIRICAL_OBSERVATION`);
 - máquina de estados de fases monotônica: $\text{FORMULATED} \to \text{MATERIALIZED} \to \text{OBSERVED} \to \text{ADJUDICATED} \to \text{INFERRED}$;
 - escada de claims L0–L8 com gates estritos de suficiência (L2) e necessidade relativa (L3 restrito à cadeia $\text{claim.intervention\_scope} \to \text{Run} \to \text{Adjudication(BROKEN\_CAUSAL)} \to \text{Evidence}$);
 - adjudicação de observações parciais classificada explicitamente como `PARTIALLY_OBSERVED` / `undetermined` (nunca `PRESERVED`);
-- CTest como autoridade única de testes (26 suites automatizadas cobrindo núcleo, motor web via Node.js, migração SQLite, imutabilidade, CLI e GUI).
+- CTest como autoridade única de testes (26 suites automatizadas cobrindo núcleo, fluxo transacional web, motor no navegador, bridge da API local, migração SQLite, imutabilidade e CLI).
 
 A cadeia ponta a ponta é:
 
@@ -62,26 +61,20 @@ Phenomenon
 - CMake 3.28 ou posterior;
 - Ninja;
 - SQLite 3.35 ou posterior, incluindo headers de desenvolvimento;
-- Qt 6.5 ou posterior com Core, Gui, Qml, Quick e Quick Controls 2.
 
 Em Fedora, os pacotes de desenvolvimento relevantes incluem:
 
 ```bash
-sudo dnf install cmake ninja-build gcc-c++ sqlite-devel \
-  qt6-qtbase-devel qt6-qtdeclarative-devel
+sudo dnf install cmake ninja-build gcc-c++ sqlite-devel
 ```
 
 Em Ubuntu/Debian, os nomes usuais são:
 
 ```bash
-sudo apt install cmake ninja-build g++ libsqlite3-dev \
-  qt6-base-dev qt6-declarative-dev
+sudo apt install cmake ninja-build g++ libsqlite3-dev
 ```
 
-O configure falha explicitamente quando a GUI está habilitada e os módulos Qt Quick
-de desenvolvimento não estão disponíveis. Para trabalho isolado no núcleo, use
-`-DTINYKERNEL_BUILD_GUI=OFF`; esse modo não satisfaz sozinho o READY contract
-completo.
+Python 3 é utilizado apenas pelo servidor HTTP local da interface web.
 
 ## Construir
 
@@ -107,9 +100,9 @@ A partir de um clone limpo com as dependências instaladas:
 
 Esse comando:
 
-1. configura CMake com GUI e testes habilitados;
-2. constrói o núcleo, CLI, GUI e testes;
-3. executa todo o CTest, incluindo smoke de startup da GUI e workflow;
+1. configura CMake com testes habilitados;
+2. constrói o núcleo, CLI e testes;
+3. executa todo o CTest, incluindo o motor epistemológico web;
 4. verifica TK-O, operadores, TK-0000, TK-0001, benchmark TK-SAIT-001, gates de não-implicação causal, causal space, limites de claims, integridade SQLite, digests e export determinístico;
 5. retorna status diferente de zero quando qualquer gate falha.
 
@@ -162,26 +155,11 @@ tinykernel [--workspace PATH] run <investigation> [--json]
 tinykernel [--workspace PATH] frontier <investigation> [--json]
 tinykernel [--workspace PATH] claims <investigation> [--json]
 tinykernel [--workspace PATH] export <investigation>
-tinykernel gui [workspace]
 ```
 
 `--json` está disponível nas consultas analíticas. O export é sempre JSON canônico.
 
-## GUI (Desktop Qt Quick)
-
-Abra a interface gráfica desktop do laboratório:
-
-```bash
-./bin/tinykernel gui ./workspace
-```
-
-A interface desktop incorpora a mesma arquitetura em 3 níveis:
-
-1. **Home do Laboratório**: Catálogo de investigações disponíveis no workspace (`TK-0000`, `TK-0001` e investigações do usuário), estatísticas consolidadas e métricas de evidência SHA-256;
-2. **Wizard de Formulação**: Assistente para criar novas investigações genéricas sem necessidade de programar código C++;
-3. **Workbench Analítico**: Espaço Causal $G_P = (R, I)$ interativo com nós arrastáveis, pílulas de intervenção, adição dinâmica de novas intervenções sob demanda, runs com evidências imutáveis e escada de claims (L0–L8).
-
-## Interface Web (SisTer)
+## Interface Web
 
 Para utilizar a interface web com o grafismo e padrão visual do ecossistema **SisTer** (`sisterlocal`, `Sister-Studio`):
 
@@ -189,12 +167,23 @@ Para utilizar a interface web com o grafismo e padrão visual do ecossistema **S
 ./bin/tinykernel-web
 # ou para abrir automaticamente no navegador:
 ./bin/tinykernel-web --open
+# workspace explícito para o núcleo local:
+./bin/tinykernel-web --workspace ./workspace --open
 ```
 
-Arquitetura e Recursos da Interface Web:
+Esta é a única interface de usuário do TinyKernel. A CLI permanece como ferramenta operacional e de automação. Seus recursos incluem:
+
 - **Nível 1 — Home do Laboratório (`Lab Home`)**: Catálogo geral de investigações (`TK-0000`, `TK-0001` de calibração e investigações do usuário), métricas globais e exportação/importação de workspaces;
 - **Nível 2 — Assistente de Nova Investigação (`Wizard TK-000X`)**: Construtor guiado em 6 passos para formular novas perguntas científicas sem codificação: $(P, C, \Phi) \rightarrow R \rightarrow I \rightarrow W \rightarrow E \rightarrow Q$;
-- **Nível 3 — Workbench Analítico**: Detalhe científico com Grafo Causal $G_P = (R, I)$ vetorial interativo, adição dinâmica de intervenções (`remove`, `replace`, `disable`, `merge`, `perturb`), runs determinísticos, verificador criptográfico SHA-256 e escada de claims (L0–L8).
+- **Nível 3 — Mesa de Investigação**: trajetória experimental, próxima ação científica, mundos possíveis translúcidos, lente contrafactual, Grafo Causal $G_P = (R, I)$ e depurador epistemológico de claims.
+
+O servidor expõe uma API local em `/api`. `TK-0000`, `TK-0001`, `TK-SAIT-001` e as
+investigações criadas no navegador são lidas e escritas pelo núcleo C++/SQLite. Criar,
+materializar intervenções, registrar ou revisar observações, adjudicar e inferir
+passam pela mesma biblioteca. Evidências antigas permanecem
+imutáveis; uma revisão acrescenta um novo envelope e invalida adjudicações e claims
+derivados até o recálculo. Estudos com evidência selada não podem ser apagados. A
+interface mostra `CORE C++ • READY` quando essa ponte está ativa.
 
 ## Pipeline Epistemológico: Especificação ≠ Observação
 
