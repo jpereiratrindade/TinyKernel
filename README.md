@@ -29,14 +29,14 @@ realizações, intervenções, witnesses e revisões ontológicas continuam aber
 
 - `libtinykernel`: núcleo C++ independente da apresentação;
 - `tinykernel`: CLI para workspace, experimentos, claims, frontier e export;
-- `tinykernel-web`: interface única do produto, uma Mesa de Investigação causal interativa;
+- `tinykernel-web`: interface única do produto, uma Mesa de Investigação causal interativa que renderiza decisões projetadas pelo núcleo;
 - SQLite: memória experimental local (schema 2), com evidência imutável, migração transacional `1 -> 2` e verificação de integridade do envelope completo (`artifact`, `sha256`, `evidence_type`, `run_id`, `witness_id`, `observation_ids`);
 - export JSON determinístico com discriminação canônica de tipos de evidência e versão ontológica TK-O v0.2.1;
 - ontologia TK-O v0.2.1 versionada com isolamento estrito entre registros estruturais (`STRUCTURAL_RECORD`) e evidências empíricas (`EMPIRICAL_OBSERVATION`);
 - máquina de estados de fases monotônica: $\text{FORMULATED} \to \text{MATERIALIZED} \to \text{OBSERVED} \to \text{ADJUDICATED} \to \text{INFERRED}$;
 - escada de claims L0–L8 com gates estritos de suficiência (L2) e necessidade relativa (L3 restrito à cadeia $\text{claim.intervention\_scope} \to \text{Run} \to \text{Adjudication(BROKEN\_CAUSAL)} \to \text{Evidence}$);
 - adjudicação de observações parciais classificada explicitamente como `PARTIALLY_OBSERVED` / `undetermined` (nunca `PRESERVED`);
-- CTest como autoridade única de testes (26 suites automatizadas cobrindo núcleo, fluxo transacional web, motor no navegador, bridge da API local, migração SQLite, imutabilidade e CLI).
+- CTest como autoridade única de testes (26 suites automatizadas cobrindo núcleo, fluxo transacional web, renderer no navegador, bridge da API local, migração SQLite, imutabilidade e CLI), executado também pelo GitHub Actions a cada push e pull request.
 
 A cadeia ponta a ponta é:
 
@@ -102,7 +102,7 @@ Esse comando:
 
 1. configura CMake com testes habilitados;
 2. constrói o núcleo, CLI e testes;
-3. executa todo o CTest, incluindo o motor epistemológico web;
+3. executa todo o CTest, incluindo o renderer web e sua bridge com o núcleo;
 4. verifica TK-O, operadores, TK-0000, TK-0001, benchmark TK-SAIT-001, gates de não-implicação causal, causal space, limites de claims, integridade SQLite, digests e export determinístico;
 5. retorna status diferente de zero quando qualquer gate falha.
 
@@ -173,9 +173,9 @@ Para utilizar a interface web com o grafismo e padrão visual do ecossistema **S
 
 Esta é a única interface de usuário do TinyKernel. A CLI permanece como ferramenta operacional e de automação. Seus recursos incluem:
 
-- **Nível 1 — Home do Laboratório (`Lab Home`)**: Catálogo geral de investigações (`TK-0000`, `TK-0001` de calibração e investigações do usuário), métricas globais e exportação/importação de workspaces;
-- **Nível 2 — Assistente de Nova Investigação (`Wizard TK-000X`)**: Construtor guiado em 6 passos para formular novas perguntas científicas sem codificação: $(P, C, \Phi) \rightarrow R \rightarrow I \rightarrow W \rightarrow E \rightarrow Q$;
-- **Nível 3 — Mesa de Investigação**: trajetória experimental, próxima ação científica, mundos possíveis translúcidos, lente contrafactual, Grafo Causal $G_P = (R, I)$ e depurador epistemológico de claims.
+- **Nível 1 — Home do Laboratório (`Lab Home`)**: Catálogo geral de investigações, métricas globais e backup/restauração integral do workspace SQLite;
+- **Nível 2 — Assistente de Nova Investigação (`Wizard TK-000X`)**: Construtor guiado em 6 passos que bloqueia formulações incompletas e nunca inventa defaults científicos: $(P, C, \Phi) \rightarrow R \rightarrow I \rightarrow W \rightarrow E \rightarrow Q$;
+- **Nível 3 — Mesa de Investigação**: abre em “Agora”, com trajetória e próxima ação; Espaço Causal, Evidência, Claims e Definição são revelados sob demanda.
 
 O servidor expõe uma API local em `/api`. `TK-0000`, `TK-0001`, `TK-SAIT-001` e as
 investigações criadas no navegador são lidas e escritas pelo núcleo C++/SQLite. Criar,
@@ -184,6 +184,12 @@ passam pela mesma biblioteca. Evidências antigas permanecem
 imutáveis; uma revisão acrescenta um novo envelope e invalida adjudicações e claims
 derivados até o recálculo. Estudos com evidência selada não podem ser apagados. A
 interface mostra `CORE C++ • READY` quando essa ponte está ativa.
+
+O advisor da investigação, o ranking de intervenções, as prévias contrafactuais e o
+depurador de claims vêm de uma única `WorkflowProjection` calculada em C++. O modo
+sem servidor exibe apenas uma demonstração somente leitura. O JSON de uma investigação
+é entregue diretamente pelo exportador canônico; o workspace completo é baixado e
+restaurado como SQLite, com integridade verificada antes da troca.
 
 ## Pipeline Epistemológico: Especificação ≠ Observação
 
@@ -198,7 +204,7 @@ Uma investigação passa por 5 fases estritas:
 4. **ADJUDICATED**: Avaliação multidimensional dos *witnesses* constitutivos preregistrados contra os dados observados.
 5. **INFERRED**: Sustentação estrita de claims (L2 de suficiência, L3 de necessidade relativa) condicionada a evidências empíricas efetivas.
 
-O benchmark **`TK-SAIT-001`** (Resiliência de Sistema Agroalimentar Territorial) demonstra essa separação: ele nasce em estado `FORMULATED` com baseline `UNTESTED`, 6 intervenções planejadas e claims abertos, impedindo a tautologia de gerar evidências sintéticas a priori.
+O benchmark histórico **`TK-SAIT-001`** (Resiliência de Sistema Agroalimentar Territorial) demonstra essa separação: ele nasce em estado `FORMULATED` com baseline `UNTESTED`, 6 intervenções planejadas e claims abertos, impedindo a tautologia de gerar evidências sintéticas a priori. Sua concepção de resiliência como estabilidade/capacidade é preservada como registro histórico; uma hipótese posterior baseada no acoplamento Ecológico–Produtivo–Social deverá receber uma nova identidade (`TK-SAIT-002`), nunca reescrever o benchmark anterior.
 
 ## Arquitetura e fundamento
 

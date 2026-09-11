@@ -20,5 +20,7 @@ run_cli(--workspace "${TEST_ROOT}" run TK-0001)
 run_cli(--workspace "${TEST_ROOT}" --json frontier TK-0001)
 run_cli(--workspace "${TEST_ROOT}" --json claims TK-0001)
 run_cli(--workspace "${TEST_ROOT}" export TK-0001)
+run_cli(--workspace "${TEST_ROOT}" project TK-0001)
+run_cli(--workspace "${TEST_ROOT}" integrity)
 
 file(REMOVE_RECURSE "${TEST_ROOT}")

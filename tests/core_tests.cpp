@@ -419,24 +419,73 @@ void web_workflow_transactions() {
   draft.baseline_label = "baseline";
   draft.components = {"state", "update"};
   draft.distinctions = {"state"};
-  draft.relations = {"state->output"};
+  draft.relations = {"state->output", "update->state"};
   draft.temporal_constraints = {"t+1"};
   draft.interventions = {{"remove", "update", ""}};
 
+  auto incomplete_draft = draft;
+  incomplete_draft.context_description.clear();
+  bool incomplete_rejected = false;
+  try { static_cast<void>(tinykernel::experiment::create_study(incomplete_draft)); }
+  catch (const std::invalid_argument &) { incomplete_rejected = true; }
+  require(incomplete_rejected, "core rejects silent scientific defaults");
+
   auto study = tinykernel::experiment::create_study(draft);
+  const auto initial_projection = tinykernel::experiment::workflow_projection_json(study);
+  require(initial_projection.find("\"recommended_action\"") == std::string::npos,
+          "projection uses the stable action schema");
+  require(initial_projection.find("\"intervention_ranking\"") != std::string::npos,
+          "core projects intervention ranking");
+  require(initial_projection.find("\"claim_explanations\"") != std::string::npos,
+          "core projects claim explanations");
   const auto planned_id = study.interventions.front().identity.id;
-  tinykernel::experiment::materialize_intervention(
-      study, planned_id, "TK-WORKFLOW:R:BASE", "remove", "update", "", "controlled removal");
-  const auto target_id = *study.interventions.front().target_realization_id;
+  auto conflicting = study;
+  bool preregistration_rejected = false;
+  try {
+    tinykernel::experiment::materialize_intervention(
+        conflicting, planned_id, "TK-WORKFLOW:R:BASE", "remove", "state", "", "tampered target");
+  } catch (const std::invalid_argument &) {
+    preregistration_rejected = true;
+  }
+  require(preregistration_rejected, "sealed preregistration rejects altered materialization");
+  bool ad_hoc_rejected = false;
+  try {
+    tinykernel::experiment::materialize_intervention(
+        conflicting, "", "TK-WORKFLOW:R:BASE", "remove", "update", "", "ad hoc");
+  } catch (const std::invalid_argument &) { ad_hoc_rejected = true; }
+  require(ad_hoc_rejected, "materialization requires a sealed preregistration");
+  bool phase_gate_rejected = false;
+  try {
+    tinykernel::experiment::materialize_intervention(
+        study, planned_id, "TK-WORKFLOW:R:BASE", "remove", "update", "", "too early");
+  } catch (const std::invalid_argument &) { phase_gate_rejected = true; }
+  require(phase_gate_rejected, "materialization waits for a PRESERVED baseline");
   const std::vector<std::string> dimensions{
       "operational", "causal", "discriminative", "observational", "temporal"};
   for (const auto &dimension : dimensions) {
     tinykernel::experiment::record_observation(
         study, "TK-WORKFLOW:R:BASE", dimension, true, "baseline:" + dimension);
+  }
+  tinykernel::experiment::adjudicate_observations(study);
+  require(tinykernel::experiment::workflow_projection_json(study).find("\"action\":{\"type\":\"infer\"") != std::string::npos,
+          "projection recommends an eligible baseline inference");
+  tinykernel::experiment::materialize_intervention(
+      study, planned_id, "TK-WORKFLOW:R:BASE", "remove", "update", "", "controlled removal");
+  const auto target_id = *study.interventions.front().target_realization_id;
+  const auto derived_structure = std::find_if(study.structures.begin(), study.structures.end(), [&](const auto &item) {
+    return item.realization_id == target_id;
+  });
+  require(derived_structure != study.structures.end(), "derived structure exists");
+  require(derived_structure->parts == std::vector<std::string>{"state"}, "derived structure preserves parts");
+  require(derived_structure->relations == std::vector<std::string>{"state->output"},
+          "removal preserves unaffected causal relations instead of copying parts");
+  for (const auto &dimension : dimensions) {
     tinykernel::experiment::record_observation(
         study, target_id, dimension, dimension != "causal", "intervention:" + dimension);
   }
   tinykernel::experiment::adjudicate_observations(study);
+  require(tinykernel::experiment::workflow_projection_json(study).find("\"action\":{\"type\":\"infer\"") != std::string::npos,
+          "projection recommends newly eligible inference even after a prior phase advance");
   tinykernel::experiment::infer_observed_claims(study);
 
   const auto supported = [&](ClaimLevel level) {
@@ -460,6 +509,10 @@ void web_workflow_transactions() {
   require(stale != study.adjudications.end() && stale->classification == "STALE",
           "revision invalidates derived adjudication");
   require(!supported(ClaimLevel::l3_relative_necessity), "revision reopens derived L3 claim");
+  bool stale_inference_rejected = false;
+  try { tinykernel::experiment::infer_observed_claims(study); }
+  catch (const std::invalid_argument &) { stale_inference_rejected = true; }
+  require(stale_inference_rejected, "stale adjudication blocks inference");
 
   tinykernel::persistence::Repository repository(":memory:");
   repository.initialize();

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import pathlib
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -19,7 +20,12 @@ with tempfile.TemporaryDirectory(prefix="tinykernel-web-api-") as workspace:
     with ThreadPoolExecutor(max_workers=3) as pool:
         concurrent = list(pool.map(bridge.get_study, studies))
     assert [item["investigation"]["id"] for item in concurrent] == studies
+    workspace_snapshot = bridge.export_workspace()
+    assert workspace_snapshot.startswith(b"SQLite format 3\x00")
+    canonical_before = {study_id: bridge.export_study(study_id) for study_id in studies}
     study = bridge.get_study("TK-0001")
+    canonical_export = json.loads(bridge.export_study("TK-0001"))
+    assert canonical_export == study
     assert study["format"] == "tinykernel-investigation-json"
     assert study["investigation"]["status"] == "inferred"
     assert len(study["runs"]) == 3
@@ -39,6 +45,12 @@ with tempfile.TemporaryDirectory(prefix="tinykernel-web-api-") as workspace:
     })
     assert custom["investigation"]["status"] == "formulated"
     planned_id = custom["interventions"][0]["id"]
+    for dimension in ["operational", "causal", "discriminative", "observational", "temporal"]:
+        custom = bridge.observe("TK-WEB-001", {
+            "realization_id": "TK-WEB-001:R:BASE", "dimension": dimension,
+            "satisfied": True, "trace": f"baseline:{dimension}",
+        })
+    custom = bridge.adjudicate("TK-WEB-001")
     custom = bridge.materialize("TK-WEB-001", {
         "planned_id": planned_id,
         "source": "TK-WEB-001:R:BASE",
@@ -48,10 +60,6 @@ with tempfile.TemporaryDirectory(prefix="tinykernel-web-api-") as workspace:
     })
     target_id = custom["interventions"][0]["target_realization_id"]
     for dimension in ["operational", "causal", "discriminative", "observational", "temporal"]:
-        custom = bridge.observe("TK-WEB-001", {
-            "realization_id": "TK-WEB-001:R:BASE", "dimension": dimension,
-            "satisfied": True, "trace": f"baseline:{dimension}",
-        })
         custom = bridge.observe("TK-WEB-001", {
             "realization_id": target_id, "dimension": dimension,
             "satisfied": dimension != "causal", "trace": f"intervention:{dimension}",
@@ -71,5 +79,14 @@ with tempfile.TemporaryDirectory(prefix="tinykernel-web-api-") as workspace:
     stale = next(item for item in revised["adjudications"] if item["run_id"] == intervention_run["id"])
     assert stale["classification"] == "STALE"
     assert not any(claim["status"] == "supported" and claim["level"] == "L3" for claim in revised["claims"])
+
+    restored = bridge.import_workspace(workspace_snapshot)
+    assert restored == ["TK-0000", "TK-0001", "TK-SAIT-001"]
+    assert {study_id: bridge.export_study(study_id) for study_id in restored} == canonical_before
+    try:
+        bridge.import_workspace(b"not a sqlite workspace")
+        raise AssertionError("invalid workspace import should fail")
+    except ValueError:
+        pass
 
 print("PASS: web API reads canonical studies from libtinykernel")

@@ -18,6 +18,35 @@ bool has_component(const Realization &realization, const std::string &component)
   return std::find(realization.components.begin(), realization.components.end(), component) != realization.components.end();
 }
 
+std::string replace_all(std::string value, const std::string &from, const std::string &to) {
+  if (from.empty()) return value;
+  std::size_t position = 0;
+  while ((position = value.find(from, position)) != std::string::npos) {
+    value.replace(position, from.size(), to);
+    position += to.size();
+  }
+  return value;
+}
+
+std::vector<std::string> transformed_relations(const std::vector<std::string> &relations,
+                                               const Intervention &intervention) {
+  std::vector<std::string> result;
+  for (const auto &relation : relations) {
+    if ((intervention.kind == "remove" || intervention.kind == "disable") &&
+        relation.find(intervention.target) != std::string::npos) continue;
+    if (intervention.kind == "replace") {
+      result.push_back(replace_all(relation, intervention.target, intervention.replacement));
+    } else if (intervention.kind == "merge") {
+      auto value = replace_all(relation, intervention.target, "__TK_MERGED__");
+      value = replace_all(value, intervention.replacement, "__TK_MERGED__");
+      result.push_back(replace_all(value, "__TK_MERGED__", intervention.target + "+" + intervention.replacement));
+    } else if (intervention.kind == "perturb") {
+      result.push_back(replace_all(relation, intervention.target, intervention.target + "~perturbed"));
+    } else result.push_back(relation);
+  }
+  return result;
+}
+
 class Tk0000Adapter final : public RealizationAdapter {
 public:
   AdapterObservation observe(const Realization &realization) const override {
@@ -150,8 +179,12 @@ Study Laboratory::execute(Study study, const RealizationAdapter &adapter) const 
     intervention.target_realization_id = result.identity.id;
     intervention.status = "performed";
     study.realizations.push_back(result);
+    const auto source_structure = std::find_if(study.structures.begin(), study.structures.end(),
+        [&](const auto &item) { return item.realization_id == intervention.source_realization_id; });
+    const auto &source_relations = source_structure == study.structures.end()
+        ? study.constitutive_profile.relations : source_structure->relations;
     study.structures.push_back({id(result.identity.id + ":SIGMA"), result.identity.id,
-                                result.components, result.components});
+                                result.components, transformed_relations(source_relations, intervention)});
     record_run(study, result, intervention, adapter, intervention.identity.id.substr(intervention.identity.id.rfind(':') + 1));
   }
 
@@ -251,7 +284,8 @@ Study make_tk_sait_001() {
   };
   s.realizations.push_back({id(id_str + ":R:BASE"), id_str, "sistema agroflorestal completo (SAIT baseline)",
                             baseComps, static_cast<std::uint32_t>(baseComps.size())});
-  s.structures.push_back({id(id_str + ":R:BASE:SIGMA"), id_str + ":R:BASE", baseComps, baseComps});
+  s.structures.push_back({id(id_str + ":R:BASE:SIGMA"), id_str + ":R:BASE",
+                          baseComps, s.constitutive_profile.relations});
   s.provenance.push_back({id(id_str + ":PROV"), "territorial_preregistration", "agroecology_protocol_v1",
                           "2026-09-10T00:00:00-03:00",
                           "Benchmark de sistema agroalimentar territorial formulado com rigor epistemológico."});

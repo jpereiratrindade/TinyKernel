@@ -734,172 +734,30 @@ class TkEngine {
   }
 
   async createCustomInvestigation(config) {
-    return this.createGenericStudy(config);
+    return this.preregisterStudy(config);
   }
 
-  // Universal Wizard Creator: Creates study in state FORMULATED (no synthetic leaps)
-  async createGenericStudy(config) {
-    const studyId = config.id || `TK-${String(Date.now()).slice(-4)}`;
-    const title = config.title || config.phenomenonName || "Nova Investigação";
-    const baselineComponents = config.baselineComponents || ["sensor", "integrator", "threshold", "actuator"];
-
-    const study = {
-      investigation: {
-        id: studyId,
-        schema_version: 2,
-        ontology_version: "0.2.1",
-        title: title,
-        phenomenon_id: `${studyId}:P`,
-        context_id: `${studyId}:C`,
-        profile_id: `${studyId}:PHI`,
-        order_declaration: config.orderDeclaration || "Gamma=active_causal_relations",
-        status: "formulated",
-        category: "user_investigation",
-        created_at: new Date().toISOString()
-      },
-      phenomenon: {
-        id: `${studyId}:P`,
-        schema_version: 2,
-        ontology_version: "0.2.1",
-        name: config.phenomenonName || title,
-        description: config.phenomenonDesc || "Fenômeno experimental formulado pelo pesquisador."
-      },
-      context: {
-        id: `${studyId}:C`,
-        schema_version: 2,
-        ontology_version: "0.2.1",
-        description: config.contextDesc || "Ambiente determinístico com observação rigorosa."
-      },
-      constitutive_profile: {
-        id: `${studyId}:PHI`,
-        schema_version: 2,
-        ontology_version: "0.2.1",
-        dimensions: config.dimensions && config.dimensions.length ? config.dimensions : ["estado observável"],
-        essential_relations: config.essentialRelations && config.essentialRelations.length ? config.essentialRelations : ["componente->resultado"],
-        temporal_bounds: config.temporalBounds && config.temporalBounds.length ? config.temporalBounds : ["estabilidade pós-intervenção"]
-      },
-      witnesses: this.witnesses(studyId),
-      realizations: [
-        {
-          id: `${studyId}:R:BASE`,
-          schema_version: 2,
-          ontology_version: "0.2.1",
-          investigation_id: studyId,
-          label: config.baselineLabel || "baseline inicial",
-          components: baselineComponents,
-          complexity: baselineComponents.length,
-          outcome: "untested",
-          isBaseline: true,
-          x: 40,
-          y: 80
-        }
-      ],
-      interventions: [],
-      runs: [],
-      observations: [],
-      evidence: [],
-      adjudications: [],
-      claims: [
-        {
-          id: `${studyId}:Q:SUFFICIENCY`,
-          schema_version: 2,
-          ontology_version: "0.2.1",
-          subject: `${studyId}:R:BASE`,
-          assertion: "A realização baseline é suficiente sob o protocolo preregistrado.",
-          phenomenon_id: `${studyId}:P`,
-          context_id: `${studyId}:C`,
-          level: "L2",
-          status: "open",
-          limitations: "Aguardando observação empírica.",
-          provenance_id: `${studyId}:PROV`,
-          intervention_scope: [],
-          witness_scope: [`${studyId}:W:OPERATIONAL`, `${studyId}:W:CAUSAL`, `${studyId}:W:DISCRIMINATIVE`, `${studyId}:W:OBSERVATIONAL`, `${studyId}:W:TEMPORAL`]
-        },
-        {
-          id: `${studyId}:Q:RELATIVE_MINIMALITY`,
-          schema_version: 2,
-          ontology_version: "0.2.1",
-          subject: `${studyId}:R:BASE`,
-          assertion: "A realização é minimal na ordem Gamma declarada.",
-          phenomenon_id: `${studyId}:P`,
-          context_id: `${studyId}:C`,
-          level: "L5",
-          status: "open",
-          limitations: "Espaço incompleto: intervenções permanecem não executadas.",
-          provenance_id: `${studyId}:PROV`,
-          intervention_scope: [],
-          witness_scope: []
-        }
-      ],
-      provenance: [
-        {
-          id: `${studyId}:PROV`,
-          schema_version: 2,
-          ontology_version: "0.2.1",
-          source: "interactive_wizard",
-          method: "epistemic specification protocol (TK-O v0.2.1)",
-          timestamp: new Date().toISOString(),
-          detail: "Investigação formulada interativamente no laboratório TinyKernel."
-        }
-      ]
-    };
-
-    // Register initial interventions as PLANNED (not automatically executed)
-    if (config.initialInterventions && config.initialInterventions.length) {
-      config.initialInterventions.forEach((itvCfg, i) => {
-        const itvId = `${studyId}:I:${(itvCfg.kind || "remove").toUpperCase()}_${itvCfg.target_component || i+1}`;
-        study.interventions.push({
-          id: itvId,
-          schema_version: 2,
-          ontology_version: "0.2.1",
-          investigation_id: studyId,
-          kind: itvCfg.kind || "remove",
-          source: `${studyId}:R:BASE`,
-          target: null,
-          target_component: itvCfg.target_component,
-          replacement_component: itvCfg.replacement_component || "",
-          prediction: itvCfg.prediction || "untested",
-          status: "planned"
-        });
-
-        // Formulate corresponding L3 necessity claim for removal perturbations
-        if ((itvCfg.kind === "remove" || !itvCfg.kind) && itvCfg.target_component) {
-          const compUpper = itvCfg.target_component.toUpperCase();
-          study.claims.push({
-            id: `${studyId}:Q:${compUpper}_NECESSITY`,
-            schema_version: 2,
-            ontology_version: "0.2.1",
-            subject: `${studyId}:R:BASE`,
-            assertion: `O componente '${itvCfg.target_component}' é causalmente necessário para a suficiência da baseline.`,
-            phenomenon_id: `${studyId}:P`,
-            context_id: `${studyId}:C`,
-            level: "L3",
-            status: "open",
-            limitations: "Aguardando materialização e observação empírica de perturbação.",
-            provenance_id: `${studyId}:PROV`,
-            intervention_scope: [itvId],
-            witness_scope: [`${studyId}:W:CAUSAL`, `${studyId}:W:TEMPORAL`]
-          });
-        }
-      });
+  async preregisterStudy(config) {
+    if (this.apiAvailable !== true) {
+      throw new Error("Modo de visualização: a pré-registração exige o núcleo C++ conectado.");
     }
-
-    // Record STRUCTURAL_RECORD of the formulation
-    const structArtifact = `investigation=${studyId}\nstatus=FORMULATED\nbaseline=${studyId}:R:BASE\ncomponents=[${baselineComponents.join(",")}]\nplanned_interventions=${study.interventions.length}\n`;
-    const structSha256 = await this.sha256(structArtifact);
-    study.evidence.push({
-      id: `${studyId}:E:FORMULATION_PROTOCOL`,
-      schema_version: 2,
-      ontology_version: "0.2.1",
-      run_id: null,
-      witness_id: null,
-      observation_ids: [],
-      artifact: structArtifact,
-      sha256: structSha256,
-      evidence_type: "STRUCTURAL_RECORD"
+    const payload = {
+      investigation: { id: config.id, title: config.title || config.phenomenonName },
+      phenomenon: { name: config.phenomenonName, description: config.phenomenonDesc },
+      context: { description: config.contextDesc },
+      constitutive_profile: {
+        dimensions: config.dimensions,
+        essential_relations: config.essentialRelations,
+        temporal_bounds: config.temporalBounds
+      },
+      realizations: [{ label: config.baselineLabel, components: config.baselineComponents }],
+      interventions: config.initialInterventions || []
+    };
+    const persisted = await this.apiRequest("/studies", {
+      method: "POST",
+      body: JSON.stringify(payload)
     });
-
-    return study;
+    return this.normalizeStudy(persisted);
   }
 
   // Materialize or apply a structural intervention in the workspace
@@ -907,296 +765,51 @@ class TkEngine {
     if (this.apiAvailable === true && study.runtime_source === "libtinykernel") {
       return this.mutateCoreStudy(study, "interventions", itvCfg);
     }
-    const studyId = study.investigation.id;
-    const itvIndex = study.realizations.length;
-    const kind = itvCfg.kind || "remove";
-    const targetComp = itvCfg.target_component || "";
-    const replComp = itvCfg.replacement_component || "";
-    const sourceRealizationId = itvCfg.source || `${studyId}:R:BASE`;
-
-    const source = study.realizations.find(r => r.id === sourceRealizationId) || study.realizations[0];
-    
-    let newComponents = [...(source.components || [])];
-    let targetLabel = "";
-
-    if (kind === "remove") {
-      newComponents = newComponents.filter(c => c !== targetComp);
-      targetLabel = `sem ${targetComp}`;
-    } else if (kind === "replace") {
-      newComponents = newComponents.map(c => c === targetComp ? replComp : c);
-      targetLabel = `${targetComp} → ${replComp}`;
-    } else if (kind === "disable") {
-      newComponents = newComponents.filter(c => c !== targetComp);
-      targetLabel = `${targetComp} desabilitado`;
-    } else if (kind === "merge") {
-      newComponents = newComponents.filter(c => c !== targetComp && c !== replComp);
-      newComponents.push(`${targetComp}_${replComp}`);
-      targetLabel = `${targetComp}+${replComp} fundidos`;
-    } else if (kind === "perturb") {
-      newComponents = newComponents.map(c => c === targetComp ? `${targetComp}_perturbed` : c);
-      targetLabel = `${targetComp} perturbado`;
-    }
-
-    const targetRealizationId = `${studyId}:R:INT_${itvIndex}`;
-    const yOffset = 30 + (study.realizations.length * 65);
-
-    const derivedRealization = {
-      id: targetRealizationId,
-      schema_version: 2,
-      ontology_version: "0.2.1",
-      investigation_id: studyId,
-      label: targetLabel,
-      components: newComponents,
-      complexity: newComponents.length,
-      outcome: "untested",
-      isBaseline: false,
-      interventionKind: kind,
-      targetComponent: targetComp,
-      x: 340,
-      y: yOffset
-    };
-
-    // Check if there is an existing planned intervention for this target or specific ID
-    let plannedItv = itvCfg.planned_id
-      ? study.interventions.find(i => i.id === itvCfg.planned_id)
-      : study.interventions.find(i => i.kind === kind && i.target_component === targetComp && i.status !== "performed");
-
-    let itvId;
-    if (plannedItv) {
-      plannedItv.source = source.id;
-      plannedItv.target = targetRealizationId;
-      plannedItv.status = "performed";
-      if (itvCfg.execution_type) plannedItv.execution_type = itvCfg.execution_type;
-      if (itvCfg.protocol) plannedItv.protocol = itvCfg.protocol;
-      itvId = plannedItv.id;
-    } else {
-      itvId = `${studyId}:I:${kind.toUpperCase()}_${targetComp || itvIndex}`;
-      plannedItv = {
-        id: itvId,
-        schema_version: 2,
-        ontology_version: "0.2.1",
-        investigation_id: studyId,
-        kind: kind,
-        source: source.id,
-        target: targetRealizationId,
-        target_component: targetComp,
-        replacement_component: replComp,
-        prediction: "BROKEN_CAUSAL",
-        status: "performed",
-        execution_type: itvCfg.execution_type || "computational",
-        protocol: itvCfg.protocol || "",
-        x: 210,
-        y: yOffset + 15
-      };
-      study.interventions.push(plannedItv);
-    }
-
-    study.realizations.push(derivedRealization);
-
-    // Create associated Run for this materialized intervention
-    const runId = `${studyId}:RUN:${targetRealizationId.split(":").slice(2).join("_")}`;
-    if (!study.runs.find(r => r.id === runId || r.target_realization_id === targetRealizationId)) {
-      study.runs.push({
-        id: runId,
-        schema_version: 2,
-        ontology_version: "0.2.1",
-        investigation_id: studyId,
-        intervention_id: itvId,
-        source_realization_id: source.id,
-        target_realization_id: targetRealizationId,
-        status: "untested"
-      });
-    }
-
-    // Record structural assembly record (not empirical evidence)
-    const structArtifact = `run=${studyId}:MATERIALIZED\nsource=${source.id}\nintervention=${itvId}\nrealization=${targetRealizationId}\ncomponents=[${newComponents.join(",")}]\nprotocol=${itvCfg.protocol || "default"}\n`;
-    const structSha256 = await this.sha256(structArtifact);
-    study.evidence.push({
-      id: `${itvId}:E:STRUCTURAL_ASSEMBLY`,
-      schema_version: 2,
-      ontology_version: "0.2.1",
-      run_id: runId,
-      witness_id: `${studyId}:W:OBSERVATIONAL`,
-      observation_ids: [],
-      artifact: structArtifact,
-      sha256: structSha256,
-      evidence_type: "STRUCTURAL_RECORD"
-    });
-
-    if (study.investigation.status === "formulated" || !study.investigation.status) {
-      this.advancePhase(study.investigation, "materialized");
-    }
-
-    return study;
-  }
-
-  // Monotonic Phase Machine
-  advancePhase(investigation, targetPhase) {
-    if (!investigation) return;
-    const order = {
-      unspecified: 0,
-      draft: 1,
-      formulated: 2,
-      preregistered: 2,
-      materialized: 3,
-      observed: 4,
-      adjudicated: 5,
-      inferred: 6,
-      completed: 6,
-      executed: 6
-    };
-    const currentStatus = (investigation.status || "unspecified").toLowerCase();
-    const currentRank = order[currentStatus] || 0;
-    const targetRank = order[targetPhase.toLowerCase()] || 0;
-    if (targetRank >= currentRank) {
-      investigation.status = targetPhase;
-    }
+    throw new Error("Modo de visualização: materializações exigem o núcleo C++ conectado.");
   }
 
   // Read-only orchestration layer: tells the interface what is scientifically
   // possible next without inventing observations or bypassing epistemic gates.
   analyzeWorkflow(study) {
-    const witnesses = study.witnesses || [];
-    const realizations = study.realizations || [];
-    const observations = study.observations || [];
-    const adjudications = study.adjudications || [];
-    const interventions = study.interventions || [];
-    const baseline = realizations.find(r => r.isBaseline || (r.id || "").includes(":BASE")) || realizations[0];
-    const witnessKinds = witnesses.map(w => w.kind);
-    const observedKinds = (realizationId) => new Set(
-      observations.filter(o => o.realization_id === realizationId).map(o => o.witness_kind || o.dimension)
-    );
-    const missingFor = (realizationId) => witnessKinds.filter(kind => !observedKinds(realizationId).has(kind));
-    const baselineMissing = baseline ? missingFor(baseline.id) : witnessKinds;
-    const performed = interventions.filter(i => i.status === "performed" && i.target);
-    const planned = interventions.filter(i => i.status !== "performed");
-    const incompletePerformed = performed
-      .map(i => ({ intervention: i, missing: missingFor(i.target) }))
-      .filter(item => item.missing.length > 0);
-    const completeUnadjudicated = realizations.find(r => {
-      if (missingFor(r.id).length > 0) return false;
-      const run = (study.runs || []).find(item =>
-        item.target_realization_id === r.id || item.result_realization_id === r.id
-      );
-      return !run || !adjudications.some(a => a.run_id === run.id && a.classification !== "STALE");
-    });
-    const hasAdjudication = adjudications.length > 0;
-    const inferred = (study.investigation.status || "").toLowerCase() === "inferred" ||
-      (study.investigation.status || "").toLowerCase() === "executed";
-
-    let action;
-    if (!baseline) {
-      action = { type: "formulate", title: "Definir a realização baseline", reason: "Não existe um mundo de referência para comparar intervenções.", blockers: ["baseline ausente"] };
-    } else if (baselineMissing.length > 0) {
-      action = { type: "observe", title: "Completar a observação da baseline", reason: `A baseline possui ${witnessKinds.length - baselineMissing.length}/${witnessKinds.length} witnesses observados.`, target_realization_id: baseline.id, target_dimension: baselineMissing[0], blockers: baselineMissing };
-    } else if (completeUnadjudicated) {
-      action = { type: "adjudicate", title: "Adjudicar observações completas", reason: `${completeUnadjudicated.label || completeUnadjudicated.id} já possui todos os witnesses necessários.`, blockers: [] };
-    } else if (incompletePerformed.length > 0) {
-      const target = incompletePerformed[0];
-      action = { type: "observe", title: `Observar ${target.intervention.target_component || "realização derivada"}`, reason: `A intervenção foi materializada, mas faltam ${target.missing.length} dimensões empíricas.`, target_realization_id: target.intervention.target, target_dimension: target.missing[0], blockers: target.missing };
-    } else if (hasAdjudication && !inferred) {
-      action = { type: "infer", title: "Inferir claims elegíveis", reason: "Há adjudicações disponíveis para avaliação formal dos claims.", blockers: [] };
-    } else if (planned.length > 0) {
-      const ranked = this.rankInterventions(study);
-      action = { type: "materialize", title: `Explorar ${ranked[0].intervention.kind}(${ranked[0].intervention.target_component})`, reason: ranked[0].reason, intervention_id: ranked[0].intervention.id, blockers: [`${planned.length} possibilidades abertas`] };
-    } else {
-      action = { type: "complete", title: "Revisar a fronteira conhecida", reason: "Não há operações mecânicas pendentes. Revise limitações ou formule uma nova intervenção.", blockers: [] };
-    }
-
-    const phaseNames = ["formulated", "materialized", "observed", "adjudicated", "inferred"];
-    const phaseRank = { unspecified: 0, draft: 0, formulated: 0, preregistered: 0, materialized: 1, observed: 2, adjudicated: 3, inferred: 4, completed: 4, executed: 4 };
-    const currentStatus = (study.investigation.status || "formulated").toLowerCase();
-
+    if (study.workflow_projection) return study.workflow_projection;
     return {
-      current_phase: phaseNames[phaseRank[currentStatus] ?? 0],
-      current_phase_index: phaseRank[currentStatus] ?? 0,
-      phases: phaseNames,
-      action,
-      completeness: {
-        baseline: { observed: witnessKinds.length - baselineMissing.length, total: witnessKinds.length, missing: baselineMissing },
-        performed_interventions: performed.length,
-        planned_interventions: planned.length
-      }
+      current_phase: "formulated", current_phase_index: 0,
+      phases: ["formulated", "materialized", "observed", "adjudicated", "inferred"],
+      action: { type: "unavailable", title: "Conecte o núcleo para orientar o experimento", reason: "A demonstração estática não calcula decisões epistemológicas.", blockers: ["núcleo C++ indisponível"] },
+      completeness: { baseline: { observed: 0, total: 0, missing: [] }, performed_interventions: 0, planned_interventions: 0 },
+      allowed_actions: [], intervention_ranking: [], counterfactual_previews: [], claim_explanations: []
     };
   }
 
   rankInterventions(study) {
-    const openClaims = (study.claims || []).filter(c => c.status !== "supported");
-    return (study.interventions || [])
-      .filter(i => i.status !== "performed")
-      .map(intervention => {
-        const target = (intervention.target_component || "").toLowerCase();
-        const claimMatch = openClaims.some(c =>
-          (c.subject || "").toLowerCase() === target || (c.id || "").toLowerCase().includes(target)
-        );
-        const causalOperator = ["remove", "disable", "replace"].includes(intervention.kind);
-        const score = (claimMatch ? 4 : 0) + (causalOperator ? 2 : 1);
-        return {
-          intervention,
-          score,
-          reason: claimMatch
-            ? "Esta possibilidade testa diretamente um claim aberto e reduz a fronteira experimental."
-            : "Esta possibilidade ainda não foi explorada e amplia a cobertura do espaço causal."
-        };
-      })
-      .sort((a, b) => b.score - a.score || a.intervention.id.localeCompare(b.intervention.id));
+    if (study.workflow_projection) {
+      return (study.workflow_projection.intervention_ranking || []).map(item => ({
+        ...item,
+        intervention: (study.interventions || []).find(intervention => intervention.id === item.intervention_id)
+      })).filter(item => item.intervention);
+    }
+    return [];
   }
 
   previewIntervention(study, interventionOrId) {
-    const intervention = typeof interventionOrId === "string"
-      ? (study.interventions || []).find(i => i.id === interventionOrId)
-      : interventionOrId;
-    if (!intervention) return null;
-    const source = (study.realizations || []).find(r => r.id === intervention.source) || study.realizations[0];
-    if (!source) return null;
-    const before = [...(source.components || [])];
-    const after = [...before];
-    const target = intervention.target_component || "";
-    const replacement = intervention.replacement_component || "";
-    if (intervention.kind === "remove" || intervention.kind === "disable") {
-      for (let index = after.length - 1; index >= 0; index--) if (after[index] === target) after.splice(index, 1);
-    } else if (intervention.kind === "replace") {
-      const index = after.indexOf(target);
-      if (index >= 0) after[index] = replacement || `${target}_replacement`;
-    } else if (intervention.kind === "merge") {
-      const merged = `${target}+${replacement || "component"}`;
-      const filtered = after.filter(c => c !== target && c !== replacement);
-      filtered.push(merged);
-      after.splice(0, after.length, ...filtered);
-    } else if (intervention.kind === "perturb") {
-      const index = after.indexOf(target);
-      if (index >= 0) after[index] = `${target}~perturbed`;
+    const interventionId = typeof interventionOrId === "string" ? interventionOrId : interventionOrId?.id;
+    const projected = (study.workflow_projection?.counterfactual_previews || [])
+      .find(item => item.intervention_id === interventionId);
+    if (projected) {
+      return {
+        ...projected,
+        intervention: (study.interventions || []).find(item => item.id === projected.intervention_id),
+        source: (study.realizations || []).find(item => item.id === projected.source_id)
+      };
     }
-    const affectedClaims = (study.claims || []).filter(c =>
-      (c.subject || "").toLowerCase() === target.toLowerCase() ||
-      (c.id || "").toLowerCase().includes(target.toLowerCase())
-    ).map(c => c.id);
-    return { intervention, source, before, after, removed: before.filter(c => !after.includes(c)), added: after.filter(c => !before.includes(c)), affected_claims: affectedClaims };
+    return null;
   }
 
   explainClaim(study, claimOrId) {
-    const claim = typeof claimOrId === "string"
-      ? (study.claims || []).find(c => c.id === claimOrId)
-      : claimOrId;
-    if (!claim) return null;
-    const baselineRun = (study.runs || []).find(r => (r.id || "").includes("BASELINE"));
-    const baselineAdjudication = baselineRun && (study.adjudications || []).find(a => a.run_id === baselineRun.id);
-    const steps = [{ label: "Baseline adjudicada como PRESERVED", passed: baselineAdjudication?.classification === "PRESERVED" }];
-    if (claim.level === "L3") {
-      const scoped = (study.interventions || []).find(i => (claim.intervention_scope || []).includes(i.id)) ||
-        (study.interventions || []).find(i => i.target_component === claim.subject);
-      const run = scoped && (study.runs || []).find(r => r.intervention_id === scoped.id || r.target_realization_id === scoped.target);
-      const adjudication = run && (study.adjudications || []).find(a => a.run_id === run.id);
-      steps.push({ label: `Intervenção sobre ${claim.subject || "o alvo"} materializada`, passed: scoped?.status === "performed" });
-      steps.push({ label: "Ruptura causal empírica adjudicada", passed: adjudication?.classification === "BROKEN_CAUSAL" });
-    } else if (claim.level === "L5") {
-      const open = (study.interventions || []).filter(i => i.status !== "performed").length;
-      steps.push({ label: "Todas as intervenções preregistradas exploradas", passed: open === 0 });
-      steps.push({ label: "Limite de escopo explicitamente preservado", passed: Boolean(claim.limitations) });
-    }
-    const evidenceCount = (claim.evidence_references || []).length;
-    steps.push({ label: `Evidências vinculadas (${evidenceCount})`, passed: evidenceCount > 0 });
-    return { claim, steps, supported: claim.status === "supported", next_blocker: steps.find(step => !step.passed)?.label || null };
+    const claimId = typeof claimOrId === "string" ? claimOrId : claimOrId?.id;
+    const projected = (study.workflow_projection?.claim_explanations || [])
+      .find(item => item.claim_id === claimId);
+    return projected ? { ...projected, claim: (study.claims || []).find(item => item.id === claimId) } : null;
   }
 
   // Inject real empirical observation trace for a single witness dimension
@@ -1206,14 +819,18 @@ class TkEngine {
     if (typeof param2 === "string" && typeof param3 === "string") {
       realizationId = param2;
       dimension = param3;
-      passed = param4 !== undefined ? param4 : true;
-      rawTrace = param5 || `dimension=${dimension};passed=${passed}`;
+      passed = param4;
+      rawTrace = param5;
     } else {
       const opts = (typeof param2 === "object" ? param2 : param3) || {};
       realizationId = opts.realization_id || opts.realizationId || (typeof param2 === "string" ? param2 : null);
-      dimension = opts.dimension || "causal";
-      passed = opts.passed !== undefined ? opts.passed : (opts.satisfied !== undefined ? opts.satisfied : true);
-      rawTrace = opts.trace || `dimension=${dimension};passed=${passed}`;
+      dimension = opts.dimension;
+      passed = opts.passed !== undefined ? opts.passed : opts.satisfied;
+      rawTrace = opts.trace;
+    }
+    if (!realizationId || !dimension || typeof passed !== "boolean" ||
+        typeof rawTrace !== "string" || !rawTrace.trim()) {
+      throw new Error("Observação empírica exige realização, dimensão, resultado explícito e traço medido.");
     }
 
     if (this.apiAvailable === true && study.runtime_source === "libtinykernel") {
@@ -1224,78 +841,7 @@ class TkEngine {
         trace: rawTrace
       });
     }
-
-    const studyId = study.investigation.id;
-    const realization = study.realizations.find(r => r.id === realizationId) || study.realizations[0];
-    const isBaseline = realization.isBaseline || realization.id.includes(":BASE");
-    const runId = `${studyId}:RUN:${isBaseline ? "BASELINE_EMPIRICAL" : realization.id.split(":").slice(2).join("_")}`;
-
-    // Add or retrieve run
-    let run = study.runs.find(r => r.id === runId);
-    if (!run) {
-      run = {
-        id: runId,
-        schema_version: 2,
-        ontology_version: "0.2.1",
-        investigation_id: studyId,
-        intervention_id: realization.interventionKind ? `${studyId}:I:${realization.interventionKind.toUpperCase()}_${realization.targetComponent || ""}` : null,
-        source_realization_id: isBaseline ? realization.id : `${studyId}:R:BASE`,
-        target_realization_id: realization.id,
-        status: "in_progress",
-        run_type: "EMPIRICAL_EXECUTION"
-      };
-      study.runs.push(run);
-    }
-
-    // Find the specific witness for this dimension
-    const witness = study.witnesses.find(w => w.kind === dimension) || { id: `${studyId}:W:${dimension}`, kind: dimension };
-    const obsId = `${runId}:O:${dimension}`;
-
-    // Update or insert single observation
-    study.observations = (study.observations || []).filter(o => o.id !== obsId);
-    study.observations.push({
-      id: obsId,
-      schema_version: 2,
-      ontology_version: "0.2.1",
-      run_id: runId,
-      realization_id: realization.id,
-      witness_id: witness.id,
-      witness_kind: dimension,
-      outcome: passed ? "satisfied" : "not_satisfied",
-      satisfied: passed
-    });
-
-    const artifact = `run=${runId}\nrealization=${realization.id}\ndimension=${dimension}\nsatisfied=${passed ? "true" : "false"}\nempirical_trace=${rawTrace}\n`;
-    const sha256 = await this.sha256(artifact);
-    const evidenceId = `${runId}:E:${dimension}`;
-
-    // Update or insert single empirical evidence
-    study.evidence = (study.evidence || []).filter(e => e.id !== evidenceId);
-    study.evidence.push({
-      id: evidenceId,
-      schema_version: 2,
-      ontology_version: "0.2.1",
-      run_id: runId,
-      witness_id: witness.id,
-      observation_ids: [obsId],
-      artifact: artifact,
-      sha256: sha256,
-      evidence_type: "EMPIRICAL_OBSERVATION"
-    });
-
-    // Update realization outcome based on recorded empirical observations for this realization
-    const realObs = study.observations.filter(o => o.realization_id === realization.id);
-    const hasBroken = realObs.some(o => !o.satisfied);
-    if (hasBroken) {
-      realization.outcome = "ruptured";
-    } else if (realObs.length >= study.witnesses.length && study.witnesses.length > 0) {
-      realization.outcome = "preserving";
-    } else {
-      realization.outcome = "partially_observed";
-    }
-
-    this.advancePhase(study.investigation, "observed");
-    return study;
+    throw new Error("Modo de visualização: observações exigem o núcleo C++ conectado.");
   }
 
   // Explicit Adjudication: Evaluates all empirical evidence without promoting claims
@@ -1303,114 +849,7 @@ class TkEngine {
     if (this.apiAvailable === true && study.runtime_source === "libtinykernel") {
       return this.mutateCoreStudy(study, "adjudicate", {});
     }
-    const studyId = study.investigation.id;
-    
-    // 1. Check baseline empirical evidence
-    const baseRealization = study.realizations.find(r => r.isBaseline || r.id.includes(":BASE"));
-    const baseObs = baseRealization ? study.observations.filter(o => o.realization_id === baseRealization.id) : [];
-    const baseEmpiricalEv = study.evidence.filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" && e.run_id && e.run_id.includes("BASELINE"));
-
-    const allWitnessesSatisfied = study.witnesses.length > 0 &&
-      study.witnesses.every(w => baseObs.some(o => o.witness_kind === w.kind && o.satisfied));
-
-    if (allWitnessesSatisfied) {
-      if (baseRealization) baseRealization.outcome = "preserving";
-
-      // Record baseline adjudication
-      const baseRunId = `${studyId}:RUN:BASELINE_EMPIRICAL`;
-      study.adjudications = (study.adjudications || []).filter(a => a.run_id !== baseRunId);
-      study.adjudications.push({
-        id: `${baseRunId}:A`,
-        schema_version: 2,
-        ontology_version: "0.2.1",
-        run_id: baseRunId,
-        outcome: "preserving",
-        classification: "PRESERVED",
-        rule: "TK-O-0.2.1:all-constitutive-dimensions-v1",
-        rationale: "Todos os witnesses constitutivos foram empiricamente satisfeitos.",
-        evidence_references: baseEmpiricalEv.map(e => e.id)
-      });
-    } else if (baseObs.length > 0) {
-      if (baseRealization) baseRealization.outcome = "partially_observed";
-
-      const baseRunId = `${studyId}:RUN:BASELINE_EMPIRICAL`;
-      study.adjudications = (study.adjudications || []).filter(a => a.run_id !== baseRunId);
-      study.adjudications.push({
-        id: `${baseRunId}:A`,
-        schema_version: 2,
-        ontology_version: "0.2.1",
-        run_id: baseRunId,
-        outcome: "undetermined",
-        classification: "PARTIALLY_OBSERVED",
-        rule: "TK-O-0.2.1:all-constitutive-dimensions-v1",
-        rationale: `Observação parcial da baseline (${baseObs.filter(o => o.satisfied).length}/${study.witnesses.length} witnesses satisfeitos); não é possível adjudicar PRESERVED.`,
-        evidence_references: baseEmpiricalEv.map(e => e.id)
-      });
-    }
-
-    // 2. Check performed interventions with strict dimensional classification
-    for (const itv of study.interventions) {
-      if (itv.status === "performed" && itv.target) {
-        const targetId = itv.target;
-        const targetObs = study.observations.filter(o => o.realization_id === targetId);
-        const targetEv = study.evidence.filter(e => e.evidence_type === "EMPIRICAL_OBSERVATION" && (e.artifact.includes(targetId) || (e.run_id && e.run_id.includes(targetId))));
-
-        // Retrieve actual empirical run ID
-        let actualRunId = `${studyId}:RUN:${targetId.split(":").slice(2).join("_")}`;
-        const runFound = study.runs.find(r => r.target_realization_id === targetId || r.result_realization_id === targetId);
-        if (runFound) actualRunId = runFound.id;
-
-        if (targetObs.length > 0) {
-          let classification = "PRESERVED";
-          let outcome = "preserving";
-          let rationale = "Todos os witnesses observados foram satisfeitos.";
-
-          const hasBrokenObservational = targetObs.some(o => o.witness_kind === "observational" && !o.satisfied);
-          const hasBrokenCausal = targetObs.some(o => o.witness_kind === "causal" && !o.satisfied);
-          const hasBrokenOperational = targetObs.some(o => o.witness_kind === "operational" && !o.satisfied);
-          const hasBrokenDiscriminative = targetObs.some(o => o.witness_kind === "discriminative" && !o.satisfied);
-          const hasBrokenTemporal = targetObs.some(o => o.witness_kind === "temporal" && !o.satisfied);
-
-          if (hasBrokenObservational) {
-            classification = "WITNESS_COMPROMISED";
-            outcome = "undetermined";
-            rationale = "Aparato observacional incapaz de medir determinismo.";
-          } else if (hasBrokenCausal) {
-            classification = "BROKEN_CAUSAL";
-            outcome = "ruptured";
-            rationale = "Ruptura causal empírica observada após intervenção.";
-          } else if (hasBrokenOperational) {
-            classification = "BROKEN_OPERATIONAL";
-            outcome = "ruptured";
-            rationale = "Ruptura operacional observada após intervenção.";
-          } else if (hasBrokenDiscriminative) {
-            classification = "BROKEN_DISCRIMINATIVE";
-            outcome = "ruptured";
-            rationale = "Ruptura discriminativa observada após intervenção.";
-          } else if (hasBrokenTemporal) {
-            classification = "BROKEN_TEMPORAL";
-            outcome = "ruptured";
-            rationale = "Ruptura temporal observada após intervenção.";
-          }
-
-          study.adjudications = (study.adjudications || []).filter(a => a.run_id !== actualRunId);
-          study.adjudications.push({
-            id: `${actualRunId}:A`,
-            schema_version: 2,
-            ontology_version: "0.2.1",
-            run_id: actualRunId,
-            outcome: outcome,
-            classification: classification,
-            rule: "TK-O-0.2.1:dimensional-adjudication-v1",
-            rationale: rationale,
-            evidence_references: targetEv.map(e => e.id)
-          });
-        }
-      }
-    }
-
-    this.advancePhase(study.investigation, "adjudicated");
-    return study;
+    throw new Error("Modo de visualização: adjudicações exigem o núcleo C++ conectado.");
   }
 
   // Explicit Inference: Evaluates claims from adjudications and promotes supported claims
@@ -1418,68 +857,7 @@ class TkEngine {
     if (this.apiAvailable === true && study.runtime_source === "libtinykernel") {
       return this.mutateCoreStudy(study, "infer", {});
     }
-    const studyId = study.investigation.id;
-
-    // 1. Evaluate baseline sufficiency (L2)
-    const baseRunId = `${studyId}:RUN:BASELINE_EMPIRICAL`;
-    const baseAdj = (study.adjudications || []).find(a => a.run_id === baseRunId && a.classification === "PRESERVED");
-    const suffClaim = (study.claims || []).find(c => c.id.includes(":Q:SUFFICIENCY") || c.level === "L2");
-
-    if (suffClaim) {
-      if (baseAdj) {
-        suffClaim.status = "supported";
-        suffClaim.evidence_references = baseAdj.evidence_references || [];
-        suffClaim.limitations = "Sustentado sob validação empírica de todos os witnesses preregistrados.";
-      } else {
-        suffClaim.status = "open";
-      }
-    }
-
-    // 2. Evaluate relative necessity (L3)
-    for (const itv of study.interventions || []) {
-      if (itv.status === "performed" && itv.target && itv.target_component) {
-        const targetId = itv.target;
-        let actualRunId = `${studyId}:RUN:${targetId.split(":").slice(2).join("_")}`;
-        const runFound = (study.runs || []).find(r => r.target_realization_id === targetId || r.result_realization_id === targetId);
-        if (runFound) actualRunId = runFound.id;
-
-        const itvAdj = (study.adjudications || []).find(a => a.run_id === actualRunId && a.classification === "BROKEN_CAUSAL");
-        const claimId = `${studyId}:Q:${itv.target_component.toUpperCase()}_NECESSITY`;
-        let claim = (study.claims || []).find(c => c.id === claimId || (c.level === "L3" && c.subject === itv.target_component));
-
-        if (baseAdj && itvAdj) {
-          const combinedEv = [...(baseAdj.evidence_references || []), ...(itvAdj.evidence_references || [])];
-          if (!claim) {
-            claim = {
-              id: claimId,
-              schema_version: 2,
-              ontology_version: "0.2.1",
-              subject: itv.target_component,
-              assertion: `A relação associada a '${itv.target_component}' possui necessidade causal empírica neste contexto.`,
-              phenomenon_id: study.investigation.phenomenon_id,
-              context_id: study.investigation.context_id,
-              level: "L3",
-              status: "supported",
-              limitations: "Validado empiricamente sob o contexto e aparato observados.",
-              provenance_id: `${studyId}:PROV`,
-              intervention_scope: [itv.id],
-              witness_scope: [`${studyId}:W:CAUSAL`, `${studyId}:W:TEMPORAL`],
-              evidence_references: combinedEv
-            };
-            study.claims.splice(1, 0, claim);
-          } else {
-            claim.status = "supported";
-            claim.evidence_references = combinedEv;
-            claim.intervention_scope = [itv.id];
-          }
-        } else if (claim) {
-          claim.status = "open";
-        }
-      }
-    }
-
-    this.advancePhase(study.investigation, "inferred");
-    return study;
+    throw new Error("Modo de visualização: inferências exigem o núcleo C++ conectado.");
   }
 
   // Study normalization helper for robust schema compatibility
@@ -1604,17 +982,35 @@ class TkEngine {
   }
 
   async persistStudy(study) {
-    if (this.apiAvailable === true) {
-      if (study.runtime_source === "libtinykernel") return study;
-      const persisted = await this.apiRequest("/studies", {
-        method: "POST",
-        body: JSON.stringify(study)
-      });
-      this.removeLocalStudy(study.investigation.id);
-      return this.replaceStudy(study, persisted);
-    }
-    this.saveStudy(study);
-    return study;
+    if (this.apiAvailable === true && study.runtime_source === "libtinykernel") return study;
+    throw new Error("Modo de visualização: o núcleo C++ não promove estudos locais a estado canônico.");
+  }
+
+  async exportStudy(id) {
+    const response = await fetch(`${this.apiBase}/studies/${encodeURIComponent(id)}/export`, {
+      headers: { Accept: "application/json" }
+    });
+    if (!response.ok) throw new Error(`Exportação canônica indisponível (${response.status}).`);
+    return response.text();
+  }
+
+  async exportWorkspace() {
+    const response = await fetch(`${this.apiBase}/workspace/export`, {
+      headers: { Accept: "application/vnd.sqlite3" }
+    });
+    if (!response.ok) throw new Error(`Exportação do workspace indisponível (${response.status}).`);
+    return response.blob();
+  }
+
+  async importWorkspace(file) {
+    const response = await fetch(`${this.apiBase}/workspace/import`, {
+      method: "POST",
+      headers: { "Content-Type": "application/vnd.sqlite3", Accept: "application/json" },
+      body: file
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `Importação rejeitada (${response.status}).`);
+    return payload;
   }
 
   // Workspace Storage Management (Local Repository)
@@ -1683,24 +1079,7 @@ class TkEngine {
 
   saveStudy(study) {
     if (study && study.runtime_source === "libtinykernel") return true;
-    if (typeof localStorage === "undefined") return;
-    try {
-      const normalized = this.normalizeStudy(study);
-      if (!normalized || !normalized.investigation || !normalized.investigation.id) return;
-      const raw = localStorage.getItem(this.storageKey);
-      let list = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(list)) list = [];
-      list = list.filter(s => {
-        const sid = s && s.investigation && s.investigation.id ? s.investigation.id : (s && s.id ? s.id : null);
-        return sid !== normalized.investigation.id;
-      });
-      list.push(normalized);
-      localStorage.setItem(this.storageKey, JSON.stringify(list));
-      return true;
-    } catch (e) {
-      console.warn("Falha ao salvar no localStorage", e);
-      return false;
-    }
+    return false;
   }
 
   async deleteStudy(id, study = null) {
@@ -1709,24 +1088,9 @@ class TkEngine {
       await this.apiRequest(`/studies/${encodeURIComponent(id)}`, { method: "DELETE" });
       return;
     }
-    this.removeLocalStudy(id);
+    throw new Error("Modo de visualização: exclusões exigem o núcleo C++ conectado.");
   }
 
-  removeLocalStudy(id) {
-    if (typeof localStorage === "undefined") return;
-    try {
-      const raw = localStorage.getItem(this.storageKey);
-      let list = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(list)) list = [];
-      list = list.filter(s => {
-        const sid = s && s.investigation && s.investigation.id ? s.investigation.id : (s && s.id ? s.id : null);
-        return sid !== id;
-      });
-      localStorage.setItem(this.storageKey, JSON.stringify(list));
-    } catch (e) {
-      console.warn("Falha ao deletar do localStorage", e);
-    }
-  }
 }
 
 // Global instance & export

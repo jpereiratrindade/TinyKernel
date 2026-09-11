@@ -36,5 +36,6 @@ void record_observation(ontology::Study &study, const std::string &realization_i
                         const std::string &trace);
 void adjudicate_observations(ontology::Study &study);
 void infer_observed_claims(ontology::Study &study);
+[[nodiscard]] std::string workflow_projection_json(const ontology::Study &study);
 
 } // namespace tinykernel::experiment

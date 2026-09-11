@@ -10,8 +10,10 @@ import json
 import os
 import pathlib
 import socketserver
+import sqlite3
 import subprocess
 import sys
+import tempfile
 import threading
 import urllib.parse
 import webbrowser
@@ -31,14 +33,17 @@ class CoreBridge:
 
     def _run(self, *arguments, input_text=None):
         command = [str(self.cli), "--workspace", str(self.workspace), *arguments]
-        # The browser loads cards concurrently. Each CLI invocation initializes
-        # the SQLite repository, so serialize processes for one workspace.
         with self._lock:
-            completed = subprocess.run(command, cwd=REPO_ROOT, text=True, input=input_text,
-                                       capture_output=True, check=False)
+            completed = self._execute(command, input_text=input_text)
         if completed.returncode != 0:
             raise RuntimeError(completed.stderr.strip() or completed.stdout.strip() or "falha no núcleo TinyKernel")
         return completed.stdout
+
+    def _execute(self, command, input_text=None):
+        # The browser loads cards concurrently. Each CLI invocation initializes
+        # the SQLite repository, so callers serialize processes for one workspace.
+        return subprocess.run(command, cwd=REPO_ROOT, text=True, input=input_text,
+                              capture_output=True, check=False)
 
     def initialize(self):
         self.workspace.mkdir(parents=True, exist_ok=True)
@@ -60,6 +65,46 @@ class CoreBridge:
 
     def get_study(self, study_id):
         return json.loads(self._run("show", study_id, "--json"))
+
+    def export_study(self, study_id):
+        return self._run("export", study_id).encode("utf-8")
+
+    def project_study(self, study_id):
+        return json.loads(self._run("project", study_id))
+
+    def export_workspace(self):
+        database = self.workspace / "tinykernel.sqlite3"
+        with self._lock:
+            if not database.exists():
+                raise RuntimeError("workspace não inicializado")
+            with tempfile.TemporaryDirectory(prefix="tinykernel-export-", dir=self.workspace.parent) as folder:
+                snapshot = pathlib.Path(folder) / "tinykernel.sqlite3"
+                source = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+                target = sqlite3.connect(snapshot)
+                try:
+                    source.backup(target)
+                finally:
+                    target.close()
+                    source.close()
+                return snapshot.read_bytes()
+
+    def import_workspace(self, content):
+        if not content.startswith(b"SQLite format 3\x00"):
+            raise ValueError("arquivo não é um workspace SQLite do TinyKernel")
+        self.workspace.parent.mkdir(parents=True, exist_ok=True)
+        with self._lock, tempfile.TemporaryDirectory(prefix="tinykernel-import-", dir=self.workspace.parent) as folder:
+            candidate = pathlib.Path(folder) / "tinykernel.sqlite3"
+            candidate.write_bytes(content)
+            command = [str(self.cli), "--workspace", folder, "integrity"]
+            completed = self._execute(command)
+            if completed.returncode != 0:
+                raise ValueError(completed.stderr.strip() or "workspace reprovado na verificação de integridade")
+            for suffix in ("-wal", "-shm"):
+                sidecar = pathlib.Path(f"{self.workspace / 'tinykernel.sqlite3'}{suffix}")
+                if sidecar.exists():
+                    sidecar.unlink()
+            os.replace(candidate, self.workspace / "tinykernel.sqlite3")
+        return self.list_studies()
 
     def run_study(self, study_id):
         self._run("run", study_id, "--json")
@@ -85,7 +130,7 @@ class CoreBridge:
             "title": investigation.get("title") or phenomenon.get("name", ""),
             "phenomenon_description": phenomenon.get("description") or phenomenon.get("definition", ""),
             "context_description": context.get("description", ""),
-            "baseline_label": baseline.get("label", "baseline completa"),
+            "baseline_label": baseline.get("label", ""),
             "component": baseline.get("components", []),
             "distinction": profile.get("dimensions") or profile.get("distinctions", []),
             "relation": profile.get("essential_relations") or profile.get("relations", []),
@@ -99,7 +144,7 @@ class CoreBridge:
     def materialize(self, study_id, payload):
         return self._mutation("materialize", study_id, {
             "planned_id": payload.get("planned_id", ""),
-            "source_id": payload.get("source") or f"{study_id}:R:BASE",
+            "source_id": payload.get("source", ""),
             "kind": payload.get("kind", ""),
             "target": payload.get("target_component", ""),
             "replacement": payload.get("replacement_component", ""),
@@ -143,6 +188,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/health":
             return "health", None
+        if path == "/api/workspace/export":
+            return "workspace_export", None
+        if path == "/api/workspace/import":
+            return "workspace_import", None
         if path == "/api/studies":
             return "list", None
         prefix = "/api/studies/"
@@ -154,6 +203,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "/observations": "observe",
                 "/adjudicate": "adjudicate",
                 "/infer": "infer",
+                "/export": "export",
+                "/analysis": "analysis",
             }
             for suffix, action in actions.items():
                 if remainder.endswith(suffix):
@@ -173,6 +224,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 elif action == "get":
                     payload = self.bridge.get_study(study_id)
                     payload["runtime_source"] = "libtinykernel"
+                    payload["workflow_projection"] = self.bridge.project_study(study_id)
+                elif action == "analysis":
+                    payload = self.bridge.project_study(study_id)
+                elif action == "export":
+                    return self._binary_response(200, self.bridge.export_study(study_id),
+                        "application/json; charset=utf-8", f'{study_id}.json')
+                elif action == "workspace_export":
+                    return self._binary_response(200, self.bridge.export_workspace(),
+                        "application/vnd.sqlite3", "tinykernel-workspace.sqlite3")
                 else:
                     return self._json_response(405, {"error": "use POST para executar uma investigação"})
                 return self._json_response(200, payload)
@@ -182,6 +242,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         action, study_id = self._api_route()
+        if action == "workspace_import":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 100_000_000:
+                    raise ValueError("workspace ausente ou maior que 100 MB")
+                studies = self.bridge.import_workspace(self.rfile.read(length))
+                return self._json_response(200, {"studies": studies, "source": "libtinykernel"})
+            except Exception as error:
+                return self._json_response(400, {"error": str(error)})
         if action not in {"list", "run", "materialize", "observe", "adjudicate", "infer"}:
             return self._json_response(404, {"error": "endpoint não encontrado"})
         try:
@@ -199,6 +268,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             else:
                 payload = self.bridge.infer(study_id)
             payload["runtime_source"] = "libtinykernel"
+            projection_id = study_id or payload.get("investigation", {}).get("id")
+            payload["workflow_projection"] = self.bridge.project_study(projection_id)
             return self._json_response(201 if action == "list" else 200, payload)
         except Exception as error:
             return self._json_response(400, {"error": str(error)})
@@ -220,6 +291,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if not isinstance(value, dict):
             raise ValueError("o corpo JSON deve ser um objeto")
         return value
+
+    def _binary_response(self, status, body, content_type, filename):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def end_headers(self):
         self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')

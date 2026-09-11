@@ -48,7 +48,7 @@ std::filesystem::path database_path(const Arguments &arguments) {
 void usage() {
   std::cout << "TinyKernel " << tinykernel::version << "\n"
       << "usage: tinykernel [--workspace PATH] [--json] COMMAND [ARG]\n"
-      << "commands: version, verify, init, list, show, run, experiment, create, materialize, observe, adjudicate, infer, delete, frontier, claims, export\n";
+      << "commands: version, verify, init, integrity, list, show, run, experiment, create, materialize, observe, adjudicate, infer, delete, frontier, claims, export, project\n";
 }
 
 int hex_digit(const char value) {
@@ -183,6 +183,13 @@ int main(int argc, char **argv) {
 
     tinykernel::persistence::Repository repository(database_path(arguments));
     repository.initialize();
+    if (command == "integrity") {
+      std::string detail;
+      if (!repository.verify_integrity(detail)) throw std::runtime_error(detail);
+      for (const auto &study_id : repository.list()) static_cast<void>(repository.load(study_id));
+      std::cout << "{\"status\":\"ready\",\"detail\":\"" << detail << "\"}\n";
+      return 0;
+    }
     if (command == "list") {
       const auto ids = repository.list();
       if (arguments.json) {
@@ -267,6 +274,10 @@ int main(int argc, char **argv) {
                      << "Status: " << study.investigation.status << '\n'
                      << "Realizations: " << study.realizations.size() << ", runs: " << study.runs.size()
                      << ", evidence: " << study.evidence.size() << '\n';
+      return 0;
+    }
+    if (command == "project") {
+      std::cout << tinykernel::experiment::workflow_projection_json(study) << '\n';
       return 0;
     }
     if (command == "frontier") {

@@ -22,16 +22,20 @@ CLI ── libtinykernel ── ontology
                     └─ persistence (SQLite + canonical JSON)
 
 Web ── Mesa de Investigação ── API local ── CLI/libtinykernel
-                         └──── engine/projeções no navegador
+                                      ├──── WorkflowProjection
+                                      └──── SQLite + JSON canônico
 ```
 
 O produto possui uma única interface de usuário: a Mesa de Investigação web. A CLI
 permanece como superfície operacional do `libtinykernel`. A API local fornece as
 investigações canônicas e personalizadas a partir do C++/SQLite. Criação, materialização,
 observação, adjudicação e inferência percorrem o fluxo transacional do núcleo; estudos
-com evidência selada não podem ser apagados.
-O engine do navegador conserva projeções e um fallback local para abertura estática,
-mas não é a autoridade persistente quando a API está conectada.
+com evidência selada não podem ser apagados. O advisor, o ranking contrafactual e a
+explicação de claims são calculados em `WorkflowProjection` pelo núcleo. Desconectado,
+o navegador apresenta referências embarcadas em modo demonstração somente leitura.
+
+Exportações individuais são bytes do `deterministic_export()`; exportação e restauração
+integral de workspace usam o banco SQLite canônico, validado antes da substituição.
 
 ## Ontologia materializada
 
@@ -91,6 +95,6 @@ produz bytes idênticos.
 ## READY e incompletude
 
 `./bin/tinykernel verify` configura, constrói, executa todos os testes CTest (incluindo
-o motor epistemológico web) e roda os invariantes internos. Um resultado `READY` significa que o
+os contratos da interface web com o núcleo) e roda os invariantes internos. Um resultado `READY` significa que o
 estado material é reproduzível. As intervenções planejadas e a ausência de evidência
 L4–L8 mantêm o sistema `INCOMPLETE BY DESIGN`.
